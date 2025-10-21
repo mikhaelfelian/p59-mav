@@ -8,7 +8,7 @@ class Filters extends BaseConfig
 	// and simpler to change out script that's used.
 	public $aliases = [
 		'csrf'     => \CodeIgniter\Filters\CSRF::class,
-		'toolbar'  => \CodeIgniter\Filters\DebugToolbar::class,
+		//'toolbar'  => \CodeIgniter\Filters\DebugToolbar::class,
 		'honeypot' => \CodeIgniter\Filters\Honeypot::class,
 		'bootstrap' => \App\Filters\Bootstrap::class,
 	];
@@ -21,7 +21,7 @@ class Filters extends BaseConfig
 			'bootstrap',
 		],
 		'after'  => [
-			'toolbar',
+			//'toolbar',
 			//'honeypot'
 		],
 	];
