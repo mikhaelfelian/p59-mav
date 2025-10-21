@@ -34,6 +34,27 @@ $routes->setAutoRoute(true);
 /* $routes->get('/', 'Home::index');
 $routes->setTranslateURIDashes(true);
  */
+
+// Item Category Routes
+$routes->group('item_category', function($routes) {
+    $routes->get('/', 'Item_Category::index');
+    $routes->get('add', 'Item_Category::add');
+    $routes->get('edit', 'Item_Category::edit');
+    $routes->post('store', 'Item_Category::store');
+    $routes->get('delete', 'Item_Category::delete');
+    $routes->post('getDataDT', 'Item_Category::getDataDT');
+});
+
+// Also add routes with dashes for compatibility
+$routes->group('item-category', function($routes) {
+    $routes->get('/', 'Item_Category::index');
+    $routes->get('add', 'Item_Category::add');
+    $routes->get('edit', 'Item_Category::edit');
+    $routes->post('store', 'Item_Category::store');
+    $routes->get('delete', 'Item_Category::delete');
+    $routes->post('toggleStatus', 'Item_Category::toggleStatus');
+    $routes->post('getDataDT', 'Item_Category::getDataDT');
+});
  
 /**
  * --------------------------------------------------------------------
