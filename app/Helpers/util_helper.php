@@ -310,7 +310,7 @@ function show_alert($message, $title = null, $dismiss = true) {
 	}
 	
 	if (!$title) {
-		switch ($type) {
+		switch ($type ?? 'success') {
 			case 'error' :
 				$title = 'ERROR !!!';
 				$icon_type = 'error';
