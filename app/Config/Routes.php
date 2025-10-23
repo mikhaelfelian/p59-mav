@@ -35,25 +35,89 @@ $routes->setAutoRoute(true);
 $routes->setTranslateURIDashes(true);
  */
 
-// Item Category Routes
-$routes->group('item_category', function($routes) {
-    $routes->get('/', 'Item_Category::index');
-    $routes->get('add', 'Item_Category::add');
-    $routes->get('edit', 'Item_Category::edit');
-    $routes->post('store', 'Item_Category::store');
-    $routes->get('delete', 'Item_Category::delete');
-    $routes->post('getDataDT', 'Item_Category::getDataDT');
+// // Item Category Routes
+// $routes->group('item_category', function($routes) {
+//     $routes->get('/', 'Item_Category::index');
+//     $routes->get('add', 'Item_Category::add');
+//     $routes->get('edit', 'Item_Category::edit');
+//     $routes->post('store', 'Item_Category::store');
+//     $routes->get('delete', 'Item_Category::delete');
+//     $routes->post('getDataDT', 'Item_Category::getDataDT');
+// });
+
+// // Also add routes with dashes for compatibility
+// $routes->group('item-category', function($routes) {
+//     $routes->get('/', 'Item_Category::index');
+//     $routes->get('add', 'Item_Category::add');
+//     $routes->get('edit', 'Item_Category::edit');
+//     $routes->post('store', 'Item_Category::store');
+//     $routes->get('delete', 'Item_Category::delete');
+//     $routes->post('toggleStatus', 'Item_Category::toggleStatus');
+//     $routes->post('getDataDT', 'Item_Category::getDataDT');
+// });
+
+// // Item Brand Routes
+$routes->group('item_brand', function($routes) {
+    $routes->get('/', 'Item_Brand::index');
+    $routes->get('add', 'Item_Brand::add');
+    $routes->get('edit', 'Item_Brand::edit');
+    $routes->post('store', 'Item_Brand::store');
+    $routes->post('delete', 'Item_Brand::delete');
+    $routes->post('toggleStatus', 'Item_Brand::toggleStatus');
+    $routes->post('getBrandDT', 'Item_Brand::getBrandDT');
 });
 
 // Also add routes with dashes for compatibility
-$routes->group('item-category', function($routes) {
-    $routes->get('/', 'Item_Category::index');
-    $routes->get('add', 'Item_Category::add');
-    $routes->get('edit', 'Item_Category::edit');
-    $routes->post('store', 'Item_Category::store');
-    $routes->get('delete', 'Item_Category::delete');
-    $routes->post('toggleStatus', 'Item_Category::toggleStatus');
-    $routes->post('getDataDT', 'Item_Category::getDataDT');
+$routes->group('item-brand', function($routes) {
+    $routes->get('/', 'Item_Brand::index');
+    $routes->get('add', 'Item_Brand::add');
+    $routes->get('edit', 'Item_Brand::edit');
+    $routes->post('store', 'Item_Brand::store');
+    $routes->post('delete', 'Item_Brand::delete');
+    $routes->post('toggleStatus', 'Item_Brand::toggleStatus');
+    $routes->post('getBrandDT', 'Item_Brand::getBrandDT');
+});
+
+// Item Spec Routes
+$routes->group('item_spec', function($routes) {
+    $routes->get('/', 'Item_Spec::index');
+    $routes->get('add', 'Item_Spec::add');
+    $routes->get('edit', 'Item_Spec::edit');
+    $routes->post('store', 'Item_Spec::store');
+    $routes->post('delete', 'Item_Spec::delete');
+    $routes->post('toggleStatus', 'Item_Spec::toggleStatus');
+    $routes->post('getSpecDT', 'Item_Spec::getSpecDT');
+});
+
+// Also add routes with dashes for compatibility
+$routes->group('item-spec', function($routes) {
+    $routes->get('/', 'Item_Spec::index');
+    $routes->get('add', 'Item_Spec::add');
+    $routes->get('edit', 'Item_Spec::edit');
+    $routes->post('store', 'Item_Spec::store');
+    $routes->post('delete', 'Item_Spec::delete');
+    $routes->post('toggleStatus', 'Item_Spec::toggleStatus');
+    $routes->post('getSpecDT', 'Item_Spec::getSpecDT');
+});
+
+// Item Routes
+$routes->group('item', function($routes) {
+    $routes->get('/', 'Item::index');
+    $routes->get('add', 'Item::add');
+    $routes->get('edit', 'Item::edit');
+    $routes->post('store', 'Item::store');
+    $routes->post('delete', 'Item::delete');
+    $routes->post('toggleStatus', 'Item::toggleStatus');
+    $routes->post('getItemDT', 'Item::getItemDT');
+});
+
+// Frontend Routes
+$routes->group('frontend', function($routes) {
+    $routes->get('/', 'Frontend::index');
+    $routes->get('about', 'Frontend::about');
+    $routes->get('contact', 'Frontend::contact');
+    $routes->post('store', 'Frontend::store');
+    $routes->get('item/(:num)', 'Frontend::item/$1');
 });
  
 /**
