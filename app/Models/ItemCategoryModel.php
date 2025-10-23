@@ -119,25 +119,42 @@ class ItemCategoryModel extends Model
 
     /**
      * Generate auto-increment code for category
-     * Format: CAT001, CAT002, etc.
+     * Format: XXYY001, XXYY002, etc.
+     * XX = prefix from name (first 2 letters, uppercase, e.g. 'CATEGORY' => 'CA')
+     * YY = last 2 digits of year (e.g. 2025 => 25)
+     * 001 = sort number, 3 digits
+     * Example: CA25001 for the first "CATEGORY" in 2025
+     *
+     * @param string $name The category name for prefix
+     * @return string Generated code
      */
-    public function generateCategoryCode()
+    public function generateCode($name)
     {
-        // Get the last record to determine next number
-        $lastRecord = $this->orderBy('id', 'DESC')->first();
-        
+        // Get the first two uppercase letters from the name
+        $prefix = strtoupper(substr(preg_replace('/\s+/', '', $name), 0, 2));
+
+        // Last 2 digits of current year
+        $year = date('Y');
+        $yearSuffix = substr($year, -2);
+
+        // Build base prefix for LIKE query, e.g. CA25
+        $codePrefix = $prefix . $yearSuffix;
+
+        // Get last record for this name/year code prefix
+        $lastRecord = $this->like('code', $codePrefix, 'after')->orderBy('id', 'DESC')->first();
+
         if (!$lastRecord || empty($lastRecord->code)) {
-            // If no records or no code, start with CAT001
-            return 'CAT001';
+            // If no records or code, start with NNYY001
+            return $codePrefix . '001';
         }
-        
-        // Extract number from last code (e.g., CAT001 -> 001)
-        if (preg_match('/CAT(\d+)/', $lastRecord->code, $matches)) {
+
+        // Extract running number, e.g., CA25001 => 001
+        if (preg_match('/^' . preg_quote($codePrefix, '/') . '(\d{3,})$/', $lastRecord->code, $matches)) {
             $nextNumber = intval($matches[1]) + 1;
-            return 'CAT' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+            return $codePrefix . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
         }
-        
-        // Fallback if pattern doesn't match
-        return 'CAT001';
+
+        // Fallback
+        return $codePrefix . '001';
     }
 }

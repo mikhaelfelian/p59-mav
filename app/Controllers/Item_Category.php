@@ -161,7 +161,7 @@ class Item_Category extends BaseController
             // Insert new record - generate new code
             $data = [
                 'user_id'     => $userId,
-                'code'        => $this->model->generateCategoryCode(), // Auto-generate code
+                'code'        => $this->model->generateCode($category), // Auto-generate code
                 'category'    => $category,
                 'slug'        => $slug,
                 'description' => $description,
