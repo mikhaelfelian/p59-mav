@@ -16,8 +16,8 @@ if (file_exists(SYSTEMPATH . 'Config/Routes.php'))
  * --------------------------------------------------------------------
  */
 $routes->setDefaultNamespace('App\Controllers');
-$routes->get('/', 'Login::index');
-$routes->setDefaultController('Login');
+$routes->get('/', 'Frontend::index');
+$routes->setDefaultController('Frontend');
 $routes->setDefaultMethod('index');
 $routes->setTranslateURIDashes(true);
 $routes->set404Override();
@@ -34,27 +34,6 @@ $routes->setAutoRoute(true);
 /* $routes->get('/', 'Home::index');
 $routes->setTranslateURIDashes(true);
  */
-
-// // Item Category Routes
-// $routes->group('item_category', function($routes) {
-//     $routes->get('/', 'Item_Category::index');
-//     $routes->get('add', 'Item_Category::add');
-//     $routes->get('edit', 'Item_Category::edit');
-//     $routes->post('store', 'Item_Category::store');
-//     $routes->get('delete', 'Item_Category::delete');
-//     $routes->post('getDataDT', 'Item_Category::getDataDT');
-// });
-
-// // Also add routes with dashes for compatibility
-// $routes->group('item-category', function($routes) {
-//     $routes->get('/', 'Item_Category::index');
-//     $routes->get('add', 'Item_Category::add');
-//     $routes->get('edit', 'Item_Category::edit');
-//     $routes->post('store', 'Item_Category::store');
-//     $routes->get('delete', 'Item_Category::delete');
-//     $routes->post('toggleStatus', 'Item_Category::toggleStatus');
-//     $routes->post('getDataDT', 'Item_Category::getDataDT');
-// });
 
 // // Item Brand Routes
 $routes->group('item_brand', function($routes) {
@@ -109,6 +88,19 @@ $routes->group('item', function($routes) {
     $routes->post('delete', 'Item::delete');
     $routes->post('toggleStatus', 'Item::toggleStatus');
     $routes->post('getItemDT', 'Item::getItemDT');
+});
+
+// Item Agent Routes
+$routes->group('item-agent', function($routes) {
+    $routes->get('/', 'Item_agent::index');
+    $routes->get('add', 'Item_agent::add');
+    $routes->get('edit', 'Item_agent::edit');
+    $routes->post('store', 'Item_agent::store');
+    $routes->post('delete', 'Item_agent::delete');
+    $routes->post('toggleStatus', 'Item_agent::toggleStatus');
+    $routes->post('getItemAgentDT', 'Item_agent::getItemAgentDT');
+    $routes->get('upload', 'Item_agent::upload');
+    $routes->post('upload', 'Item_agent::upload');
 });
 
 // Frontend Routes
