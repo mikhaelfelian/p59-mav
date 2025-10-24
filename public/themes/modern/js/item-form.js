@@ -31,6 +31,13 @@ $(document).ready(function() {
             // Let the link work normally - no preventDefault
         });
 
+        // Event tombol detail
+        $(document).on('click', '.btn-detail', function (e) {
+            e.preventDefault();
+            var id = $(this).data('id');
+            showDetail(id);
+        });
+
         // Event tombol edit - redirect to edit page
         $(document).on('click', '.btn-edit', function (e) {
             var id = $(this).data('id');
@@ -226,4 +233,40 @@ $(document).ready(function() {
             console.error('TinyMCE is not loaded. Please check if the script is included properly.');
         }
     }, 500);
+    
+    // Fungsi untuk menampilkan detail item
+    function showDetail(id) {
+        var current_url = base_url + 'item';
+        var $bootbox = bootbox.dialog({
+            title: 'Detail Item',
+            message: '<div class="text-center text-secondary"><div class="spinner-border"></div></div>',
+            buttons: {
+                success: {
+                    label: 'Tutup',
+                    className: 'btn-secondary'
+                }
+            }
+        });
+        $bootbox.find('.modal-dialog').css('max-width', '1000px');
+        var $button = $bootbox.find('button').prop('disabled', true);
+        
+        var detailUrl = current_url + '/detail?id=' + id;
+        
+        $.ajax({
+            url: detailUrl,
+            type: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            success: function(html){
+                $button.prop('disabled', false);
+                $bootbox.find('.modal-body').empty().append(html);
+            },
+            error: function(xhr, status, error) {
+                $button.prop('disabled', false);
+                console.log('Detail Error:', xhr.responseText);
+                $bootbox.find('.modal-body').html('<div class="alert alert-danger">Error loading detail: ' + error + '</div>');
+            }
+        });
+    }
 });

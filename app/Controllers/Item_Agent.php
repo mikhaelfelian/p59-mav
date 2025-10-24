@@ -44,7 +44,7 @@ class Item_Agent extends BaseController
         if (in_array('read_all', $this->userPermission) || !in_array('read_own', $this->userPermission)) {
             // User has read_all or no specific read_own restriction
             $this->data['agents'] = $this->agentModel
-                ->select('agent.id, agent.code, agent.name, agent.is_active')
+                ->select('agent.id, agent.code, agent.name as agent, agent.is_active')
                 ->join('user_role_agent', 'user_role_agent.agent_id = agent.id')
                 ->join('user', 'user.id_user = user_role_agent.user_id')
                 ->where('agent.is_active', '1')
@@ -54,7 +54,7 @@ class Item_Agent extends BaseController
             // User has read_own but not read_all - only show agents they are assigned to
             $userId = $this->user['id_user'];
             $this->data['agents'] = $this->agentModel
-                ->select('agent.id, agent.code, agent.name, agent.is_active')
+                ->select('agent.id, agent.code, agent.name as agent, agent.is_active')
                 ->join('user_role_agent', 'user_role_agent.agent_id = agent.id')
                 ->join('user', 'user.id_user = user_role_agent.user_id')
                 ->where('user_role_agent.user_id', $userId)
@@ -84,7 +84,7 @@ class Item_Agent extends BaseController
 
         // Get agents for dropdown
         $this->data['agents'] = $this->agentModel
-            ->select('agent.id, agent.code, agent.name, agent.is_active')
+            ->select('agent.id, agent.code, agent.name as agent, agent.is_active')
             ->join('user_role_agent', 'user_role_agent.agent_id = agent.id')
             ->join('user', 'user.id_user = user_role_agent.user_id')
             ->where('agent.is_active', '1')
@@ -138,7 +138,7 @@ class Item_Agent extends BaseController
             ->findAll();
 
         $this->data['agents'] = $this->agentModel
-            ->select('agent.id, agent.code, agent.name, agent.is_active')
+            ->select('agent.id, agent.code, agent.name as agent, agent.is_active')
             ->join('user_role_agent', 'user_role_agent.agent_id = agent.id')
             ->join('user', 'user.id_user = user_role_agent.user_id')
             ->where('agent.is_active', '1')
@@ -500,8 +500,8 @@ class Item_Agent extends BaseController
                 $action .= '<button class="btn btn-sm btn-primary btn-edit rounded-0" data-id="' . ($itemAgent ? $itemAgent->id : $item->id) . '">
                     <i class="fa fa-edit"></i></button>';
             }
-            if ($this->hasPermissionPrefix('delete')) {
-                $action .= '<button class="btn btn-sm btn-danger btn-delete rounded-0" data-id="' . ($itemAgent ? $itemAgent->id : $item->id) . '" data-name="' . $item->name . '">
+            if ($this->hasPermissionPrefix('delete') && $itemAgent) {
+                $action .= '<button class="btn btn-sm btn-danger btn-delete rounded-0" data-id="' . $itemAgent->id . '" data-name="' . $item->name . '">
                     <i class="fa fa-trash"></i></button>';
             }
 
@@ -653,7 +653,7 @@ class Item_Agent extends BaseController
 
         // Get agents for dropdown
         $this->data['agents'] = $this->agentModel
-            ->select('agent.id, agent.code, agent.name, agent.is_active')
+            ->select('agent.id, agent.code, agent.name as agent, agent.is_active')
             ->join('user_role_agent', 'user_role_agent.agent_id = agent.id')
             ->join('user', 'user.id_user = user_role_agent.user_id')
             ->where('agent.is_active', '1')

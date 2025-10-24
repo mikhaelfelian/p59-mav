@@ -82,6 +82,73 @@ class Item extends BaseController
         return $this->view('item-form', $this->data);
     }
 
+    public function detail()
+    {
+        // Check read permissions
+        if (!$this->hasPermissionPrefix('read')) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'You do not have permission to view item details.'
+                ]);
+            }
+            return $this->view('errors/403', [
+                'title' => 'Access Denied',
+                'message' => 'You do not have permission to view item details.'
+            ]);
+        }
+
+        $id = $this->request->getGet('id');
+
+        // Cek ID
+        if (!$id) {
+            $message = 'ID tidak ditemukan';
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON([
+                    'status'  => 'error',
+                    'message' => $message
+                ]);
+            }
+            return redirect()->to('item')->with('message', $message);
+        }
+
+        // Ambil data item dengan join untuk brand dan category
+        $item = $this->model->select('item.*, item_brand.name as brand_name, item_category.category as category_name')
+                            ->join('item_brand', 'item_brand.id = item.brand_id', 'left')
+                            ->join('item_category', 'item_category.id = item.category_id', 'left')
+                            ->where('item.id', $id)
+                            ->first();
+        
+        if (!$item) {
+            $message = 'Data tidak ditemukan';
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON([
+                    'status'  => 'error',
+                    'message' => $message
+                ]);
+            }
+            return redirect()->to('item')->with('message', $message);
+        }
+
+        $this->data['title'] = 'Detail Item';
+        $this->data['current_module'] = $this->currentModule;
+        $this->data['item'] = $item;
+        $this->data['id'] = $id;
+
+        // Load specifications for this item
+        $this->data['specifications'] = $this->itemSpecIdModel->getSpecsForItem($id);
+
+        // Cek AJAX/modal
+        $isAjax = $this->request->isAJAX() 
+                  || $this->request->getHeader('X-Requested-With') !== null;
+        
+        if ($isAjax) {
+            return view('themes/modern/item-detail', $this->data);
+        } else {
+            return $this->view('item-detail', $this->data);
+        }
+    }
+
     public function edit()
     {
         $id = $this->request->getGet('id');
@@ -467,7 +534,14 @@ class Item extends BaseController
                 : '<span class="badge bg-secondary">Non-Stockable</span>';
 
             // Build action buttons based on existing RBAC system
-            $action = '<div class="btn-group" role="group">';
+            $action = '';
+            
+            // Detail button - always show if user has read permissions
+            if ($this->hasPermissionPrefix('read')) {
+                $action .= '<button class="btn btn-sm btn-info btn-detail rounded-0" data-id="' . $row->id . '" title="Detail">
+                    <i class="fa fa-eye"></i>
+                </button>';
+            }
             
             // Edit button - check write permission using existing system
             if ($this->hasPermissionPrefix('write')) {
@@ -482,8 +556,6 @@ class Item extends BaseController
                     <i class="fa fa-trash"></i>
                 </button>';
             }
-            
-            $action .= '</div>';
 
             $result[] = [
                 'ignore_search_urut'    => $no++,

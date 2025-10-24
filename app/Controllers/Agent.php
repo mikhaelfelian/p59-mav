@@ -532,14 +532,17 @@ class Agent extends BaseController
             $order = $this->request->getPost('order')[0] ?? [];
             $columns = $this->request->getPost('columns') ?? [];
 
-            $column_order = $columns[$order['column']]['data'] ?? 'id';
-            $order_dir = $order['dir'] ?? 'ASC';
+            // Safe column ordering with proper error handling
+            $column_order = 'name'; // Default column
+            $order_dir = 'ASC'; // Default direction
+            
+            if (!empty($order) && isset($order['column']) && isset($columns[$order['column']])) {
+                $column_order = $columns[$order['column']]['data'] ?? 'name';
+                $order_dir = $order['dir'] ?? 'ASC';
+            }
 
             // Debug information
             $debugInfo = [];
-            $debugInfo['userPermissions'] = $this->userPermission ?? [];
-            $debugInfo['sessionUserId'] = $this->user['id_user'] ?? null;
-            $debugInfo['hasReadPrefix'] = $this->hasPermissionPrefix('read');
 
             // Build base query
             $query = $this->model->select('agent.*');
@@ -563,8 +566,9 @@ class Agent extends BaseController
                 $debugInfo['applyingFilter'] = 'User has no read permissions';
             }
 
-            // Get total records (before search filter)
-            $recordsTotal = $query->countAllResults(false);
+            // Get total records (before search filter) - clone the query
+            $totalQuery = clone $query;
+            $recordsTotal = $totalQuery->countAllResults(false);
 
             // Apply search filter
             if (!empty($search)) {
@@ -574,12 +578,35 @@ class Agent extends BaseController
                       ->orLike('address', $search)
                       ->groupEnd();
             }
-            $recordsFiltered = $query->countAllResults(false);
+            
+            // Get filtered records count - clone the query again
+            $filteredQuery = clone $query;
+            $recordsFiltered = $filteredQuery->countAllResults(false);
 
-            // Get data with pagination
-            $query->orderBy($column_order, $order_dir);
-            $query->limit($length, $start);
-            $agents = $query->findAll();
+            // Get data with pagination - create a fresh query for data retrieval
+            $dataQuery = $this->model->select('agent.*');
+            
+            // Apply the same permission filtering as the main query
+            if ($this->hasPermissionPrefix('read')) {
+                if (in_array('read_own', $this->userPermission) && !in_array('read_all', $this->userPermission)) {
+                    $userId = $this->user['id_user'];
+                    $dataQuery->join('user_role_agent', 'user_role_agent.agent_id = agent.id')
+                              ->where('user_role_agent.user_id', $userId);
+                }
+            }
+            
+            // Apply search filter to data query
+            if (!empty($search)) {
+                $dataQuery->groupStart()
+                          ->like('name', $search)
+                          ->orLike('code', $search)
+                          ->orLike('address', $search)
+                          ->groupEnd();
+            }
+            
+            // Apply ordering and pagination
+            $agents = $dataQuery->orderBy($column_order, $order_dir)
+                                ->findAll($length, $start);
             
             // Debug: Query results
             $debugInfo['queryResults'] = count($agents) . ' agents returned';
@@ -589,30 +616,28 @@ class Agent extends BaseController
             
             foreach ($agents as $agent) {
                 // Build action buttons based on existing RBAC system
-                $action = '<div class="btn-group" role="group">';
-                
+                $action = '';
+
                 // Detail button - always show if user has read permissions
                 if ($this->hasPermissionPrefix('read')) {
                     $action .= '<button class="btn btn-sm btn-info btn-detail rounded-0" data-id="' . $agent->id . '" title="Detail">
                         <i class="fa fa-eye"></i>
                     </button>';
                 }
-                
+
                 // Edit button - check write permission using existing system
                 if ($this->hasPermissionPrefix('update')) {
                     $action .= '<button class="btn btn-sm btn-primary btn-edit rounded-0" data-id="' . $agent->id . '" title="Edit">
                         <i class="fa fa-edit"></i>
                     </button>';
                 }
-                
+
                 // Delete button - check delete permission using existing system
                 if ($this->hasPermissionPrefix('delete')) {
                     $action .= '<button class="btn btn-sm btn-danger btn-delete rounded-0" data-id="' . $agent->id . '" data-name="' . $agent->name . '" title="Hapus">
                         <i class="fa fa-trash"></i>
                     </button>';
                 }
-                
-                $action .= '</div>';
 
                 $data[] = [
                     'ignore_search_urut' => $no++,
@@ -627,8 +652,7 @@ class Agent extends BaseController
                 'draw' => intval($this->request->getPost('draw')),
                 'recordsTotal' => $recordsTotal,
                 'recordsFiltered' => $recordsFiltered,
-                'data' => $data,
-                'debug' => $debugInfo
+                'data' => $data
             ];
 
             return $this->response->setJSON($output);

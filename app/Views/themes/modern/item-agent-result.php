@@ -18,9 +18,7 @@
 			'ignore_search_urut' => 'No',
 			'name' => 'Nama Produk',
 			'price' => 'Harga Default',
-			'agent_price' => 'Harga Agen',
-			'status' => 'Status',
-			'ignore_search_action' => 'Aksi'
+			'agent_price' => 'Harga Agen'
 		];
 
 		$settings['order'] = [1, 'asc'];

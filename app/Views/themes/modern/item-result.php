@@ -63,5 +63,4 @@
 		<span id="dataTables-url" style="display:none"><?= $config->baseURL ?>item/getItemDT</span>
 	</div>
 </div>
-
 <!-- JavaScript moved to item-form.js -->
