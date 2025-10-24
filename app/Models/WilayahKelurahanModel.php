@@ -8,5 +8,6 @@ class WilayahKelurahanModel extends Model
 {
     protected $table = 'wilayah_kelurahan';
     protected $primaryKey = 'id_wilayah_kelurahan';
+    protected $returnType = 'object';
     protected $allowedFields = ['id_wilayah_kecamatan', 'nama_kelurahan', 'kode_pos'];
 }

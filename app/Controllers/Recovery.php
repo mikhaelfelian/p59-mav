@@ -69,7 +69,7 @@ class Recovery extends \App\Controllers\BaseController
 		
 
 		$this->data['message'] = $message;
-		return view('themes/modern/register/' . $file, $this->data);
+		return $this->view('themes/modern/register/' . $file, $this->data);
 	}
 	
 	public function reset() 
@@ -152,7 +152,7 @@ class Recovery extends \App\Controllers\BaseController
 		}
 		
 		$this->data['message'] = $message;
-		return view('themes/modern/register/' . $file, $this->data);
+		return $this->view('themes/modern/register/' . $file, $this->data);
 	}
 	
 	private function validateForm() 

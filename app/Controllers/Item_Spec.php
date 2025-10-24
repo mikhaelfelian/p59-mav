@@ -41,10 +41,10 @@ class Item_Spec extends BaseController
         $this->data['isModal'] = $isAjax;
         
         if ($isAjax) {
-            return view('themes/modern/item-spec-form', $this->data);
+            return $this->view('themes/modern/item-spec-form', $this->data);
         }
         
-        return view('themes/modern/item-spec-form', $this->data);
+        return $this->view('themes/modern/item-spec-form', $this->data);
     }
 
     public function edit()
@@ -84,10 +84,10 @@ class Item_Spec extends BaseController
         $this->data['isModal'] = $isAjax;
         
         if ($isAjax) {
-            return view('themes/modern/item-spec-form', $this->data);
+            return $this->view('themes/modern/item-spec-form', $this->data);
         }
         
-        return view('themes/modern/item-spec-form', $this->data);
+        return $this->view('themes/modern/item-spec-form', $this->data);
     }
 
     public function store()

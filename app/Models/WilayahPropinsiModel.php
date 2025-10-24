@@ -8,5 +8,6 @@ class WilayahPropinsiModel extends Model
 {
     protected $table = 'wilayah_propinsi';
     protected $primaryKey = 'id_wilayah_propinsi';
+    protected $returnType = 'object';
     protected $allowedFields = ['nama_propinsi', 'ibukota', 'p_bsni'];
 }

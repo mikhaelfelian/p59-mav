@@ -43,10 +43,10 @@ class Item_Category extends BaseController
         $this->data['isModal'] = $this->request->isAJAX();
 
         if ($this->request->isAJAX()) {
-            return view('themes/modern/item-category-form', $this->data);
+            return $this->view('themes/modern/item-category-form', $this->data);
         }
 
-        return view('themes/modern/item-category-form', $this->data);
+        return $this->view('themes/modern/item-category-form', $this->data);
     }
 
     public function edit()
@@ -81,7 +81,7 @@ class Item_Category extends BaseController
         $this->data['isModal'] = $this->request->isAJAX();
 
         if ($this->request->isAJAX()) {
-            return view('themes/modern/item-category-form', $this->data);
+            return $this->view('themes/modern/item-category-form', $this->data);
         }
 
         $this->view('item-category-form.php', $this->data);

@@ -70,7 +70,7 @@ class Register extends \App\Controllers\BaseController
 		
 		$this->data['message'] = $message;
 		$this->data['style'] = ' style="max-width:500px; margin-top:50px"';
-		return view('themes/modern/register/' . $file, $this->data);
+		return $this->view('themes/modern/register/' . $file, $this->data);
 	}
 	
 	public function confirm() 
@@ -134,7 +134,7 @@ class Register extends \App\Controllers\BaseController
 		}
 		
 		$this->data['message'] = $message;
-		return view('themes/modern/register/show_message.php', $this->data);
+		return $this->view('themes/modern/register/show_message.php', $this->data);
 	}
 	
 	public function resendlink() 
@@ -182,7 +182,7 @@ class Register extends \App\Controllers\BaseController
 		}
 		
 		$this->data['message'] = $message;
-		return view('themes/modern/register/' . $file, $this->data);
+		return $this->view('themes/modern/register/' . $file, $this->data);
 	}
 	
 	private function validateForm() 

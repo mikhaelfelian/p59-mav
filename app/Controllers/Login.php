@@ -42,7 +42,7 @@ class Login extends \App\Controllers\BaseController
 		
 		csrf_settoken();
 		$this->data['style'] = ' style="max-width:375px"';
-		return view('themes/modern/builtin/login', $this->data);
+		return $this->view('themes/modern/builtin/login', $this->data);
 	}
 	
 	private function login()

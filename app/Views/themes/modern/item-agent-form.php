@@ -39,8 +39,8 @@ $isModal = $isModal ?? false;
                     <select name="agent_id" id="agent_id" class="form-control" required>
                         <option value="">Pilih Agen</option>
                         <?php foreach ($agents as $agent): ?>
-                            <option value="<?= $agent['id'] ?>" <?= (isset($agent_id) && $agent_id == $agent['id']) ? 'selected' : '' ?>>
-                                <?= $agent['name'] ?>
+                            <option value="<?= $agent->id ?>" <?= (isset($agent_id) && $agent_id == $agent->id) ? 'selected' : '' ?>>
+                                <?= isset($agent->code) ? $agent->code . ' - ' : 'NO_CODE - ' ?><?= $agent->agent ?>
                             </option>
                         <?php endforeach; ?>
                     </select>

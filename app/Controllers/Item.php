@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+
 /**
  * Created by: Mikhael Felian Waskito - mikhaelfelian@gmail.com
  * Date: 2025-10-22 - refer date today not past or before
@@ -36,6 +37,7 @@ class Item extends BaseController
         $this->addStyle($this->config->baseURL . 'public/vendors/datatables/dist/css/dataTables.bootstrap5.min.css');
         $this->addJs($this->config->baseURL . 'public/themes/modern/js/item-form.js');
     }
+
 
     public function index()
     {
@@ -74,7 +76,7 @@ class Item extends BaseController
         $this->data['isModal']          = $isAjax;
 
         if ($isAjax) {
-            return view('themes/modern/item-form', $this->data);
+            return $this->view('themes/modern/item-form', $this->data);
         }
 
         return $this->view('item-form', $this->data);
@@ -397,16 +399,39 @@ class Item extends BaseController
         $orderColumn  = $request->getPost('order')[0]['column'] ?? 0;
         $orderDir     = $request->getPost('order')[0]['dir'] ?? 'asc';
 
-        // Get total records
-        $totalRecords = $this->model->countAllResults();
-
-        // Get filtered records with joins
+        // Build base query with joins
         $query = $this->model->select('item.*, item_brand.name AS brand_name, item_category.category AS category_name')
             ->join('item_brand', 'item_brand.id = item.brand_id', 'left')
             ->join('item_category', 'item_category.id = item.category_id', 'left');
 
+        // Debug information
+        $debugInfo = [];
+        $debugInfo['userPermissions'] = $this->userPermission ?? [];
+        $debugInfo['sessionUserId'] = $this->user['id_user'] ?? null;
+        $debugInfo['hasReadPrefix'] = $this->hasPermissionPrefix('read');
+        
+        // Apply permission-based filtering using existing RBAC system
+        if ($this->hasPermissionPrefix('read')) {
+            // Check if user has read_own but not read_all (same logic as checkRoleAction)
+            if (in_array('read_own', $this->userPermission) && !in_array('read_all', $this->userPermission)) {
+                // User can only see items they created
+                $userId = $this->user['id_user'];
+                $debugInfo['applyingFilter'] = 'read_own filter for user_id: ' . $userId;
+                $query->where('item.user_id', $userId);
+            } else {
+                $debugInfo['applyingFilter'] = 'No read_own filter - user has read_all or no read permissions';
+            }
+            // If user has read_all, no filtering is applied (shows all items)
+        } else {
+            $debugInfo['applyingFilter'] = 'User has no read permissions';
+        }
+
+        // Get total records (before search filter)
+        $totalRecords = $query->countAllResults(false);
+
+        // Apply search filter
         if (!empty($searchValue)) {
-            $query = $query->groupStart()
+            $query->groupStart()
                 ->like('item.name', $searchValue)
                 ->orLike('item.sku', $searchValue)
                 ->orLike('item_brand.name', $searchValue)
@@ -419,6 +444,12 @@ class Item extends BaseController
         // Get data with pagination
         $data = $query->orderBy('item.name', $orderDir)
             ->findAll($length, $start);
+            
+        // Debug: Query results
+        $debugInfo['queryResults'] = count($data) . ' items returned';
+        if (!empty($data)) {
+            $debugInfo['firstItemUserId'] = $data[0]->user_id;
+        }
 
         $result = [];
         $no     = $start + 1;
@@ -435,16 +466,24 @@ class Item extends BaseController
                 ? '<span class="badge bg-success">Stockable</span>'
                 : '<span class="badge bg-secondary">Non-Stockable</span>';
 
-            $action = '
-                <div class="btn-group" role="group">
-                    <button type="button" class="btn btn-sm btn-warning btn-edit rounded-0" data-id="' . $row->id . '">
-                        <i class="fa fa-edit"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-danger btn-delete rounded-0" data-id="' . $row->id . '" data-name="' . $row->name . '">
-                        <i class="fa fa-trash"></i>
-                    </button>
-                </div>
-            ';
+            // Build action buttons based on existing RBAC system
+            $action = '<div class="btn-group" role="group">';
+            
+            // Edit button - check write permission using existing system
+            if ($this->hasPermissionPrefix('write')) {
+                $action .= '<button type="button" class="btn btn-sm btn-warning btn-edit rounded-0" data-id="' . $row->id . '">
+                    <i class="fa fa-edit"></i>
+                </button>';
+            }
+            
+            // Delete button - check delete permission using existing system
+            if ($this->hasPermissionPrefix('delete')) {
+                $action .= '<button type="button" class="btn btn-sm btn-danger btn-delete rounded-0" data-id="' . $row->id . '" data-name="' . $row->name . '">
+                    <i class="fa fa-trash"></i>
+                </button>';
+            }
+            
+            $action .= '</div>';
 
             $result[] = [
                 'ignore_search_urut'    => $no++,
@@ -463,7 +502,8 @@ class Item extends BaseController
             'draw'            => intval($draw),
             'recordsTotal'    => $totalRecords,
             'recordsFiltered' => $filteredRecords,
-            'data'            => $result
+            'data'            => $result,
+            'debug'           => $debugInfo
         ]);
     }
 }

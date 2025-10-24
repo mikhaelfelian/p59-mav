@@ -21,6 +21,6 @@ class Tanpalogin extends BaseController
 		$artikel = $this->model->getArtikelBySlug('tanpalogin');
 		$artikel['konten'] = str_replace('{{BASE_URL}}', $this->config->baseURL, $artikel['konten']);
 		$this->data['artikel'] = $artikel;
-		return view('themes/modern/tanpalogin.php', $this->data);
+		return $this->view('themes/modern/tanpalogin.php', $this->data);
 	}
 }
