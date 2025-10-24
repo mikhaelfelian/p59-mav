@@ -56,7 +56,6 @@ class Frontend extends BaseController
             ['url' => $this->data['config']->baseURL . 'frontend/contact', 'label' => 'Contact']
         ];
         
-        $this->data['content'] = view('frontend/index', $this->data);
         return view('themes/modern/layout/content.php', $this->data);
     }
 
