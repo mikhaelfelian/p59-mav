@@ -111,9 +111,13 @@ $isModal = $isModal ?? false;
 					<div class="mb-3">
 						<label class="control-label mb-2">Feature Image</label>
 						<input class="form-control" type="file" name="image" accept="image/*"/>
-						<?php if (!empty($image)): ?>
+						<?php if (!empty($image) && is_array($image) && !empty($image['nama_file'])): ?>
 							<div class="mt-2">
-								<img src="<?=base_url('public/uploads/' . $image)?>" class="img-thumbnail" style="max-width: 200px; max-height: 200px;"/>
+								<img src="<?=base_url('public/uploads/' . $image['nama_file'])?>" class="img-thumbnail" style="max-width: 200px; max-height: 200px;"/>
+							</div>
+						<?php elseif (!empty($item->image)): ?>
+							<div class="mt-2">
+								<img src="<?=base_url('public/uploads/' . $item->image)?>" class="img-thumbnail" style="max-width: 200px; max-height: 200px;"/>
 							</div>
 						<?php endif; ?>
 					</div>
