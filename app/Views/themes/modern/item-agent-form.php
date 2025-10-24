@@ -6,8 +6,7 @@
  * Description: Form for bulk editing agent prices (item-agent)
  * This file represents the modern bulk agent price edit view.
  */
-helper('form');
-helper('html');
+
 $isModal = $isModal ?? false;
 ?>
 <?php if (!$isModal): ?>
