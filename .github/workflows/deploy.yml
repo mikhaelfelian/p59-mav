@@ -25,38 +25,6 @@ jobs:
             git pull origin main &&
             exit"
 
-      - name: Send Telegram Notification (KOPMENSA)
-        env:
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          REPO: ${{ github.repository }}
-          ACTOR: ${{ github.actor }}
-          COMMIT_MSG: ${{ github.event.head_commit.message }}
-          COMMIT_URL: ${{ github.event.head_commit.url }}
-        run: |
-          MESSAGE=$(printf "*KOPMENSA :*\n\`%s\`\n\n*Contributor:*\n\`%s\`\n*Message:*\n\`%s\`\n[VIEW](%s)" "$REPO" "$ACTOR" "$COMMIT_MSG" "$COMMIT_URL")
-
-          curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_TOKEN/sendMessage" \
-            -d chat_id="$TELEGRAM_CHAT_ID" \
-            -d text="$MESSAGE" \
-            -d parse_mode=MarkdownV2
-
-      - name: Send Telegram Notification (KOPMENSA Alternate)
-        env:
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID_KOPMENSA }}
-          REPO: ${{ github.repository }}
-          ACTOR: ${{ github.actor }}
-          COMMIT_MSG: ${{ github.event.head_commit.message }}
-          COMMIT_URL: ${{ github.event.head_commit.url }}
-        run: |
-          MESSAGE=$(printf "*KOPMENSA :*\n\`%s\`\n\n*Contributor:*\n\`%s\`\n*Message:*\n\`%s\`\n[VIEW](%s)" "$REPO" "$ACTOR" "$COMMIT_MSG" "$COMMIT_URL")
-
-          curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_TOKEN/sendMessage" \
-            -d chat_id="$TELEGRAM_CHAT_ID" \
-            -d text="$MESSAGE" \
-            -d parse_mode=MarkdownV2
-
       - name: Notify Deployment Completion to GitHub Issue
         env:
           GITHUB_TOKEN: ${{ secrets.TOKENS }}
