@@ -93,5 +93,5 @@ class Autoload extends AutoloadConfig
      * @var string[]
      * @phpstan-var list<string>
      */
-    public $helpers = ['util','angka_helper'];
+    public $helpers = ['util','angka_helper','form','html'];
 }
