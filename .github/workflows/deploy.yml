@@ -1,4 +1,4 @@
-name: Deploy and Notify (FTP)
+name: 🚀 Deploy via FTP and Notify
 
 on:
   push:
@@ -10,42 +10,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: 🧩 Checkout Repository
         uses: actions/checkout@v4
 
-      # Upload project via FTP (tanpa SSH)
-      - name: Deploy Code via FTP
+      - name: 📤 Deploy Files via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASSWORD }}
           port: ${{ secrets.FTP_PORT }}
+          local-dir: ./
+          server-dir: ${{ secrets.DEPLOY_PATH }}
           protocol: ftp
-          local-dir: ./         # upload seluruh file di repo
-          server-dir: ${{ secrets.FTP_DEPLOY_PATH }} # direktori tujuan di hosting
           exclude: |
             **/.git*
             **/.github*
             **/node_modules/**
-            **/tests/**
             **/.env
+            **/tests/**
+            **/README.md
             **/composer.json
             **/composer.lock
             **/package*.json
-            **/README.md
-
-      # Notifikasi ke GitHub Issue (opsional)
-      - name: Notify Deployment Completion to GitHub Issue
-        env:
-          GITHUB_TOKEN: ${{ secrets.TOKENS }}
-          REPO: ${{ github.repository }}
-          SHA: ${{ github.sha }}
-        run: |
-          echo "Creating issue comment..."
-          response=$(curl -X POST \
-            -H "Authorization: token $GITHUB_TOKEN" \
-            -H "Accept: application/vnd.github.v3+json" \
-            -d "{\"body\": \"✅ **Deploy Sukses via FTP**\\n- **Branch:** main\\n- **Commit:** $SHA\\n\\nDeployment otomatis telah selesai.\"}" \
-            https://api.github.com/repos/$REPO/issues/1/comments)
-          echo "Response: $response"
