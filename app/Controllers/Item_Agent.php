@@ -149,7 +149,7 @@ class Item_Agent extends BaseController
         $this->data['isModal'] = $isAjax;
 
         if ($isAjax) {
-            return $this->view('themes/modern/item-agent-form', $this->data);
+            return view('themes/modern/item-agent-form', $this->data);
         }
         return $this->view('item-agent-form', $this->data);
     }

@@ -23,6 +23,13 @@ $routes->setTranslateURIDashes(true);
 $routes->set404Override();
 $routes->setAutoRoute(true);
 
+// Frontend routes
+$routes->get('frontend', 'Frontend::index');
+$routes->get('frontend/about', 'Frontend::about');
+$routes->get('frontend/contact', 'Frontend::contact');
+$routes->get('frontend/item/(:num)', 'Frontend::item/$1');
+$routes->get('frontend/location', 'Frontend_Location::index');
+
 /**
  * --------------------------------------------------------------------
  * Route Definitions

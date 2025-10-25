@@ -76,7 +76,7 @@ class Item extends BaseController
         $this->data['isModal']          = $isAjax;
 
         if ($isAjax) {
-            return $this->view('themes/modern/item-form', $this->data);
+            return view('themes/modern/item-form', $this->data);
         }
 
         return $this->view('item-form', $this->data);
@@ -209,7 +209,7 @@ class Item extends BaseController
         $this->data['isModal'] = $isAjax;
 
         if ($isAjax) {
-            return $this->view('themes/modern/item-form', $this->data);
+            return view('themes/modern/item-form', $this->data);
         }
         return $this->view('item-form', $this->data);
     }

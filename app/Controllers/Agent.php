@@ -110,7 +110,7 @@ class Agent extends BaseController
                   || $this->request->getHeader('X-Requested-With') !== null;
         
         if ($isAjax) {
-            return $this->view('themes/modern/agent-form', $this->data);
+            return view('themes/modern/agent-form', $this->data);
         } else {
             return $this->view('agent-form', $this->data);
         }
@@ -208,6 +208,20 @@ class Agent extends BaseController
 
     public function edit()
     {
+        // Check update permissions
+        if (!$this->hasPermissionPrefix('update')) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'You do not have permission to edit agent data.'
+                ]);
+            }
+            return $this->view('errors/403', [
+                'title' => 'Access Denied',
+                'message' => 'You do not have permission to edit agent data.'
+            ]);
+        }
+
         $id = $this->request->getGet('id');
 
         // Cek ID
@@ -245,57 +259,86 @@ class Agent extends BaseController
         $this->data['canUpdate'] = $this->hasPermissionPrefix('update');
         $this->data['canDelete'] = $this->hasPermissionPrefix('delete');
 
-        // Load province options
-        $provinces = $this->wilayahPropinsiModel->findAll();
-        $provinceOptions = ['' => 'Pilih Provinsi'];
-        foreach ($provinces as $province) {
-            $provinceOptions[$province->id_wilayah_propinsi] = $province->nama_propinsi;
+        // Load province options with error handling
+        try {
+            $provinces = $this->wilayahPropinsiModel->findAll();
+            $provinceOptions = ['' => 'Pilih Provinsi'];
+            foreach ($provinces as $province) {
+                $provinceOptions[$province->id_wilayah_propinsi] = $province->nama_propinsi;
+            }
+            $this->data['provinceOptions'] = $provinceOptions;
+        } catch (\Exception $e) {
+            log_message('error', 'Error loading provinces in agent edit: ' . $e->getMessage());
+            $this->data['provinceOptions'] = ['' => 'Pilih Provinsi'];
         }
-        $this->data['provinceOptions'] = $provinceOptions;
 
         // Load regency options if province is selected
         if (!empty($agent->province_id)) {
-            $regencies = $this->wilayahKabupatenModel->where('id_wilayah_propinsi', $agent->province_id)->findAll();
-            $regencyOptions = ['' => 'Pilih Kota/Kabupaten'];
-            foreach ($regencies as $regency) {
-                $regencyOptions[$regency->id_wilayah_kabupaten] = $regency->nama_kabupaten;
+            try {
+                $regencies = $this->wilayahKabupatenModel->where('id_wilayah_propinsi', $agent->province_id)->findAll();
+                $regencyOptions = ['' => 'Pilih Kota/Kabupaten'];
+                foreach ($regencies as $regency) {
+                    $regencyOptions[$regency->id_wilayah_kabupaten] = $regency->nama_kabupaten;
+                }
+                $this->data['regencyOptions'] = $regencyOptions;
+            } catch (\Exception $e) {
+                log_message('error', 'Error loading regencies in agent edit: ' . $e->getMessage());
+                $this->data['regencyOptions'] = ['' => 'Pilih Kota/Kabupaten'];
             }
-            $this->data['regencyOptions'] = $regencyOptions;
         }
 
         // Load district options if regency is selected
         if (!empty($agent->regency_id)) {
-            $districts = $this->wilayahKecamatanModel->where('id_wilayah_kabupaten', $agent->regency_id)->findAll();
-            $districtOptions = ['' => 'Pilih Kecamatan'];
-            foreach ($districts as $district) {
-                $districtOptions[$district->id_wilayah_kecamatan] = $district->nama_kecamatan;
+            try {
+                $districts = $this->wilayahKecamatanModel->where('id_wilayah_kabupaten', $agent->regency_id)->findAll();
+                $districtOptions = ['' => 'Pilih Kecamatan'];
+                foreach ($districts as $district) {
+                    $districtOptions[$district->id_wilayah_kecamatan] = $district->nama_kecamatan;
+                }
+                $this->data['districtOptions'] = $districtOptions;
+            } catch (\Exception $e) {
+                log_message('error', 'Error loading districts in agent edit: ' . $e->getMessage());
+                $this->data['districtOptions'] = ['' => 'Pilih Kecamatan'];
             }
-            $this->data['districtOptions'] = $districtOptions;
         }
 
         // Load village options if district is selected
         if (!empty($agent->district_id)) {
-            $villages = $this->wilayahKelurahanModel->where('id_wilayah_kecamatan', $agent->district_id)->findAll();
-            $villageOptions = ['' => 'Pilih Kelurahan'];
-            foreach ($villages as $village) {
-                $villageOptions[$village->id_wilayah_kelurahan] = $village->nama_kelurahan;
+            try {
+                $villages = $this->wilayahKelurahanModel->where('id_wilayah_kecamatan', $agent->district_id)->findAll();
+                $villageOptions = ['' => 'Pilih Kelurahan'];
+                foreach ($villages as $village) {
+                    $villageOptions[$village->id_wilayah_kelurahan] = $village->nama_kelurahan;
+                }
+                $this->data['villageOptions'] = $villageOptions;
+            } catch (\Exception $e) {
+                log_message('error', 'Error loading villages in agent edit: ' . $e->getMessage());
+                $this->data['villageOptions'] = ['' => 'Pilih Kelurahan'];
             }
-            $this->data['villageOptions'] = $villageOptions;
         }
 
-        // Load user options
-        $users = $this->userModel->findAll();
-        $userOptions = ['' => 'Select User'];
-        foreach ($users as $user) {
-            $userOptions[$user->id_user] = $user->nama . ' (' . $user->email . ')';
+        // Load user options with error handling
+        try {
+            $users = $this->userModel->findAll();
+            $userOptions = ['' => 'Select User'];
+            foreach ($users as $user) {
+                $userOptions[$user->id_user] = $user->nama . ' (' . $user->email . ')';
+            }
+            $this->data['userOptions'] = $userOptions;
+        } catch (\Exception $e) {
+            log_message('error', 'Error loading users in agent edit: ' . $e->getMessage());
+            $this->data['userOptions'] = ['' => 'Select User'];
         }
-        $this->data['userOptions'] = $userOptions;
 
-        // Load existing user-role data for this agent
-        $userRole = $this->userRoleAgentModel->where('agent_id', $id)->first();
-        if ($userRole) {
-            $this->data['agent']->user_id = $userRole->user_id;
-            $this->data['agent']->user_role = $userRole->role;
+        // Load existing user-role data for this agent with error handling
+        try {
+            $userRole = $this->userRoleAgentModel->where('agent_id', $id)->first();
+            if ($userRole) {
+                $this->data['agent']->user_id = $userRole->user_id;
+                $this->data['agent']->user_role = $userRole->role;
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Error loading user role in agent edit: ' . $e->getMessage());
         }
 
         // Cek AJAX/modal
@@ -303,7 +346,7 @@ class Agent extends BaseController
                   || $this->request->getHeader('X-Requested-With') !== null;
         
         if ($isAjax) {
-            return $this->view('themes/modern/agent-form', $this->data);
+            return view('themes/modern/agent-form', $this->data);
         } else {
             return $this->view('agent-form', $this->data);
         }
