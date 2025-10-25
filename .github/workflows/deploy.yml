@@ -1,4 +1,4 @@
-name: Deploy and Notify
+name: 🚀 Deploy and Notify
 
 on:
   push:
@@ -11,19 +11,35 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup SSH Connection
-        uses: webfactory/ssh-agent@v0.5.3
+        uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Deploy Code to cPanel
+      - name: Deploy Code to Server
         run: |
-          ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
-            cd ${{ secrets.DEPLOY_PATH }} &&
-            git pull origin main &&
-            exit"
+          ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            set -e
+            cd ${{ secrets.DEPLOY_PATH }}
+
+            echo "🔁 Updating repository..."
+            if [ -d .git ]; then
+              git fetch --all --prune
+              git checkout main || true
+              git reset --hard origin/main
+              git clean -fd
+            else
+              git clone -b main git@github.com:${{ github.repository }} .
+            fi
+
+            echo "⚙️ Adjusting permissions..."
+            chown -R $USER:$USER .
+            chmod -R u+rwX .
+
+            echo "✅ Deployment complete."
+          EOF
 
       - name: Notify Deployment Completion to GitHub Issue
         env:
@@ -31,18 +47,13 @@ jobs:
           REPO: ${{ github.repository }}
           SHA: ${{ github.sha }}
         run: |
-          echo "Starting to create issue comment..."
+          echo "📝 Creating issue comment..."
           response=$(curl -X POST \
             -H "Authorization: token $GITHUB_TOKEN" \
             -H "Accept: application/vnd.github.v3+json" \
-            -d "{\"body\": \"**✅ Berhasil Deploy ke Development Server**:\\n- **Branch**: main\\n- **Last Commit**: $SHA\\n- **Link**: [Lihat](http://dev.kopmensa.com)\\n\\nSilahkan lihat di server.\"}" \
+            -d "{\"body\": \"✅ **Deploy Sukses ke Server**\\n- **Branch:** main\\n- **Commit:** $SHA\\n- **Link:** [Lihat Aplikasi](${{
+              secrets.APP_URL
+            }})\"}" \
             https://api.github.com/repos/$REPO/issues/1/comments)
-          echo "API response from comment creation: $response"
 
-          echo "Starting to assign assignee..."
-          assign_response=$(curl -X PATCH \
-            -H "Authorization: token $GITHUB_TOKEN" \
-            -H "Accept: application/vnd.github.v3+json" \
-            -d "{\"assignees\": [\"alfianharisusatya\"]}" \
-            https://api.github.com/repos/$REPO/issues/1)
-          echo "API response from assignee assignment: $assign_response"
+          echo "💬 API Response: $response"
