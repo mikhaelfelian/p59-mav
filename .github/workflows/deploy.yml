@@ -1,4 +1,4 @@
-name: 🚀 Deploy and Notify
+name: Deploy and Notify (FTP)
 
 on:
   push:
@@ -13,47 +13,39 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup SSH Connection
-        uses: webfactory/ssh-agent@v0.9.0
+      # Upload project via FTP (tanpa SSH)
+      - name: Deploy Code via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          port: ${{ secrets.FTP_PORT }}
+          protocol: ftp
+          local-dir: ./         # upload seluruh file di repo
+          server-dir: ${{ secrets.FTP_DEPLOY_PATH }} # direktori tujuan di hosting
+          exclude: |
+            **/.git*
+            **/.github*
+            **/node_modules/**
+            **/tests/**
+            **/.env
+            **/composer.json
+            **/composer.lock
+            **/package*.json
+            **/README.md
 
-      - name: Deploy Code to Server
-        run: |
-          ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
-            set -e
-            cd ${{ secrets.DEPLOY_PATH }}
-
-            echo "🔁 Updating repository..."
-            if [ -d .git ]; then
-              git fetch --all --prune
-              git checkout main || true
-              git reset --hard origin/main
-              git clean -fd
-            else
-              git clone -b main git@github.com:${{ github.repository }} .
-            fi
-
-            echo "⚙️ Adjusting permissions..."
-            chown -R $USER:$USER .
-            chmod -R u+rwX .
-
-            echo "✅ Deployment complete."
-          EOF
-
+      # Notifikasi ke GitHub Issue (opsional)
       - name: Notify Deployment Completion to GitHub Issue
         env:
           GITHUB_TOKEN: ${{ secrets.TOKENS }}
           REPO: ${{ github.repository }}
           SHA: ${{ github.sha }}
         run: |
-          echo "📝 Creating issue comment..."
+          echo "Creating issue comment..."
           response=$(curl -X POST \
             -H "Authorization: token $GITHUB_TOKEN" \
             -H "Accept: application/vnd.github.v3+json" \
-            -d "{\"body\": \"✅ **Deploy Sukses ke Server**\\n- **Branch:** main\\n- **Commit:** $SHA\\n- **Link:** [Lihat Aplikasi](${{
-              secrets.APP_URL
-            }})\"}" \
+            -d "{\"body\": \"✅ **Deploy Sukses via FTP**\\n- **Branch:** main\\n- **Commit:** $SHA\\n\\nDeployment otomatis telah selesai.\"}" \
             https://api.github.com/repos/$REPO/issues/1/comments)
-
-          echo "💬 API Response: $response"
+          echo "Response: $response"
