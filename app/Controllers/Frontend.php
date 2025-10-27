@@ -31,32 +31,12 @@ class Frontend extends BaseController
                                           ->where('item.status', '1')
                                           ->findAll();
         
-        // Layout data - use module name for title
-        $this->data['meta_description'] = 'Frontend Home Page - Browse our collection of items';
-        $this->data['page_title'] = $this->currentModule['judul_module'] ?? 'Frontend';
-        $this->data['page_description'] = $this->currentModule['deskripsi'] ?? 'Frontend';
-        $this->data['site_title'] = $this->currentModule['judul_module'] ?? 'Frontend';
-        $this->data['navigation'] = [
-            ['url' => $this->data['config']->baseURL . 'frontend', 'icon' => 'fas fa-home', 'label' => 'Home'],
-            ['url' => $this->data['config']->baseURL . 'frontend/about', 'icon' => 'fas fa-info-circle', 'label' => 'Tentang'],
-            ['url' => $this->data['config']->baseURL . 'frontend/contact', 'icon' => 'fas fa-envelope', 'label' => 'Kontak'],
-            ['url' => $this->data['config']->baseURL, 'icon' => 'fas fa-sign-in-alt', 'label' => 'Admin']
-        ];
-        $this->data['footer_contact_email'] = 'support@example.com';
-        $this->data['footer_contact_url'] = $this->data['config']->baseURL . 'frontend/contact';
-        $this->data['footer_about_text'] = 'Platform terbaik untuk menemukan item berkualitas tinggi dengan harga terbaik.';
-        $this->data['footer_facebook_url'] = '#';
-        $this->data['footer_membership_url'] = '#';
-        $this->data['footer_blog_url'] = $this->data['config']->baseURL . 'frontend';
-        $this->data['footer_copyright_title'] = 'Frontend';
-        $this->data['footer_copyright_url'] = $this->data['config']->baseURL . 'frontend';
-        $this->data['footer_menu'] = [
-            ['url' => $this->data['config']->baseURL . 'frontend', 'label' => 'Home'],
-            ['url' => $this->data['config']->baseURL . 'frontend/about', 'label' => 'About'],
-            ['url' => $this->data['config']->baseURL . 'frontend/contact', 'label' => 'Contact']
-        ];
+        // Layout data for MAV theme - from database
+        $this->data['title'] = $this->currentModule['judul_module'] ?? 'Multi Automobile Vision – Garansi Nasional Tanpa Masalah';
+        $this->data['meta_description'] = $this->currentModule['deskripsi'] ?? 'Periksa dan klaim garansi produk Multi Automobile Vision. Cek lokasi toko, katalog produk, dan status garansi Anda.';
         
-        return view('themes/modern/layout/content.php', $this->data);
+        // Render using the MAV home template
+        return view('themes/mav/home', $this->data);
     }
 
     public function store()
