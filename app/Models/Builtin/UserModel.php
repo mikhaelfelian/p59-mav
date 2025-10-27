@@ -122,26 +122,31 @@ class UserModel extends \App\Models\BaseModel
     }
     
     public function countAllUsers($where = null) {
-        $query = $this->db->query('SELECT COUNT(*) as jml FROM user' . $where)->getRow();
-        return $query->jml;
+        $builder = $this->builder('user');
+        if ($where) {
+            $builder->where($where, null, false);
+        }
+        return $builder->countAllResults();
     }
     
     public function getRoles() {
-        $sql = 'SELECT * FROM role';
-        $result = $this->db->query($sql)->getResultArray();
-        return $result;
+        return $this->builder('role')->get()->getResultArray();
     }
     
     public function getSettingRegister() {
-        $sql = 'SELECT * FROM setting WHERE type="register"';
-        $result = $this->db->query($sql)->getResultArray();
-        return $result;
+        return $this->builder('setting')
+                   ->where('type', 'register')
+                   ->get()
+                   ->getResultArray();
     }
     
     public function getListModules() {
-        
-        $sql = 'SELECT * FROM module m LEFT JOIN module_status ms ON ms.id_module_status = m.id_module_status ORDER BY m.nama_module';
-        return $this->db->query($sql)->getResultArray();
+        return $this->builder('module')
+                   ->select('module.*, module_status.*')
+                   ->join('module_status', 'module_status.id_module_status = module.id_module_status', 'left')
+                   ->orderBy('module.nama_module')
+                   ->get()
+                   ->getResultArray();
     }
         
     public function saveData($user_permission = []) 
@@ -195,8 +200,11 @@ class UserModel extends \App\Models\BaseModel
             $file = $this->request->getFile('avatar');
             $path = ROOTPATH . 'public/images/user/';
             
-            $sql = 'SELECT avatar FROM user WHERE id_user = ?';
-            $img_db = $this->db->query($sql, $id_user)->getRowArray();
+            $img_db = $this->builder('user')
+                           ->select('avatar')
+                           ->where('id_user', $id_user)
+                           ->get()
+                           ->getRowArray();
             $new_name = $img_db['avatar'];
             
             if (!empty($_POST['avatar_delete_img'])) 
@@ -252,13 +260,17 @@ class UserModel extends \App\Models\BaseModel
     }
     
     private function getUserByEmail($email) {
-        $sql = 'SELECT * FROM user WHERE email = ?';
-        return $this->db->query($sql, $email)->getRowArray();
+        return $this->builder('user')
+                   ->where('email', $email)
+                   ->get()
+                   ->getRowArray();
     }
     
     private function getUserByUsername($username) {
-        $sql = 'SELECT * FROM user WHERE username = ?';
-        return $this->db->query($sql, $username)->getRowArray();
+        return $this->builder('user')
+                   ->where('username', $username)
+                   ->get()
+                   ->getRowArray();
     }
     
     public function uploadExcel() 
@@ -279,8 +291,7 @@ class UserModel extends \App\Models\BaseModel
         $reader = ReaderEntityFactory::createReaderFromFile($path . $filename);
         $reader->open($path . $filename);
         
-        $sql = 'SELECT * FROM role';
-        $data = $this->db->query($sql)->getResultArray();
+        $data = $this->builder('role')->get()->getResultArray();
         $roles = [];
         foreach($data as $val) {
             $roles[$val['nama_role']] = $val['id_role'];
@@ -435,8 +446,10 @@ class UserModel extends \App\Models\BaseModel
     public function deleteUser() 
     {
         $id_user = $this->request->getPost('id');
-        $sql = 'SELECT * FROM user WHERE id_user = ?';
-        $user = $this->db->query($sql, $id_user)->getRowArray();
+        $user = $this->builder('user')
+                    ->where('id_user', $id_user)
+                    ->get()
+                    ->getRowArray();
         if (!$user) {
             return false;
         }
@@ -461,9 +474,9 @@ class UserModel extends \App\Models\BaseModel
 
     public function updatePassword() {
         $password_hash = password_hash($this->request->getPost('password_new'), PASSWORD_DEFAULT);
-        $update = $this->db->query('UPDATE user SET password = ? 
-                                    WHERE id_user = ? ', [$password_hash, $this->user['id_user']]
-                                );        
+        $update = $this->builder('user')
+                       ->where('id_user', $this->user['id_user'])
+                       ->update(['password' => $password_hash]);
         return $update;
     }
 }

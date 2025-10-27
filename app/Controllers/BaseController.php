@@ -466,25 +466,25 @@ class BaseController extends Controller
 		return $has_permission;	
 	}
 	
+	/**
+	 * Returns WHERE condition for ownership-based data access
+	 * Now returns array format for Query Builder compatibility
+	 * 
+	 * @param string|null $column Column name to filter by
+	 * @return array|null Array with column => value for Query Builder, or null for no restriction
+	 */
 	public function whereOwn($column = null) 
 	{	
-		/* if (!$column)
-			$column = $this->config->checkRoleAction['field'];
-			
-		if ($this->actionUser['read_data'] == 'own') {
-			return ' WHERE ' . $column . ' = ' . $_SESSION['user']['id_user'];
-		}
-		
-		return ' WHERE 1 = 1 '; */
-		
 		if (!$column)
 			$column = $this->config->checkRoleAction['field'];
 			
+		// If user has read_own permission but not read_all, restrict to their own data
 		if (key_exists('read_own', $this->userPermission) && !key_exists('read_all', $this->userPermission)) {
-			return ' WHERE ' . $column . ' = ' . $_SESSION['user']['id_user'];
+			return [$column => $_SESSION['user']['id_user']];
 		}
 		
-		return ' WHERE 1 = 1 ';
+		// No restriction - return null (Query Builder will handle this)
+		return null;
 	}
 	
 	protected function printError($message) {

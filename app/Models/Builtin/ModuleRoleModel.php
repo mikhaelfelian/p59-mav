@@ -28,11 +28,18 @@ class ModuleRoleModel extends \App\Models\BaseModel
         return $result;
     }
     
-    public function getModule($id) {
-        $sql = 'SELECT * FROM module WHERE id_module = ?';
-        $result = $this->db->query($sql, [$id])->getRowArray();
-
-        return $result;
+    /**
+     * Get module by ID
+     * 
+     * @param int|string $id Module ID
+     * @return array|null
+     */
+    public function getModuleById($id): ?array
+    {
+        return $this->builder('module')
+                   ->where('id_module', $id)
+                   ->get()
+                   ->getRowArray();
     }
     
     public function getAllRole() {
@@ -100,46 +107,62 @@ class ModuleRoleModel extends \App\Models\BaseModel
     }
     
     public function countAllData() {
-        $sql = 'SELECT COUNT(*) AS jml FROM module';
-        $result = $this->db->query($sql)->getRow();
-        return $result->jml;
+        return $this->builder('module')->countAllResults();
     }
     
-    public function getListData($where) {
-
+    /**
+     * Get list data for DataTables with optional WHERE filter
+     * 
+     * @param array|null $where Optional WHERE conditions (array format for Query Builder)
+     * @return array Data and total filtered count
+     */
+    public function getListData($where = null) {
         $columns = $this->request->getPost('columns');
-
-        // Search
         $search_all = @$this->request->getPost('search')['value'];
-        if ($search_all) {
-            foreach ($columns as $val) 
-            {
-                if (strpos($val['data'], 'ignore') !== false)
-                    continue;
+        
+        // Build base query - MUST initialize from table first
+        $builder = $this->builder('module');
+        
+        // Apply where clause from parameter (array format)
+        if (!empty($where) && is_array($where)) {
+            $builder->where($where);
+        }
+        
+        // Apply search
+        if ($search_all && !empty($columns)) {
+            $builder->groupStart();
+            $first = true;
+            foreach ($columns as $val) {
+                if (strpos($val['data'] ?? '', 'ignore') !== false) continue;
                 
-                $where_col[] = $val['data'] . ' LIKE "%' . $search_all . '%"';
+                $column = $val['data'] ?? '';
+                if ($first) {
+                    $builder->like($column, $search_all);
+                    $first = false;
+                } else {
+                    $builder->orLike($column, $search_all);
+                }
             }
-             $where .= ' AND (' . join(' OR ', $where_col) . ') ';
+            $builder->groupEnd();
         }
         
-        // Order        
+        // Get total filtered - countAllResults(false) preserves query
+        $total_filtered = $builder->countAllResults(false);
+        
+        // Apply ordering
         $order_data = $this->request->getPost('order');
-        $order = '';
-        if (strpos($_POST['columns'][$order_data[0]['column']]['data'], 'ignore') === false) {
-            $order_by = $columns[$order_data[0]['column']]['data'] . ' ' . strtoupper($order_data[0]['dir']);
-            $order = ' ORDER BY ' . $order_by;
+        if ($order_data && isset($order_data[0]) && isset($columns[$order_data[0]['column']])) {
+            $order_column = $columns[$order_data[0]['column']]['data'] ?? '';
+            if (strpos($order_column, 'ignore') === false) {
+                $order_dir = strtoupper($order_data[0]['dir'] ?? 'ASC');
+                $builder->orderBy($order_column, $order_dir);
+            }
         }
-
-        // Query Total Filtered
-        $sql = 'SELECT COUNT(*) AS jml_data FROM module ' . $where;
-        $total_filtered = $this->db->query($sql)->getRowArray()['jml_data'];
         
-        // Query Data
+        // Apply pagination
         $start = $this->request->getPost('start') ?: 0;
         $length = $this->request->getPost('length') ?: 10;
-        $sql = 'SELECT * FROM module 
-                ' . $where . $order . ' LIMIT ' . $start . ', ' . $length;
-        $data = $this->db->query($sql)->getResultArray();
+        $data = $builder->limit($length, $start)->get()->getResultArray();
 
         return ['data' => $data, 'total_filtered' => $total_filtered];
     }

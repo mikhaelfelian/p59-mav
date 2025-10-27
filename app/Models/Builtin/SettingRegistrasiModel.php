@@ -19,51 +19,104 @@ namespace App\Models\Builtin;
  * @author     Agus Prawoto Hadi
  * @table      setting
  * @version    4.3.1
+ *
+ * Modified by Mikhael Felian Waskito
+ * @link       https://github.com/mikhaelfelian/p59-mav
+ * @notes      Refactored to CI4 Query Builder syntax, removed native SQL and improved PHP8.2 compatibility.
  */
 class SettingRegistrasiModel extends \App\Models\BaseModel
 {
-    public function getRole() {
-        $sql = 'SELECT * FROM role';
-        $query = $this->db->query($sql)->getResultArray();
-        return $query;
-    }
-    
-    public function getSettingRegistrasi() {
-        $sql = 'SELECT * FROM setting WHERE type="register"';
-        return $this->db->query($sql)->getResultArray();
-    }
-    
-    public function getListModules() {
-        
-        $sql = 'SELECT * FROM module m LEFT JOIN module_status ms ON ms.id_module_status = m.id_module_status ORDER BY m.nama_module';
-        return $this->db->query($sql)->getResultArray();
-    }
-    
-    public function saveData() 
+    /**
+     * Get all roles
+     * 
+     * @return array
+     */
+    public function getRole(): array 
     {
-        $data_db[] = ['type' => 'register', 'param' => 'enable', 'value' => $_POST['enable'] ];
-        $data_db[] = ['type' => 'register', 'param' => 'metode_aktivasi', 'value' => $_POST['metode_aktivasi'] ];
-        $data_db[] = ['type' => 'register', 'param' => 'id_role', 'value' => $_POST['id_role'] ];
-        $data_db[] = ['type' => 'register', 'param' => 'default_page_type', 'value' => $_POST['option_default_page'] ];
-        $data_db[] = ['type' => 'register', 'param' => 'default_page_id_role', 'value' => $_POST['id_role'] ];
-        $data_db[] = ['type' => 'register', 'param' => 'default_page_id_module', 'value' => $_POST['default_page_id_module'] ];
-        $data_db[] = ['type' => 'register', 'param' => 'default_page_url', 'value' => $_POST['default_page_url'] ];
-        
-        $this->db->transStart();
-        $this->db->table('setting')->delete(['type' => 'register']);
-        $this->db->table('setting')->insertBatch($data_db);
-        $query = $this->db->transComplete();
-        $query_result = $this->db->transStatus();
-        
-        if ($query_result) {
-            $result['status'] = 'ok';
-            $result['message'] = 'Data berhasil disimpan';
-        } else {
-            $result['status'] = 'error';
-            $result['message'] = 'Data gagal disimpan';
+        try {
+            return $this->builder('role')
+                        ->get()
+                        ->getResultArray();
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to get roles in ' . __CLASS__ . ': ' . $e->getMessage());
+            return [];
         }
-        
-        return $result;
+    }
+    
+    /**
+     * Get registration settings
+     * 
+     * @return array
+     */
+    public function getSettingRegistrasi(): array 
+    {
+        try {
+            return $this->builder('setting')
+                        ->where('type', 'register')
+                        ->get()
+                        ->getResultArray();
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to get registration settings in ' . __CLASS__ . ': ' . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
+     * Get list of modules with their status
+     * 
+     * @return array
+     */
+    public function getListModules(): array 
+    {
+        try {
+            return $this->builder('module m')
+                        ->select('m.*, ms.*')
+                        ->join('module_status ms', 'ms.id_module_status = m.id_module_status', 'left')
+                        ->orderBy('m.nama_module', 'ASC')
+                        ->get()
+                        ->getResultArray();
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to get modules list in ' . __CLASS__ . ': ' . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
+     * Save registration settings
+     * 
+     * @return array Status result
+     */
+    public function saveData(): array 
+    {
+        try {
+            // Prepare data from request
+            $data_db = [
+                ['type' => 'register', 'param' => 'enable', 'value' => $this->request->getPost('enable')],
+                ['type' => 'register', 'param' => 'metode_aktivasi', 'value' => $this->request->getPost('metode_aktivasi')],
+                ['type' => 'register', 'param' => 'id_role', 'value' => $this->request->getPost('id_role')],
+                ['type' => 'register', 'param' => 'default_page_type', 'value' => $this->request->getPost('option_default_page')],
+                ['type' => 'register', 'param' => 'default_page_id_role', 'value' => $this->request->getPost('id_role')],
+                ['type' => 'register', 'param' => 'default_page_id_module', 'value' => $this->request->getPost('default_page_id_module')],
+                ['type' => 'register', 'param' => 'default_page_url', 'value' => $this->request->getPost('default_page_url')]
+            ];
+            
+            // Transaction for delete + insert
+            $this->db->transStart();
+            
+            $this->builder('setting')->delete(['type' => 'register']);
+            $this->builder('setting')->insertBatch($data_db);
+            
+            $this->db->transComplete();
+            
+            if ($this->db->transStatus()) {
+                return ['status' => 'ok', 'message' => 'Data berhasil disimpan'];
+            } else {
+                return ['status' => 'error', 'message' => 'Data gagal disimpan'];
+            }
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to save registration settings in ' . __CLASS__ . ': ' . $e->getMessage());
+            return ['status' => 'error', 'message' => 'Terjadi kesalahan saat menyimpan data'];
+        }
     }
 }
 ?>

@@ -106,7 +106,7 @@ class Module extends \App\Controllers\BaseController
 		
 		$data['title'] = 'Edit Data Module';
 		
-		$module = $this->model->getModule($_GET['id']);
+		$module = $this->model->getModuleById($_GET['id']);
 		$data = array_merge($data, $module);
 
 		$data['module_status'] = $this->model->getAllModuleStatus();
@@ -120,9 +120,9 @@ class Module extends \App\Controllers\BaseController
 		$this->data['role_permission_module'] = [];
 		$this->data['module_permission'] = [];
 		if ($id_module){
-			$this->data['module'] = $this->model->getModule($id_module);
+			$this->data['module'] = $this->model->getModuleById($id_module);
 			$this->data['role_permission_module'] = $this->model->getRolePermissionByModule($id_module);
-			$this->data['module_permission'] = $this->model->getModulePermission($id_module);
+			$this->data['module_permission'] = $this->model->getModulePermissions($id_module);
 		}
 		$list_role = $this->model->getAllRoles();
 		foreach ($list_role as $val) {

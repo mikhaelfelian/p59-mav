@@ -19,30 +19,76 @@ namespace App\Models\Builtin;
  * @author     Agus Prawoto Hadi
  * @table      setting
  * @version    4.3.1
+ *
+ * Modified by Mikhael Felian Waskito
+ * @link       https://github.com/mikhaelfelian/p59-mav
+ * @notes      Refactored to CI4 Query Builder syntax, removed native SQL and improved PHP8.2 compatibility.
  */
 class SettingAppModel extends \App\Models\BaseModel
 {
-    public function getSettingAplikasi() {
-        $sql = 'SELECT * FROM setting WHERE type="app"';
-        $query = $this->db->query($sql)->getResultArray();
-        return $query;
-    }
-    
-    public function getUserSetting() {
-        $sql = 'SELECT * FROM setting_user WHERE id_user = ? AND type="layout"';
-        $data = $this->db->query($sql, $_SESSION['user']['id_user'])
-                    ->getResultArray();
-        return $data;
-    }
-    
-    public function saveData() 
+    /**
+     * Get application settings
+     * 
+     * @return array
+     */
+    public function getSettingAplikasi(): array 
     {
-        $query = false;
+        try {
+            return $this->builder('setting')
+                        ->where('type', 'app')
+                        ->get()
+                        ->getResultArray();
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to get app settings in ' . __CLASS__ . ': ' . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
+     * Get user-specific layout settings (as array)
+     * 
+     * @return array
+     */
+    public function getUserLayoutSettings(): array 
+    {
+        try {
+            $userId = $this->session->get('user')['id_user'] ?? null;
+            if (!$userId) {
+                return [];
+            }
+            
+            return $this->builder('setting_user')
+                        ->where('id_user', $userId)
+                        ->where('type', 'layout')
+                        ->get()
+                        ->getResultArray();
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to get user layout settings in ' . __CLASS__ . ': ' . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
+     * Save application settings with image uploads
+     * 
+     * @return array Status result
+     */
+    public function saveData(): array 
+    {
         helper(['util', 'upload_file']);
         
-        $sql = 'SELECT * FROM setting WHERE type="app"';
-        $query = $this->db->query($sql)->getResultArray();
+        // Get current settings using Query Builder
+        try {
+            $query = $this->builder('setting')
+                          ->where('type', 'app')
+                          ->get()
+                          ->getResultArray();
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to fetch current settings in ' . __CLASS__ . ': ' . $e->getMessage());
+            return ['status' => 'error', 'message' => 'Gagal mengambil data saat ini'];
+        }
         
+        $curr_db = [];
         foreach($query as $val) {
             $curr_db[$val['param']] = $val['value'];
         }

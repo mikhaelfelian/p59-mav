@@ -23,6 +23,10 @@ use App\Models\Builtin\UserTokenModel;
  * @category   Model
  * @author     Agus Prawoto Hadi
  * @version    4.3.1
+ *
+ * Modified by Mikhael Felian Waskito
+ * @link       https://github.com/mikhaelfelian/p59-mav
+ * @notes      Fixed method signature compatibility with BaseModel (getSettingRegistrasi)
  */
 class LoginModel extends \App\Models\BaseModel
 {
@@ -46,7 +50,7 @@ class LoginModel extends \App\Models\BaseModel
      * @var Auth
      */
     protected $auth;
-    
+
     public function __construct()
     {
         parent::__construct();
@@ -55,19 +59,19 @@ class LoginModel extends \App\Models\BaseModel
         $this->userModel = new UserModel();
         $this->auth = new Auth();
     }
-    
+
     /**
      * Record user login activity
      * 
      * @return bool
      */
-    public function recordLogin() 
+    public function recordLogin(): bool
     {
-        $username = $this->request->getPost('username'); 
-        
+        $username = $this->request->getPost('username');
+
         // Get user ID from username
         $user = $this->userModel->where('username', $username)->first();
-        
+
         if (!$user) {
             return false;
         }
@@ -75,21 +79,21 @@ class LoginModel extends \App\Models\BaseModel
         // Record login activity
         return $this->userLoginActivityModel->recordActivity($user->id_user, 1);
     }
-    
+
     /**
      * Set user remember token
      * 
      * @param array $user User data
      * @return bool
      */
-    public function setUserToken($user) 
+    public function setUserToken(array $user): bool
     {
         $token = $this->auth->generateDbToken();
-        $expired_time = time() + (7*24*3600); // 7 days
-        
+        $expired_time = time() + (7 * 24 * 3600); // 7 days
+
         // Set cookie
         setcookie('remember', $token['selector'] . ':' . $token['external'], $expired_time, '/');
-        
+
         // Prepare data for database
         $data = [
             'id_user' => $user['id_user'],
@@ -102,21 +106,21 @@ class LoginModel extends \App\Models\BaseModel
 
         return $this->userTokenModel->createToken($data);
     }
-    
+
     /**
      * Delete authentication cookie and token
      * 
      * @param int $id_user User ID
      * @return bool
      */
-    public function deleteAuthCookie($id_user) 
+    public function deleteAuthCookie(int $id_user): bool
     {
         // Delete from database
         $deleted = $this->userTokenModel->deleteByUserAndAction($id_user, 'remember');
-        
+
         // Delete cookie
         setcookie('remember', '', time() - 360000, '/');
-        
+
         return $deleted;
     }
     
@@ -125,9 +129,18 @@ class LoginModel extends \App\Models\BaseModel
      * 
      * @return array
      */
-    public function getSettingRegistrasi() 
+    public function getSettingRegistrasi(): array
     {
-        $sql = 'SELECT * FROM setting WHERE type="register"';
-        return $this->db->query($sql)->getResultArray();
+        $query = $this->builder('setting')
+                      ->where('type', 'register')
+                      ->get()
+                      ->getResultArray();
+
+        $setting_register = [];
+        foreach ($query as $val) {
+            $setting_register[$val['param']] = $val['value'];
+        }
+
+        return $setting_register;
     }
 }

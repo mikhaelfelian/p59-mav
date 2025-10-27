@@ -65,7 +65,7 @@ class Module_role extends \App\Controllers\BaseController
 		
 		$data = $this->data;
 		$data['title'] = 'Edit ' . $this->currentModule['judul_module'];
-		$data['module'] = $this->model->getModule($_GET['id']);
+		$data['module'] = $this->model->getModuleById($_GET['id']);
 		$data['role'] = $this->model->getAllRole();
 		$data['role_detail'] = $this->model->getRoleDetail();
 		$data['module_role'] = $this->model->getModuleRoleById($_GET['id']);
@@ -79,7 +79,7 @@ class Module_role extends \App\Controllers\BaseController
 		$data = $this->data;
 		$data['title'] = 'Edit ' . $this->currentModule['judul_module'];
 
-		$data['module'] = $this->model->getModule($_GET['id']);
+		$data['module'] = $this->model->getModuleById($_GET['id']);
 		$data['role'] = $this->model->getAllRole();
 		$data['role_detail'] = $this->model->getRoleDetail();
 		$data['module_role'] = $this->model->getModuleRoleById($_GET['id']);

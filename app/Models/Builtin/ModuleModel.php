@@ -23,50 +23,66 @@ namespace App\Models\Builtin;
 class ModuleModel extends \App\Models\BaseModel
 {
     public function getAllModules() {
-        
-        $sql = 'SELECT * FROM module ORDER BY judul_module';
-        return $this->db->query($sql)->getResultArray();
+        return $this->builder('module')
+                   ->orderBy('judul_module')
+                   ->get()
+                   ->getResultArray();
     }
     
     public function getAllModuleStatus() {
-        
-        $sql = 'SELECT * FROM module_status';
-        return $this->db->query($sql)->getResultArray();
+        return $this->builder('module_status')
+                   ->get()
+                   ->getResultArray();
     }
     
-    public function getModule($id_module) {
-        
-        $sql = 'SELECT * FROM module WHERE id_module = ?';
-        return $this->db->query($sql, [$id_module])->getRowArray();
+    /**
+     * Get module by ID
+     * 
+     * @param int $id_module Module ID
+     * @return array|null
+     */
+    public function getModuleById(int $id_module): ?array
+    {
+        return $this->builder('module')
+                   ->where('id_module', $id_module)
+                   ->get()
+                   ->getRowArray();
     }
     
     public function getAllModuleRole() {
-        $sql = 'SELECT * FROM module_role mr LEFT JOIN module m ON m.id_module = mr.id_module';
-        $result = $this->db->query($sql)->getResultArray();
-        return $result;
+        return $this->builder('module_role')
+                   ->select('module_role.*, module.*')
+                   ->join('module', 'module.id_module = module_role.id_module', 'left')
+                   ->get()
+                   ->getResultArray();
     }
     
     public function getAllRoles() {
-        $sql = 'SELECT * FROM role';
-        $result = $this->db->query($sql)->getResultArray();
-        return $result;
+        return $this->builder('role')
+                   ->get()
+                   ->getResultArray();
     }
     
     private function getPermissionByIdModule($id) {
-        $sql = 'SELECT * FROM module_permission WHERE id_module = ?';
-        $result = $this->db->query($sql, (int) $id)->getResultArray();
-        return $result;
+        return $this->builder('module_permission')
+                   ->where('id_module', (int) $id)
+                   ->get()
+                   ->getResultArray();
     }
     
     public function getRoleByIdModule($id) {
-        $sql = 'SELECT * FROM role WHERE id_module = ?';
-        $result = $this->db->query($sql, (int) $id)->getResultArray();
-        return $result;
+        return $this->builder('role')
+                   ->where('id_module', (int) $id)
+                   ->get()
+                   ->getResultArray();
     }
     
     public function checkModuleUsedDefaultPage() {
-        $sql = 'SELECT * FROM user WHERE default_page_type = "id_module" AND default_page_id_module = ?';
-        return $this->db->query($sql, $this->request->getPost('id'))->getResultArray();
+        return $this->builder('user')
+                   ->where('default_page_type', 'id_module')
+                   ->where('default_page_id_module', $this->request->getPost('id'))
+                   ->get()
+                   ->getResultArray();
     }
     
     public function deleteData() {
@@ -110,18 +126,37 @@ class ModuleModel extends \App\Models\BaseModel
     }
     
     public function getModules() {
-        $sql = 'SELECT * FROM module m LEFT JOIN module_status ms ON ms.id_module_status = m.id_module_status ORDER BY m.judul_module';
-        return $this->db->query($sql)->getResultArray();
+        return $this->builder('module')
+                   ->select('module.*, module_status.*')
+                   ->join('module_status', 'module_status.id_module_status = module.id_module_status', 'left')
+                   ->orderBy('module.judul_module')
+                   ->get()
+                   ->getResultArray();
     }
     
-    public function getModulePermission($id_module) {
-        $sql = 'SELECT * FROM module_permission WHERE id_module = ?';
-        return $this->db->query($sql, $id_module)->getResultArray();
+    /**
+     * Get permissions for a module
+     * Note: BaseModel::getModulePermission() already provides this functionality
+     * This method kept for backward compatibility
+     * 
+     * @param int $id_module Module ID
+     * @return array
+     */
+    public function getModulePermissions(int $id_module): array
+    {
+        return $this->builder('module_permission')
+                   ->where('id_module', $id_module)
+                   ->get()
+                   ->getResultArray();
     }
     
     public function getRolePermissionByModule($id_module) {
-        $sql = 'SELECT * FROM role_module_permission rmp LEFT JOIN module_permission mp ON mp.id_module_permission = rmp.id_module_permission WHERE mp.id_module = ?';
-        $query = $this->db->query($sql, $id_module)->getResultArray();
+        $query = $this->builder('role_module_permission')
+                     ->select('role_module_permission.*, module_permission.*')
+                     ->join('module_permission', 'module_permission.id_module_permission = role_module_permission.id_module_permission', 'left')
+                     ->where('module_permission.id_module', $id_module)
+                     ->get()
+                     ->getResultArray();
         $result = [];
         foreach ($query as $val) {
             $result[$val['id_role']][$val['id_module_permission']] = $val;
@@ -172,54 +207,67 @@ class ModuleModel extends \App\Models\BaseModel
     // EDIT
     public function getRole() {
         $id_role = $this->request->getGet('id');
-        $sql = 'SELECT * FROM role WHERE id_role = ?';
-        $result = $this->db->query($sql, [$id_role])->getRowArray();
+        $result = $this->builder('role')
+                      ->where('id_role', $id_role)
+                      ->get()
+                      ->getRowArray();
         if (!$result)
             $result = [];
         return $result;
     }
     
     public function countAllData() {
-        $sql = 'SELECT COUNT(*) AS jml FROM module';
-        $result = $this->db->query($sql)->getRow();
-        return $result->jml;
+        return $this->builder('module')->countAllResults();
     }
     
-    public function getListData($where) {
-
+    /**
+     * Get list data for DataTables with optional WHERE filter
+     * 
+     * @param array|null $where Optional WHERE conditions (array format for Query Builder)
+     * @return array Data and total filtered count
+     */
+    public function getListData($where = null) {
         $columns = $this->request->getPost('columns');
+
+        // Build base query - MUST initialize from table first
+        $builder = $this->builder('module');
+        
+        // Apply where clause from parameter (array format)
+        if (!empty($where) && is_array($where)) {
+            $builder->where($where);
+        }
 
         // Search
         $search_all = @$this->request->getPost('search')['value'];
         if ($search_all) {
+            $builder->groupStart();
             foreach ($columns as $val) 
             {
                 if (strpos($val['data'], 'ignore') !== false)
                     continue;
                 
-                $where_col[] = $val['data'] . ' LIKE "%' . $search_all . '%"';
+                $builder->orLike($val['data'], $search_all);
             }
-             $where .= ' AND (' . join(' OR ', $where_col) . ') ';
+            $builder->groupEnd();
         }
         
         // Order        
         $order_data = $this->request->getPost('order');
-        $order = '';
-        if (strpos($_POST['columns'][$order_data[0]['column']]['data'], 'ignore') === false) {
-            $order_by = $columns[$order_data[0]['column']]['data'] . ' ' . strtoupper($order_data[0]['dir']);
-            $order = ' ORDER BY ' . $order_by;
+        if ($order_data && isset($order_data[0]) && isset($columns[$order_data[0]['column']])) {
+            $order_column = $columns[$order_data[0]['column']]['data'] ?? '';
+            if (strpos($order_column, 'ignore_search') === false) {
+                $order_dir = strtoupper($order_data[0]['dir'] ?? 'ASC');
+                $builder->orderBy($order_column, $order_dir);
+            }
         }
 
-        // Query Total Filtered
-        $sql = 'SELECT COUNT(*) AS jml_data FROM module ' . $where;
-        $total_filtered = $this->db->query($sql)->getRowArray()['jml_data'];
+        // Query Total Filtered - countAllResults(false) preserves query
+        $total_filtered = $builder->countAllResults(false);
         
         // Query Data
         $start = $this->request->getPost('start') ?: 0;
         $length = $this->request->getPost('length') ?: 10;
-        $sql = 'SELECT * FROM module 
-                ' . $where . $order . ' LIMIT ' . $start . ', ' . $length;
-        $data = $this->db->query($sql)->getResultArray();
+        $data = $builder->limit($length, $start)->get()->getResultArray();
 
         return ['data' => $data, 'total_filtered' => $total_filtered];
     }
