@@ -13,7 +13,7 @@ class Frontend extends BaseController
 {
     protected $model;
 
-    public function __construct()
+    public function __construct() 
     {
         parent::__construct();
         $this->model = new \App\Models\ItemModel();
