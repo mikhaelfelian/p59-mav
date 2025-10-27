@@ -28,4 +28,4 @@ RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ public/index.php/$1 [L]
 
 # Optional: nonaktifkan server signature
-ServerSignature Off
+ServerSignature Off 
