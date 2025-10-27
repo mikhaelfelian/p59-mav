@@ -126,4 +126,4 @@ nb-configuration.xml
 /.phpunit.*.cache
 example/
 public/uploads/*
-
+/template
