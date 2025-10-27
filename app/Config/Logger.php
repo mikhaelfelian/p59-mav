@@ -38,7 +38,7 @@ class Logger extends BaseConfig
      *
      * @var array|int
      */
-    public $threshold = (ENVIRONMENT === 'production') ? 4 : 9;
+    public $threshold = (ENVIRONMENT === 'production') ? 4 : 1;
 
     /**
      * --------------------------------------------------------------------------
@@ -84,14 +84,10 @@ class Logger extends BaseConfig
 
             // The log levels that this handler will handle.
             'handles' => [
+                'error',
                 'critical',
                 'alert',
                 'emergency',
-                'debug',
-                'error',
-                'info',
-                'notice',
-                'warning',
             ],
 
             /*
