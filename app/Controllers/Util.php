@@ -114,13 +114,6 @@ class Util extends Controller
     {
         $modules = [
             [
-                'nama_module' => 'util',
-                'judul_module' => 'Utility',
-                'deskripsi' => 'System utility for maintenance',
-                'id_module_status' => 1,
-                'login' => 'N'
-            ],
-            [
                 'nama_module' => 'cek-garansi',
                 'judul_module' => 'Cek Garansi',
                 'deskripsi' => 'Warranty check page',
