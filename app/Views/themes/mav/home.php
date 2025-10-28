@@ -40,10 +40,10 @@
 <section class="cta section">
   <div class="container cta-inner">
     <div>
-      <h2>Temukan Toko Terdekat</h2>
+      <h2>Temukan Agen Terdekat</h2>
       <p>Lihat peta interaktif dan ribuan titik layanan resmi.</p>
     </div>
-    <a class="btn btn-outline" href="<?= site_url('frontend/lokasi') ?>">Buka Peta</a>
+    <a class="btn btn-outline" href="<?= site_url('location') ?>">Buka Peta</a>
   </div>
 </section>
 
