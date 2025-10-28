@@ -35,10 +35,8 @@ class Login extends \App\Controllers\BaseController
 			}
 		}
 		
-		$query = $this->model->getSettingRegistrasi();
-		foreach($query as $val) {
-			$this->data['setting_registrasi'][$val['param']] = $val['value'];
-		}
+		// getSettingRegistrasi() already returns associative array (param => value)
+		$this->data['setting_registrasi'] = $this->model->getSettingRegistrasi();
 		
 		csrf_settoken();
 		$this->data['style'] = ' style="max-width:375px"';
