@@ -30,7 +30,7 @@
           <li><a href="<?= base_url('/') ?>">Beranda</a></li>
           <li><a href="<?= base_url('location') ?>">Lokasi</a></li>
           <li><a href="<?= base_url('catalog') ?>">Katalog</a></li>
-          <li><a href="<?= base_url('check-warranty') ?>">Cek Garansi</a></li>
+          <li><a href="#<?php // base_url('check-warranty') ?>">Cek Garansi</a></li>
         </ul>
       </nav>
       <a class="btn btn-amber" href="<?php echo base_url('login'); ?>" role="button">Masuk</a>
