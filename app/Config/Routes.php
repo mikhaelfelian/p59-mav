@@ -31,6 +31,10 @@ $routes->get('frontend/item/(:num)', 'Frontend::item/$1');
 $routes->get('frontend/catalog', 'Frontend_Catalog::index');
 $routes->get('catalog', 'Frontend_Catalog::index'); // Alias for catalog
 $routes->get('location', 'Frontend_Location::index'); // Alias for frontend/location
+$routes->get('cek-garansi', 'Frontend_Garansi::index'); // Warranty check page
+
+// Utility routes (for system setup - no authentication required)
+$routes->get('util', 'Util::index'); // Utility controller for module/role injection
 
 /**
  * --------------------------------------------------------------------
