@@ -58,7 +58,7 @@ class Setting_layout extends \App\Controllers\BaseController
 		$user_setting = $this->model->getUserSetting();
 					
 		if ($user_setting) {
-			$user_param = json_decode($user_setting['param'], true);
+			$user_param = json_decode($user_setting->param, true);
 			$data = array_merge($data, $user_param);
 		} else {
 			$query = $this->model->getDefaultSetting();
