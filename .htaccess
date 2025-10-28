@@ -35,6 +35,7 @@ RewriteRule ^(.*)$ public/index.php/$1 [L]
 # Redirect aliases
 RewriteRule ^frontend-location/?$ /location [R=301,L]
 RewriteRule ^katalog/?$ /frontend/catalog [R=301,L]
+RewriteRule ^cek-garansi/?$ /check-warranty [R=301,L]
 
 
 # Optional: nonaktifkan server signature
