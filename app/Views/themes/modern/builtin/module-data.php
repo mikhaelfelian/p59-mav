@@ -6,7 +6,7 @@
 	<div class="card-body">
 		<?php
 		
-		helper ('html');
+		helper ('html'); 
 			echo btn_link([
 				'attr' => ['class' => 'btn btn-success btn-xs'],
 				'url' => current_url() . '/add',
