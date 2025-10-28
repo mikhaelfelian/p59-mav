@@ -127,3 +127,4 @@ nb-configuration.xml
 example/
 public/uploads/*
 /template
+*.sql
