@@ -20,12 +20,22 @@ RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^themes/(.*)$ public/themes/$1 [L]
 
+# /images/... → /public/images/...
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^images/(.*)$ public/images/$1 [L]
+
 # ---------------------------------------------------
 # CodeIgniter routing (biar index.php tetap berfungsi)
 # ---------------------------------------------------
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ public/index.php/$1 [L]
+
+# Redirect aliases
+RewriteRule ^frontend-location/?$ /location [R=301,L]
+RewriteRule ^katalog/?$ /frontend/catalog [R=301,L]
+
 
 # Optional: nonaktifkan server signature
 ServerSignature Off 
