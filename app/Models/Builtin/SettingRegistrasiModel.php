@@ -44,17 +44,25 @@ class SettingRegistrasiModel extends \App\Models\BaseModel
     }
     
     /**
-     * Get registration settings
+     * Get registration settings as associative array (param => value)
      * 
-     * @return array
+     * @return array Associative array with param as key and value as value
      */
     public function getSettingRegistrasi(): array 
     {
         try {
-            return $this->builder('setting')
+            $query = $this->builder('setting')
                         ->where('type', 'register')
                         ->get()
                         ->getResultArray();
+            
+            // Convert to associative array (param => value) for easier access
+            $setting_register = [];
+            foreach ($query as $val) {
+                $setting_register[$val['param']] = $val['value'];
+            }
+            
+            return $setting_register;
         } catch (\Throwable $e) {
             log_message('error', 'Failed to get registration settings in ' . __CLASS__ . ': ' . $e->getMessage());
             return [];
