@@ -42,10 +42,8 @@ class Setting_registrasi extends \App\Controllers\BaseController
 			}
 		}
 		
-		$query = $this->model->getSettingRegistrasi();
-		foreach($query as $val) {
-			$data['setting'][$val['param']] = $val['value'];
-		}
+		// getSettingRegistrasi() now returns associative array (param => value)
+		$data['setting'] = $this->model->getSettingRegistrasi();
 		
 		$data['title'] = 'Edit ' . $this->currentModule['judul_module'];
 		$data['role'] = $this->model->getRole();
