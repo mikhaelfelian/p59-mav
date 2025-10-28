@@ -114,11 +114,11 @@ class Util extends Controller
     {
         $modules = [
             [
-                'nama_module' => 'cek-garansi',
-                'judul_module' => 'Cek Garansi',
-                'deskripsi' => 'Warranty check page',
+                'nama_module' => 'frontend-garansi',
+                'judul_module' => 'Frontend Garansi',
+                'deskripsi' => 'Frontend warranty check page',
                 'id_module_status' => 1,
-                'login' => 'R'
+                'login' => 'N'
             ]
         ];
         
