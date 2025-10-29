@@ -69,6 +69,8 @@ class Item extends BaseController
 
         // Image data for filepicker
         $this->data['image']            = [];
+        // Product rules (empty on create)
+        $this->data['rules']            = [];
 
         // AJAX/modal check
         $isAjax                         = $this->request->isAJAX() 
@@ -203,6 +205,19 @@ class Item extends BaseController
             'nama_file'      => $item->image
         ] : [];
 
+        // Load product rules JSON if column exists
+        $this->data['rules'] = [];
+        try {
+            $db = \Config\Database::connect();
+            $fields = $db->getFieldNames('item');
+            if (in_array('product_rules', $fields)) {
+                $rulesJson = $item->product_rules ?? '';
+                $this->data['rules'] = $rulesJson ? (json_decode($rulesJson, true) ?: []) : [];
+            }
+        } catch (\Throwable $e) {
+            // ignore silently; feature degrades gracefully if column missing
+        }
+
         // Cek AJAX/modal
         $isAjax = $this->request->isAJAX() 
                   || $this->request->getHeader('X-Requested-With') !== null;
@@ -319,6 +334,11 @@ class Item extends BaseController
 
             $result  = $this->model->update($id, $data);
             $message = $result ? 'Data berhasil diupdate' : 'Data gagal diupdate';
+
+            // Save Product Rules JSON if column exists
+            if ($result) {
+                $this->saveProductRulesIfAvailable($id);
+            }
             
             // Handle specifications for update - save directly to ItemSpecIdModel
             if ($result) {
@@ -366,6 +386,8 @@ class Item extends BaseController
             // Handle specifications for new item - save directly to ItemSpecIdModel
             if ($result) {
                 $itemId = $this->model->getInsertID();
+                // Save Product Rules JSON if column exists
+                $this->saveProductRulesIfAvailable($itemId);
                 
                 // Get specification data from POST
                 $specNames = $this->request->getPost('spec_name') ?? [];
@@ -397,6 +419,38 @@ class Item extends BaseController
             return redirect()->to('item')->with('message', $message);
         } else {
             return redirect()->back()->withInput()->with('message', $message);
+        }
+    }
+
+    private function saveProductRulesIfAvailable(int $itemId): void
+    {
+        try {
+            $db = \Config\Database::connect();
+            $fields = $db->getFieldNames('item');
+            if (!in_array('product_rules', $fields)) {
+                return; // column not present, skip
+            }
+
+            // Accept individual inputs or prebuilt JSON payload
+            $payload = $this->request->getPost('rule_payload');
+            if ($payload) {
+                $rules = json_decode($payload, true);
+            } else {
+                $rules = [
+                    'min_order' => $this->request->getPost('rule_min_order') ?? '',
+                    'max_order' => $this->request->getPost('rule_max_order') ?? '',
+                    'unit'      => $this->request->getPost('rule_unit') ?? '',
+                    'backorder' => $this->request->getPost('rule_backorder') ?? '0',
+                    'notes'     => $this->request->getPost('rule_notes') ?? ''
+                ];
+            }
+
+            // Persist via Query Builder to bypass allowedFields protection
+            $db->table('item')
+               ->where('id', $itemId)
+               ->update(['product_rules' => json_encode($rules)]);
+        } catch (\Throwable $e) {
+            // swallow errors to avoid breaking primary save flow
         }
     }
 
@@ -534,28 +588,30 @@ class Item extends BaseController
                 : '<span class="badge bg-secondary">Non-Stockable</span>';
 
             // Build action buttons based on existing RBAC system
-            $action = '';
+            $action = '<div class="btn-group" role="group">';
             
-            // Detail button - always show if user has read permissions
-            if ($this->hasPermissionPrefix('read')) {
-                $action .= '<button class="btn btn-sm btn-info btn-detail rounded-0" data-id="' . $row->id . '" title="Detail">
-                    <i class="fa fa-eye"></i>
+            // Edit button - check update permission using existing system
+            if ($this->hasPermissionPrefix('update')) {
+                $action .= '<button type="button" class="btn btn-sm btn-warning btn-edit" data-id="' . $row->id . '" title="Edit">
+                    <i class="fa fa-edit"></i>
                 </button>';
             }
             
-            // Edit button - check write permission using existing system
-            if ($this->hasPermissionPrefix('write')) {
-                $action .= '<button type="button" class="btn btn-sm btn-warning btn-edit rounded-0" data-id="' . $row->id . '">
-                    <i class="fa fa-edit"></i>
+            // Detail button - always show if user has read permissions
+            if ($this->hasPermissionPrefix('read')) {
+                $action .= '<button class="btn btn-sm btn-info btn-detail" data-id="' . $row->id . '" title="Detail">
+                    <i class="fa fa-eye"></i>
                 </button>';
             }
             
             // Delete button - check delete permission using existing system
             if ($this->hasPermissionPrefix('delete')) {
-                $action .= '<button type="button" class="btn btn-sm btn-danger btn-delete rounded-0" data-id="' . $row->id . '" data-name="' . $row->name . '">
+                $action .= '<button type="button" class="btn btn-sm btn-danger btn-delete" data-id="' . $row->id . '" data-name="' . $row->name . '" title="Delete">
                     <i class="fa fa-trash"></i>
                 </button>';
             }
+            
+            $action .= '</div>';
 
             $result[] = [
                 'ignore_search_urut'    => $no++,

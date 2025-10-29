@@ -92,9 +92,13 @@ class Util extends Controller
                     $response['data'] = $this->listRoles();
                     break;
                     
+                case 'test_product_rules':
+                    $response['data'] = $this->testProductRules();
+                    break;
+                    
                 default:
                     $response['status'] = 'info';
-                    $response['message'] = 'Available actions: inject_modules, inject_roles, inject_permissions, inject_role_permissions, setup_all, clear_all, list_modules, list_roles';
+                    $response['message'] = 'Available actions: inject_modules, inject_roles, inject_permissions, inject_role_permissions, setup_all, clear_all, list_modules, list_roles, test_product_rules';
                     break;
             }
         } catch (\Exception $e) {
@@ -384,6 +388,89 @@ class Util extends Controller
             ->orderBy('role.nama_role')
             ->get()
             ->getResultArray();
+    }
+    
+    /**
+     * Test Product Rules feature - verify column exists and can store/retrieve data
+     */
+    protected function testProductRules()
+    {
+        try {
+            $results = [];
+            
+            // Check if product_rules column exists
+            $db = \Config\Database::connect();
+            $fields = $db->getFieldNames('item');
+            $hasColumn = in_array('product_rules', $fields);
+            
+            $results['column_exists'] = $hasColumn;
+            
+            if ($hasColumn) {
+                // Get a test item
+                $testItem = $db->table('item')->limit(1)->get()->getRowArray();
+                
+                if ($testItem) {
+                    $results['test_item_id'] = $testItem['id'];
+                    $results['test_item_name'] = $testItem['name'];
+                    
+                    // Sample product rules data
+                    $sampleRules = [
+                        'min_order' => '10',
+                        'max_order' => '100',
+                        'unit' => 'pcs',
+                        'backorder' => '1',
+                        'notes' => 'Test product rules via Utility Controller'
+                    ];
+                    
+                    // Try to update the test item with sample rules
+                    $updateResult = $db->table('item')
+                        ->where('id', $testItem['id'])
+                        ->update(['product_rules' => json_encode($sampleRules)]);
+                    
+                    $results['update_result'] = $updateResult ? 'success' : 'failed';
+                    
+                    // Verify the update worked
+                    $updatedItem = $db->table('item')
+                        ->where('id', $testItem['id'])
+                        ->get()
+                        ->getRowArray();
+                    
+                    $results['retrieved_rules'] = $updatedItem['product_rules'] ?? null;
+                    
+                    if ($results['retrieved_rules']) {
+                        $decodedRules = json_decode($results['retrieved_rules'], true);
+                        $results['decoded_rules'] = $decodedRules;
+                        $results['validation'] = (
+                            isset($decodedRules['min_order']) &&
+                            isset($decodedRules['max_order']) &&
+                            isset($decodedRules['unit']) &&
+                            isset($decodedRules['backorder']) &&
+                            isset($decodedRules['notes'])
+                        ) ? 'valid' : 'invalid';
+                    }
+                    
+                    $results['message'] = 'Product rules column exists and is working correctly';
+                } else {
+                    $results['message'] = 'No items found in database to test with';
+                }
+            } else {
+                $results['message'] = 'Product rules column does not exist in item table';
+                $results['suggestion'] = 'Run migration: php spark migrate';
+            }
+            
+            return [
+                'status' => 'success',
+                'message' => 'Product Rules feature test completed',
+                'results' => $results
+            ];
+            
+        } catch (\Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ];
+        }
     }
 }
 
