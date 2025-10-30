@@ -43,7 +43,7 @@ $routes->get('util', 'Util::index'); // Utility controller for module/role injec
 $routes->get('item-category', 'Item_Category::index');
 $routes->get('item-category/add', 'Item_Category::add');
 $routes->get('item-category/edit', 'Item_Category::edit');
-$routes->get('item-category/delete', 'Item_Category::delete');
+$routes->match(['get', 'post'], 'item-category/delete', 'Item_Category::delete');
 $routes->match(['get', 'post'], 'item-category/getDataDT', 'Item_Category::getDataDT');
 $routes->match(['get', 'post'], 'item-category/toggleStatus', 'Item_Category::toggleStatus');
 $routes->post('item-category/store', 'Item_Category::store');
