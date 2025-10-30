@@ -37,6 +37,10 @@ $routes->get('check-warranty', 'Frontend_Garansi::index'); // Warranty check pag
 // Utility routes (for system setup - no authentication required)
 $routes->get('util', 'Util::index'); // Utility controller for module/role injection
 
+
+# Backend
+$routes->get('item-brand', 'Item_Brand::index');
+
 /**
  * --------------------------------------------------------------------
  * Route Definitions
