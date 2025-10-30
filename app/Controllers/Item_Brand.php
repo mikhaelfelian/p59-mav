@@ -89,7 +89,7 @@ class Item_Brand extends BaseController
         $this->data['isModal'] = $isAjax;
         
         if ($isAjax) {
-            return $this->view('item-brand-form', $this->data);
+            return view('themes/modern/item-brand-form', $this->data);
         }
         
         return $this->view('item-brand-form', $this->data);
