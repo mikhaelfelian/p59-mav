@@ -249,7 +249,7 @@ class Item_Brand extends BaseController
         return redirect()->to('item-brand')->with('message', $message);
     }
 
-    public function getBrandDT()
+    public function getDataDT()
     {
         $draw = $this->request->getPost('draw');
         $start = $this->request->getPost('start');
