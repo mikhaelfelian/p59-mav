@@ -44,6 +44,7 @@ $routes->get('item-category', 'Item_Category::index');
 $routes->get('item-category/add', 'Item_Category::add');
 $routes->get('item-category/edit/(:num)', 'Item_Category::edit/$1');
 $routes->match(['get', 'post'], 'item-category/getDataDT', 'Item_Category::getDataDT');
+$routes->match(['get', 'post'], 'item-category/toggleStatus', 'Item_Category::toggleStatus');
 $routes->post('item-category/store', 'Item_Category::store');
 $routes->post('item-category/update/(:num)', 'Item_Category::update/$1');
 $routes->post('item-category/delete/(:num)', 'Item_Category::delete/$1');
