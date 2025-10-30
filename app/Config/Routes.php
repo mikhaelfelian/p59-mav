@@ -38,9 +38,16 @@ $routes->get('check-warranty', 'Frontend_Garansi::index'); // Warranty check pag
 $routes->get('util', 'Util::index'); // Utility controller for module/role injection
 
 
-# Backend
-$routes->get('item-brand', 'Item_Brand::index');
+// Backend routes are defined below. Add your backend or admin panel routes here.
+# Category
+$routes->get('item-category', 'Item_Category::index');
+$routes->get('item-category/add', 'Item_Category::add');
+$routes->get('item-category/edit/(:num)', 'Item_Category::edit/$1');
+$routes->post('item-category/store', 'Item_Category::store');
+$routes->post('item-category/update/(:num)', 'Item_Category::update/$1');
+$routes->post('item-category/delete/(:num)', 'Item_Category::delete/$1');
 
+# Brand
 /**
  * --------------------------------------------------------------------
  * Route Definitions
