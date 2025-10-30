@@ -51,6 +51,15 @@ $routes->post('item-category/update/(:num)', 'Item_Category::update/$1');
 $routes->post('item-category/delete/(:num)', 'Item_Category::delete/$1');
 
 # Brand
+$routes->get('item-brand', 'Item_Brand::index');
+$routes->get('item-brand/add', 'Item_Brand::add');
+$routes->get('item-brand/edit', 'Item_Brand::edit');
+$routes->match(['get', 'post'], 'item-brand/delete', 'Item_Brand::delete');
+$routes->match(['get', 'post'], 'item-brand/getDataDT', 'Item_Brand::getDataDT');
+$routes->match(['get', 'post'], 'item-brand/toggleStatus', 'Item_Brand::toggleStatus');
+$routes->post('item-brand/store', 'Item_Brand::store');
+$routes->post('item-brand/update/(:num)', 'Item_Brand::update/$1');
+$routes->post('item-brand/delete/(:num)', 'Item_Brand::delete/$1');
 /**
  * --------------------------------------------------------------------
  * Route Definitions
