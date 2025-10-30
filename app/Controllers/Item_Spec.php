@@ -87,7 +87,7 @@ class Item_Spec extends BaseController
             return view('themes/modern/item-spec-form', $this->data);
         }
         
-        return view('themes/modern/item-spec-form', $this->data);
+        return $this->view('item-spec-form', $this->data);
     }
 
     public function store()
@@ -241,7 +241,7 @@ class Item_Spec extends BaseController
         return redirect()->to('item-spec')->with('message', $message);
     }
 
-    public function getSpecDT()
+    public function getDataDT()
     {
         $request = \Config\Services::request();
         $draw = $request->getPost('draw');

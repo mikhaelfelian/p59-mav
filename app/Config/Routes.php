@@ -60,6 +60,18 @@ $routes->match(['get', 'post'], 'item-brand/toggleStatus', 'Item_Brand::toggleSt
 $routes->post('item-brand/store', 'Item_Brand::store');
 $routes->post('item-brand/update/(:num)', 'Item_Brand::update/$1');
 $routes->post('item-brand/delete/(:num)', 'Item_Brand::delete/$1');
+
+# Spec
+$routes->get('item-spec', 'Item_Spec::index');
+$routes->get('item-spec/add', 'Item_Spec::add');
+$routes->get('item-spec/edit', 'Item_Spec::edit');
+$routes->match(['get', 'post'], 'item-spec/delete', 'Item_Spec::delete');
+$routes->match(['get', 'post'], 'item-spec/getDataDT', 'Item_Spec::getDataDT');
+$routes->match(['get', 'post'], 'item-spec/toggleStatus', 'Item_Spec::toggleStatus');
+$routes->post('item-spec/store', 'Item_Spec::store');
+$routes->post('item-spec/update/(:num)', 'Item_Spec::update/$1');
+$routes->post('item-spec/delete/(:num)', 'Item_Spec::delete/$1');
+
 /**
  * --------------------------------------------------------------------
  * Route Definitions
