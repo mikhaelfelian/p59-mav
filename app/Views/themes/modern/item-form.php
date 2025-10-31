@@ -7,8 +7,6 @@
  * This file represents the View for item-form.
  */
 
-helper('form');
-helper('html');
 $isModal = $isModal ?? false;
 ?>
 <?php if (!$isModal): ?>
@@ -24,7 +22,7 @@ $isModal = $isModal ?? false;
 		} ?>
 
 		<form method="post" action="<?= $config->baseURL ?>item/store" class="form-container"
-			enctype="multipart/form-data" id="form-item">
+			enctype="multipart/form-data" id="form-item" onsubmit="return convertPriceValuesBeforeSubmit(this);">
 			<!-- Tabs navigation -->
 				<ul class="nav nav-tabs" id="itemTabs" role="tablist">
 				<li class="nav-item" role="presentation">
@@ -252,42 +250,20 @@ $isModal = $isModal ?? false;
 
 				<!-- Aturan Promo Produk Tab -->
 				<div class="tab-pane fade" id="tab-promo" role="tabpanel">
-					<?= view('themes/modern/product_rules/tab', ['items' => $items ?? [], 'id' => $id ?? '']); ?>
+					<?= view('themes/modern/product_rules/tab', [
+						'items' => $items ?? [], 
+						'id' => $id ?? '',
+						'config' => $config ?? null
+					]); ?>
 				</div>
 
 				<!-- Harga Khusus Agen Tab -->
 				<div class="tab-pane fade" id="tab-agent-price" role="tabpanel">
-					<div class="card">
-						<div class="card-header"><h6 class="card-title mb-0">Harga Khusus Agen</h6></div>
-						<div class="card-body">
-							<div id="agent-price-form" class="row g-3">
-								<div class="col-md-4">
-									<label class="form-label">Pilih Agen</label>
-									<select name="user_id" class="form-control">
-										<option value="">Pilih Agen</option>
-										<?php if (!empty($agents ?? [])): foreach ($agents as $ag): ?>
-										<option value="<?= $ag->id ?>"><?= esc($ag->code ?? 'NO_CODE') ?> - <?= esc($ag->agent ?? $ag->name ?? '-') ?></option>
-										<?php endforeach; endif; ?>
-									</select>
-								</div>
-								<div class="col-md-4">
-									<label class="form-label">Harga Khusus Agen</label>
-									<input type="text" name="price" class="form-control price-format" placeholder="0">
-								</div>
-								<div class="col-md-4 align-self-end">
-									<button type="button" class="btn btn-primary" id="btn-add-agent-price">Tambah Harga</button>
-								</div>
-								<input type="hidden" name="item_id" value="<?= esc($id) ?>">
-							</div>
-
-							<hr/>
-							<div id="agent-price-table" class="table-responsive">
-								<table class="table table-bordered"><thead><tr>
-									<th>#</th><th>Agen</th><th>Harga</th><th>Status</th><th>Aksi</th>
-								</tr></thead><tbody></tbody></table>
-							</div>
-						</div>
-					</div>
+					<?= view('themes/modern/product_rules/tab-agent-price', [
+						'items' => $items ?? [], 
+						'id' => $id ?? '',
+						'agents' => $agents ?? []
+					]); ?>
 				</div>
 			</div>
 
@@ -308,6 +284,36 @@ $isModal = $isModal ?? false;
 	// Pass PHP data to JavaScript
 	var specOptions = <?= json_encode($specOptions) ?>;
 	
+	// CRITICAL: Convert formatted price values to plain numbers BEFORE form submits
+	// This function MUST run before form submission to ensure price values are sent correctly
+	function convertPriceValuesBeforeSubmit(form) {
+		// Find ONLY the main price-format inputs (price and agent_price), NOT the agent price tab input
+		// Exclude inputs inside #agent-price-form (they're handled separately via AJAX)
+		const priceInputs = form.querySelectorAll('.price-format:not(#agent-price-form .price-format)');
+		
+		priceInputs.forEach(function(input) {
+			// Skip if this input is inside the agent-price-form container
+			if (input.closest('#agent-price-form')) {
+				return;
+			}
+			
+			const originalValue = input.value || '';
+			
+			// Remove ALL non-digit characters (dots, commas, spaces, currency symbols, etc.)
+			// This converts "6.000" or "6,000" or "Rp 6.000" to "6000"
+			let numericValue = originalValue.replace(/[^\d]/g, '');
+			
+			// ALWAYS set the numeric value - even if it's "0" or empty
+			// This ensures we send the actual value, not the formatted display value
+			input.value = numericValue || '';
+			
+			// Production: Remove console.debug/log output
+		});
+		
+		// Allow form to submit normally
+		return true;
+	}
+	
 	// Auto-slug generation from item name
 	document.addEventListener('DOMContentLoaded', function() {
 		const nameInput = document.querySelector('input[name="name"]');
@@ -323,99 +329,386 @@ $isModal = $isModal ?? false;
 			});
 			slugInput.addEventListener('blur', function() { if(!this.value) slugManuallyEdited = false; });
 		}
-	});
-	
-	// Ensure main form submission works
-	document.addEventListener('DOMContentLoaded', function() {
+		
+		// Ensure submit button works AND ensure price conversion happens
 		const formItem = document.getElementById('form-item');
 		const btnSubmit = document.getElementById('btn-submit');
-		
 		if(formItem && btnSubmit) {
-			// Force enable button
 			btnSubmit.disabled = false;
 			btnSubmit.style.pointerEvents = 'auto';
-			btnSubmit.style.cursor = 'pointer';
-			btnSubmit.style.position = 'relative';
-			btnSubmit.style.zIndex = '1000';
 			
-			// Use capture phase to ensure form submits before any preventDefault
-			formItem.addEventListener('submit', function(e) {
-				// Don't prevent - allow natural submission
-				return true;
-			}, true);
+			// DOUBLE CHECK: Also add jQuery submit handler as backup
+			if (typeof jQuery !== 'undefined') {
+				jQuery(formItem).on('submit', function(e) {
+					convertPriceValuesBeforeSubmit(formItem);
+				});
+			}
 			
-			// Ensure button click works - only validate, don't prevent
+			// TRIPLE CHECK: Also intercept button click
 			btnSubmit.addEventListener('click', function(e) {
-				if(formItem && !formItem.checkValidity()) {
-					formItem.reportValidity();
-				}
-				// Don't prevent default - let form submit naturally
+				convertPriceValuesBeforeSubmit(formItem);
 			}, true);
 		}
 	});
-    // Load agent prices for current item
-    (function(){
+    // Agent price management functionality
+    document.addEventListener('DOMContentLoaded', function(){
         const itemId = '<?= $id ?>';
-        if(!itemId) return;
+        const baseURL = '<?= $config->baseURL ?>';
+        
+        // Function to load agent prices for current item
         function loadAgentPrices(){
-            fetch('<?= $config->baseURL ?>item-agent/list-by-item/'+itemId, {headers: {'X-Requested-With':'XMLHttpRequest','Accept':'application/json'}})
+            if(!itemId) {
+                // If no item ID, clear the table
+                const tbody = document.querySelector('#agent-price-table tbody');
+                if(tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Simpan item terlebih dahulu untuk menambahkan harga agen</td></tr>';
+                return;
+            }
+            
+            fetch(baseURL + 'item/listAgentPrices/' + itemId, {
+                headers: {'X-Requested-With':'XMLHttpRequest','Accept':'application/json'}
+            })
             .then(async r=>{
                 const ct = r.headers.get('content-type')||'';
-                if(!ct.includes('application/json')) { return { status:'error', data: [] }; }
+                if(!ct.includes('application/json')) { 
+                    return { status:'error', data: [] }; 
+                }
                 return r.json();
-            }).then(res=>{
+            })
+            .then(res=>{
                 const tbody = document.querySelector('#agent-price-table tbody');
                 if(!tbody) return;
                 tbody.innerHTML = '';
-                if(res.status==='success'){
+                
+                if(res.status==='success' && res.data && res.data.length > 0){
                     res.data.forEach((row,idx)=>{
                         const tr = document.createElement('tr');
+                        // Debug: log the row to see the actual structure
+                        // console.log('Row data:', row);
+                        
+                        // Get ID - CodeIgniter returns objects, so try different property access methods
+                        const rowId = row.id || row.item_agent?.id || (typeof row === 'object' && 'id' in row ? row.id : null);
+                        
+                        if(!rowId) {
+                            // If no ID found, log the row structure for debugging
+                            console.error('No ID found in row:', row);
+                        }
+                        
                         tr.innerHTML = `<td>${idx+1}</td>
                             <td>${(row.agent_code||'')+' '+(row.agent_name||'-')}</td>
                             <td>Rp ${new Intl.NumberFormat('id-ID').format(row.price||0)}</td>
                             <td>${row.is_active=='1'?'Aktif':'Nonaktif'}</td>
-                            <td></td>`;
+                            <td><button type="button" class="btn btn-sm btn-danger btn-delete-agent-price" data-id="${rowId || ''}">Hapus</button></td>`;
                         tbody.appendChild(tr);
                     });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Belum ada harga agen khusus</td></tr>';
                 }
-            }).catch(()=>{});
+            })
+            .catch(function(){
+                const tbody = document.querySelector('#agent-price-table tbody');
+                if(tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error loading data</td></tr>';
+            });
         }
-        document.addEventListener('DOMContentLoaded', function(){
-            loadAgentPrices();
-            const btnAddAgentPrice = document.getElementById('btn-add-agent-price');
-            if(btnAddAgentPrice){
-                btnAddAgentPrice.addEventListener('click', function(e){
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const form = document.getElementById('agent-price-form');
-                    if(!form) return;
-                    const userIdSelect = form.querySelector('select[name="user_id"]');
-                    const priceInput = form.querySelector('input[name="price"]');
-                    
-                    // Manual validation since required attribute removed to avoid form validation errors
-                    if(!userIdSelect || !userIdSelect.value){
-                        alert('Pilih Agen harus diisi');
-                        userIdSelect?.focus();
-                        return;
-                    }
-                    if(!priceInput || !priceInput.value || parseFloat(priceInput.value.replace(/[^\d]/g, '')) <= 0){
-                        alert('Harga Khusus Agen harus diisi');
-                        priceInput?.focus();
-                        return;
-                    }
-                    
-                    const fd = new FormData();
-                    fd.append('item_id', form.querySelector('input[name="item_id"]').value);
-                    fd.append('user_id', userIdSelect.value);
-                    fd.append('price', priceInput.value);
-                    fetch('<?= $config->baseURL ?>item-agent/store', {method:'POST', body: fd, headers: {'X-Requested-With':'XMLHttpRequest'}})
-                        .then(()=>{ 
-                            userIdSelect.value = '';
-                            priceInput.value = '';
-                            loadAgentPrices(); 
+        
+        // Load agent prices on page load
+        loadAgentPrices();
+        
+        // Handle "Add Agent Price" button click - use event delegation for dynamically loaded content
+        document.addEventListener('click', function(e) {
+            // Check if clicked element is the add button or inside it
+            const addBtn = e.target.closest('#btn-add-agent-price');
+            if(addBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Check if item is saved first
+                if(!itemId) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Perhatian',
+                            text: 'Silakan simpan item terlebih dahulu sebelum menambahkan harga agen khusus'
                         });
+                    } else {
+                        alert('Silakan simpan item terlebih dahulu sebelum menambahkan harga agen khusus');
+                    }
+                    return;
+                }
+                
+                const form = document.getElementById('agent-price-form');
+                if(!form) {
+                    return;
+                }
+                
+                const userIdSelect = form.querySelector('select[name="user_id"]');
+                const priceInput = form.querySelector('input[name="agent_special_price"]');
+                const itemIdInput = form.querySelector('input[name="item_id"]');
+                
+                // Validation
+                if(!userIdSelect || !userIdSelect.value){
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Validasi Gagal',
+                            text: 'Pilih Agen harus diisi'
+                        });
+                    } else {
+                        alert('Pilih Agen harus diisi');
+                    }
+                    userIdSelect?.focus();
+                    return;
+                }
+                if(!priceInput || !priceInput.value){
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Validasi Gagal',
+                            text: 'Harga Khusus Agen harus diisi'
+                        });
+                    } else {
+                        alert('Harga Khusus Agen harus diisi');
+                    }
+                    priceInput?.focus();
+                    return;
+                }
+                
+                // Convert formatted price to number before sending
+                const numericPrice = priceInput.value.replace(/[^\d]/g, '');
+                if(!numericPrice || parseFloat(numericPrice) <= 0){
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Validasi Gagal',
+                            text: 'Harga Khusus Agen harus lebih dari 0'
+                        });
+                    } else {
+                        alert('Harga Khusus Agen harus lebih dari 0');
+                    }
+                    priceInput?.focus();
+                    return;
+                }
+                
+                // Disable button during submission
+                addBtn.disabled = true;
+                addBtn.textContent = 'Menyimpan...';
+                
+                // Prepare form data
+                const fd = new FormData();
+                fd.append('item_id', itemIdInput ? itemIdInput.value : itemId);
+                fd.append('user_id', userIdSelect.value);
+                fd.append('price', numericPrice);
+                fd.append('is_active', '1'); // Default to active
+                
+                // Send request
+                fetch(baseURL + 'item/storeAgentPrice', {
+                    method:'POST', 
+                    body: fd, 
+                    headers: {'X-Requested-With':'XMLHttpRequest'}
+                })
+                .then(async response => {
+                    const contentType = response.headers.get('content-type') || '';
+                    if(contentType.includes('application/json')) {
+                        return response.json();
+                    }
+                    return { status: 'error', message: 'Invalid response' };
+                })
+                .then(res => {
+                    addBtn.disabled = false;
+                    addBtn.textContent = 'Tambah Harga';
+                    
+                    if(res.status === 'success'){
+                        // Clear form
+                        userIdSelect.value = '';
+                        priceInput.value = '';
+                        // Reload table
+                        loadAgentPrices();
+                        // Show success toast message
+                        if (typeof Swal !== 'undefined') {
+                            const Toast = Swal.mixin({
+                                toast: true,
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                timer: 3000,
+                                timerProgressBar: true,
+                                iconColor: 'white',
+                                customClass: {
+                                    popup: 'bg-success text-light toast p-2'
+                                },
+                                didOpen: (toast) => {
+                                    toast.addEventListener('mouseenter', Swal.stopTimer);
+                                    toast.addEventListener('mouseleave', Swal.resumeTimer);
+                                }
+                            });
+                            Toast.fire({
+                                html: '<div class="toast-content"><i class="far fa-check-circle me-2"></i> ' + (res.message || 'Harga agen berhasil ditambahkan') + '</div>'
+                            });
+                        } else {
+                            alert(res.message || 'Harga agen berhasil ditambahkan');
+                        }
+                    } else {
+                        // Show error message
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error!',
+                                text: res.message || 'Gagal menambahkan harga agen'
+                            });
+                        } else {
+                            alert('Gagal menambahkan harga agen: ' + (res.message || 'Unknown error'));
+                        }
+                    }
+                })
+                .catch(function(err) {
+                    addBtn.disabled = false;
+                    addBtn.textContent = 'Tambah Harga';
+                    // Show error message
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: 'Terjadi kesalahan: ' + err.message
+                        });
+                    } else {
+                        alert('Error: ' + err.message);
+                    }
                 });
+                return;
+            }
+            
+            // Handle delete agent price
+            const deleteBtn = e.target.closest('.btn-delete-agent-price');
+            if(deleteBtn){
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Get the ID from the button
+                const agentPriceId = deleteBtn.getAttribute('data-id');
+                if(!agentPriceId) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: 'ID tidak ditemukan'
+                        });
+                    } else {
+                        alert('ID tidak ditemukan');
+                    }
+                    return;
+                }
+                
+                // Show confirmation dialog
+                const confirmDelete = function() {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            title: 'Apakah Anda yakin?',
+                            text: "Data yang sudah dihapus tidak dapat dikembalikan!",
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColor: '#3085d6',
+                            cancelButtonColor: '#d33',
+                            confirmButtonText: 'Ya, hapus!',
+                            cancelButtonText: 'Batal'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                performDelete(agentPriceId);
+                            }
+                        });
+                    } else {
+                        if (confirm('Yakin ingin menghapus harga agen ini?')) {
+                            performDelete(agentPriceId);
+                        }
+                    }
+                };
+                
+                const performDelete = function(agentPriceId) {
+                    // Log for debugging
+                    // console.log('Attempting to delete agent price with ID:', agentPriceId);
+                    
+                    // Convert to number to ensure it's a valid ID
+                    const id = parseInt(agentPriceId, 10);
+                    if(!id || isNaN(id)) {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error!',
+                                text: 'ID tidak valid: ' + agentPriceId
+                            });
+                        } else {
+                            alert('ID tidak valid: ' + agentPriceId);
+                        }
+                        return;
+                    }
+                    
+                    // Use FormData instead of JSON (CodeIgniter prefers form data)
+                    const formData = new FormData();
+                    formData.append('id', id);
+                    
+                    fetch(baseURL + 'item/deleteAgentPrice', {
+                        method:'POST',
+                        headers: {'X-Requested-With':'XMLHttpRequest'},
+                        body: formData
+                    })
+                    .then(r => {
+                        if(!r.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return r.json();
+                    })
+                    .then(res => {
+                        if(res.status === 'success'){
+                            loadAgentPrices();
+                            // Show success toast message
+                            if (typeof Swal !== 'undefined') {
+                                const Toast = Swal.mixin({
+                                    toast: true,
+                                    position: 'top-end',
+                                    showConfirmButton: false,
+                                    timer: 3000,
+                                    timerProgressBar: true,
+                                    iconColor: 'white',
+                                    customClass: {
+                                        popup: 'bg-success text-light toast p-2'
+                                    },
+                                    didOpen: (toast) => {
+                                        toast.addEventListener('mouseenter', Swal.stopTimer);
+                                        toast.addEventListener('mouseleave', Swal.resumeTimer);
+                                    }
+                                });
+                                Toast.fire({
+                                    html: '<div class="toast-content"><i class="far fa-check-circle me-2"></i> ' + (res.message || 'Data berhasil dihapus') + '</div>'
+                                });
+                            } else {
+                                alert(res.message || 'Data berhasil dihapus');
+                            }
+                        } else {
+                            // Show error message
+                            if (typeof Swal !== 'undefined') {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error!',
+                                    text: res.message || 'Gagal menghapus data'
+                                });
+                            } else {
+                                alert('Gagal menghapus: ' + (res.message || 'Unknown error'));
+                            }
+                        }
+                    })
+                    .catch(function(err) {
+                        // Show error message
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error!',
+                                text: 'Terjadi kesalahan: ' + err.message
+                            });
+                        } else {
+                            alert('Error: ' + err.message);
+                        }
+                    });
+                };
+                
+                confirmDelete();
             }
         });
-    })();
+    });
 </script>

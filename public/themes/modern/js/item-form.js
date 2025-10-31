@@ -153,11 +153,30 @@ $(document).ready(function() {
             });
         });
     }
-    // Price formatting
+    // Price formatting - format on input
     $('.price-format').on('input', function() {
-        let value = $(this).val().replace(/[^\d]/g, '');
-        if (value) {
-            $(this).val(parseInt(value).toLocaleString('id-ID'));
+        let rawValue = $(this).val().replace(/[^\d]/g, '');
+        if (rawValue) {
+            // Store numeric value in data attribute for form submission
+            $(this).data('numeric-value', rawValue);
+            // Format the display value
+            $(this).val(parseInt(rawValue, 10).toLocaleString('id-ID'));
+        } else {
+            // Clear both value and data attribute if empty
+            $(this).val('');
+            $(this).data('numeric-value', '');
+        }
+    });
+    
+    // Also format initial values on page load if they're already formatted
+    $('.price-format').each(function() {
+        let currentValue = $(this).val();
+        // If value contains dots or commas (formatted), ensure it's properly formatted
+        if (currentValue && (currentValue.indexOf('.') !== -1 || currentValue.indexOf(',') !== -1)) {
+            let rawValue = currentValue.replace(/[^\d]/g, '');
+            if (rawValue) {
+                $(this).data('numeric-value', rawValue);
+            }
         }
     });
     

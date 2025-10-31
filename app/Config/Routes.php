@@ -79,10 +79,10 @@ $routes->get('agent-rules/form/(:num)', 'AgentRules::form/$1');
 $routes->post('agent-rules/save', 'AgentRules::save');
 $routes->post('agent-rules/delete/(:num)', 'AgentRules::delete/$1');
 
-# Product Promo
-$routes->get('product-promo/list/(:num)', 'ProductPromo::listByItem/$1');
-$routes->post('product-promo/save', 'ProductPromo::save');
-$routes->post('product-promo/delete/(:num)', 'ProductPromo::delete/$1');
+# Product Promo (moved to Item controller)
+$routes->get('item/promoList/(:num)', 'Item::promoList/$1');
+$routes->post('item/promoStore', 'Item::promoStore');
+$routes->post('item/promoDelete/(:num)', 'Item::promoDelete/$1');
 
 # Item Agent helper API
 $routes->get('item-agent/list-by-item/(:num)', 'Item_Agent::listByItem/$1');

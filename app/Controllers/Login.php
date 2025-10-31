@@ -104,18 +104,14 @@ class Login extends \App\Controllers\BaseController
 		$this->session->set('user', $result);
 	}
 	
-	public function logout() 
+	public function logout()
 	{
 		$user = $this->session->get('user');
 		if ($user) {
-			$this->model->deleteAuthCookie($this->session->get('user')['id_user']);
+			$this->model->deleteAuthCookie($user['id_user']);
 		}
 		$this->session->destroy();
-		// $this->session->stop();
-		header('location: ' . $this->config->baseURL . 'login');
-		exit;
-		// return redirect()->to($this->config->baseURL . 'login');
-		// exit;
-		// return redirect()->to($this->config->baseURL . 'login');
+
+		return redirect()->to(site_url('login'));
 	}
 }

@@ -17,6 +17,8 @@ class Item extends BaseController
     protected $itemCategoryModel;
     protected $itemSpecModel;
     protected $itemSpecIdModel;
+    protected $itemAgentModel;
+    protected $promoModel;
 
     public function __construct()
     {
@@ -26,6 +28,8 @@ class Item extends BaseController
         $this->itemCategoryModel = new \App\Models\ItemCategoryModel();
         $this->itemSpecModel = new \App\Models\ItemSpecModel();
         $this->itemSpecIdModel = new \App\Models\ItemSpecIdModel();
+        $this->itemAgentModel = new \App\Models\ItemAgentModel();
+        $this->promoModel = new \App\Models\ProductPromoRuleModel();
         helper('angka');
         
         // Add TinyMCE, DataTables and form scripts
@@ -238,27 +242,62 @@ class Item extends BaseController
 
     public function store()
     {
+        // Separate variables for POST inputs
+        $sku              = $this->request->getPost('sku');
+        $name             = $this->request->getPost('name');
+        $slug             = $this->request->getPost('slug');
+        $description      = $this->request->getPost('description');
+        $shortDescription = $this->request->getPost('short_description');
+        $price            = $this->request->getPost('price');
+        $agentPrice       = $this->request->getPost('agent_price');
+        $brandId          = $this->request->getPost('brand_id');
+        $categoryId       = $this->request->getPost('category_id');
+        $isStockable      = $this->request->getPost('is_stockable') ?? '1';
+        $isCatalog        = $this->request->getPost('is_catalog') ?? '1';
+        $status           = $this->request->getPost('status') ?? '1';
+        $id               = $this->request->getPost('id');
+
+        // Enforce status to only allow '1' or '0'
+        if ($status === null || ($status !== '1' && $status !== '0' && $status !== 1 && $status !== 0)) {
+            $status = '1';
+        } else {
+            $status = (string)($status == '1' ? '1' : '0');
+        }
+
         // Ensure schema supports agent_price to avoid silent drops when migration not run
         $this->ensureAgentPriceColumn();
         $validation = \Config\Services::validation();
 
         $rules = [
-            'sku'           => 'permit_empty|max_length[50]',
-            'name'          => 'required|max_length[100]',
-            'slug'          => 'permit_empty|max_length[100]',
-            'brand_id'      => 'required|integer|is_natural_no_zero',
-            'category_id'   => 'required|integer|is_natural_no_zero',
-            'price'         => 'permit_empty|decimal',
-            'agent_price'   => 'permit_empty|decimal',
-            'is_stockable'  => 'permit_empty|in_list[0,1]',
-            'is_catalog'    => 'permit_empty|in_list[0,1]',
-            'status'        => 'permit_empty|in_list[0,1]'
+            'sku'         => 'permit_empty|max_length[50]',
+            'name'        => 'required|max_length[100]',
+            'slug'        => 'permit_empty|max_length[100]',
+            'brand_id'    => 'required|integer|is_natural_no_zero',
+            'category_id' => 'required|integer|is_natural_no_zero',
+            // 'price'       => 'required|decimal',
+            // 'agent_price' => 'permit_empty|decimal', // still optional, but price is required
+            // 'is_stockable'  => 'permit_empty|in_list[0,1]',
+            // 'is_catalog'    => 'permit_empty|in_list[0,1]',
+            // 'status'        => 'permit_empty|in_list[0,1]'
         ];
+
+        // Normalize price and agentPrice using angka helper before validation
+        $form = $this->request->getPost();
+        $form['price'] = isset($form['price']) ? format_angka_db((string)$form['price']) : null;
+        $form['agent_price'] = isset($form['agent_price']) ? format_angka_db((string)$form['agent_price']) : null;
+        $this->request->setGlobal('post', $form); // Override POST for validation
 
         // Run validation
         if (!$this->validate($rules)) {
             $errors = $validation->getErrors();
             
+            // Add manual error for price, if not numeric or empty or zero
+            $showPriceError = false;
+            if (!isset($form['price']) || $form['price'] === '' || !is_numeric($form['price']) || $form['price'] <= 0) {
+                $errors['price'] = 'Harga harus diisi dan lebih dari 0';
+                $showPriceError = true;
+            }
+
             // Format error messages with field names
             $errorMessages = [];
             foreach ($errors as $field => $error) {
@@ -282,20 +321,21 @@ class Item extends BaseController
             return redirect()->back()->withInput()->with('message', $message);
         }
 
-        // Separate variables for POST inputs
-        $sku             = $this->request->getPost('sku');
-        $name            = $this->request->getPost('name');
-        $slug            = $this->request->getPost('slug');
-        $description     = $this->request->getPost('description');
-        $shortDescription= $this->request->getPost('short_description');
-        $price           = $this->request->getPost('price');
-        $agentPrice      = $this->request->getPost('agent_price');
-        $brandId         = $this->request->getPost('brand_id');
-        $categoryId      = $this->request->getPost('category_id');
-        $isStockable     = $this->request->getPost('is_stockable') ?? '1';
-        $isCatalog       = $this->request->getPost('is_catalog') ?? '0'; // <--- handle is_catalog post value
-        $status          = $this->request->getPost('status') ?? '1';
-        $id              = $this->request->getPost('id');
+        // Final check if price is still empty or zero after above conversion, as last failsafe
+        $price = $form['price'];
+        if ($price === null || $price === '' || !is_numeric($price) || floatval($price) <= 0) {
+            $message = 'Harga item wajib diisi dan harus lebih dari 0';
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON([
+                    'status'  => 'error',
+                    'message' => $message,
+                    'errors'  => ['price' => $message]
+                ]);
+            }
+            return redirect()->back()->withInput()->with('message', $message);
+        }
+        $price = floatval($price);
+        $agentPrice = $form['agent_price'] !== null ? floatval($form['agent_price']) : 0;
 
         // Handle file upload
         $image = '';
@@ -311,7 +351,7 @@ class Item extends BaseController
         }
 
         // Correct session retrieval to array, not string.
-        $userSession = session('user'); // Expecting this as array with 'id_user'
+        $userSession = session('user');
         if (!is_array($userSession) || !isset($userSession['id_user'])) {
             $message = 'User session tidak ditemukan, silakan login ulang.';
             if ($this->request->isAJAX()) {
@@ -323,10 +363,6 @@ class Item extends BaseController
             return redirect()->to('login')->with('message', $message);
         }
         $userId = $userSession['id_user'];
-
-        // Normalize price values using angka helper (supports 1.234.567,89 and 1,234,567.89)
-        $price = $price !== null ? format_angka_db((string)$price) : 0;
-        $agentPrice = $agentPrice !== null ? format_angka_db((string)$agentPrice) : 0;
 
         if ($id) {
             // Update existing record - keep existing SKU
@@ -345,7 +381,7 @@ class Item extends BaseController
 
             $data = [
                 'user_id'           => $userId,
-                'sku'               => $existingRecord->sku, // Keep existing SKU
+                'sku'               => $existingRecord->sku,
                 'name'              => $name,
                 'slug'              => $slug,
                 'description'       => $description,
@@ -356,26 +392,22 @@ class Item extends BaseController
                 'brand_id'          => $brandId,
                 'category_id'       => $categoryId,
                 'is_stockable'      => $isStockable,
-                'is_catalog'        => $isCatalog, // <--- add is_catalog field in update
+                'is_catalog'        => $isCatalog,
                 'status'            => $status
             ];
 
-            // Initialize variables
             $result = false;
             $message = '';
             
             try {
-                // Skip model validation since we already validated in controller
                 $this->model->skipValidation(true);
                 $result = $this->model->update($id, $data);
                 
-                // Check for model errors
                 if (!$result) {
                     $modelErrors = $this->model->errors();
                     if (!empty($modelErrors)) {
                         $message = 'Validasi gagal: ' . implode(', ', array_values($modelErrors));
                     } else {
-                        // Check if record actually exists and was changed
                         $db = \Config\Database::connect();
                         $updated = $db->table('item')->where('id', $id)->countAllResults();
                         if ($updated == 0) {
@@ -385,12 +417,10 @@ class Item extends BaseController
                         }
                     }
                 } else {
-                    // Force persist agent_price even if model drops field due to schema/allowedFields mismatch
                     try {
                         $db = \Config\Database::connect();
                         $db->table('item')->where('id', $id)->update(['agent_price' => $agentPrice]);
                     } catch (\Throwable $e) {
-                        // Log but don't fail the update
                         log_message('warning', 'Failed to update agent_price: ' . $e->getMessage());
                     }
                     $message = 'Data berhasil diupdate';
@@ -401,18 +431,11 @@ class Item extends BaseController
                 log_message('error', 'Item update error: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString());
             }
 
-            // Legacy product rules removed
-            
-            // Handle specifications for update - save directly to ItemSpecIdModel
+            // Handle specifications for update
             if ($result) {
-                // Get specification data from POST
                 $specNames = $this->request->getPost('spec_name') ?? [];
                 $specValues = $this->request->getPost('spec_value') ?? [];
-                
-                // Remove existing specifications for this item
                 $this->itemSpecIdModel->where('item_id', $id)->delete();
-                
-                // Save new specifications directly to ItemSpecIdModel
                 foreach ($specNames as $key => $specId) {
                     if (!empty($specId) && !empty($specValues[$key])) {
                         $specData = [
@@ -430,7 +453,7 @@ class Item extends BaseController
             // Insert new record - generate new SKU
             $data = [
                 'user_id'           => $userId,
-                'sku'               => $this->model->generateSku(), // Auto-generate SKU
+                'sku'               => $this->model->generateSku(),
                 'name'              => $name,
                 'slug'              => $slug,
                 'description'       => $description,
@@ -441,20 +464,17 @@ class Item extends BaseController
                 'brand_id'          => $brandId,
                 'category_id'       => $categoryId,
                 'is_stockable'      => $isStockable,
-                'is_catalog'        => $isCatalog, // <--- add is_catalog field in insert
+                'is_catalog'        => $isCatalog,
                 'status'            => $status
             ];
 
-            // Initialize variables
             $result = false;
             $message = '';
             
             try {
-                // Skip model validation since we already validated in controller
                 $this->model->skipValidation(true);
                 $result = $this->model->save($data);
                 
-                // Check for model errors
                 if (!$result) {
                     $modelErrors = $this->model->errors();
                     if (!empty($modelErrors)) {
@@ -471,23 +491,16 @@ class Item extends BaseController
                 log_message('error', 'Item insert error: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString());
             }
             
-            // Handle specifications for new item - save directly to ItemSpecIdModel
             if ($result) {
                 $itemId = $this->model->getInsertID();
-                // Force persist agent_price for insert as well
                 try {
                     $db = \Config\Database::connect();
                     $db->table('item')->where('id', $itemId)->update(['agent_price' => $agentPrice]);
                 } catch (\Throwable $e) {
                     // ignore
                 }
-                // Legacy product rules removed
-                
-                // Get specification data from POST
                 $specNames = $this->request->getPost('spec_name') ?? [];
                 $specValues = $this->request->getPost('spec_value') ?? [];
-                
-                // Save specifications directly to ItemSpecIdModel
                 foreach ($specNames as $key => $specId) {
                     if (!empty($specId) && !empty($specValues[$key])) {
                         $specData = [
@@ -502,6 +515,7 @@ class Item extends BaseController
             }
         }
 
+        // Proper response handling, no debug output
         if ($this->request->isAJAX()) {
             return $this->response->setJSON([
                 'status'  => $result ? 'success' : 'error',
@@ -719,5 +733,261 @@ class Item extends BaseController
             'data'            => $result,
             'debug'           => $debugInfo
         ]);
+    }
+
+    /**
+     * List agent prices for a specific item
+     * No permission check - if user can view item, they can see agent prices
+     */
+    public function listAgentPrices($itemId)
+    {
+        try {
+            $rows = $this->itemAgentModel
+                ->select('item_agent.*, agent.name as agent_name, agent.code as agent_code')
+                ->join('agent', 'agent.id = item_agent.user_id', 'left')
+                ->where('item_agent.item_id', $itemId)
+                ->orderBy('item_agent.created_at', 'DESC')
+                ->findAll();
+            
+            return $this->response->setJSON([
+                'status' => 'success', 
+                'data' => $rows
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'status' => 'error', 
+                'message' => 'Error: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Store agent price for an item
+     * No permission check - same as main store() method
+     * If user can edit item, they can manage agent prices
+     */
+    public function storeAgentPrice()
+    {
+        $validation = \Config\Services::validation();
+        $rules = [
+            'item_id' => 'required|integer|is_natural_no_zero',
+            'user_id' => 'required|integer|is_natural_no_zero',
+            'price'   => 'required|decimal|greater_than_equal_to[0]'
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->response->setJSON([
+                'status'  => 'error',
+                'message' => 'Validasi gagal',
+                'errors'  => $validation->getErrors()
+            ]);
+        }
+
+        try {
+            $item_id   = $this->request->getPost('item_id');
+            $user_id   = $this->request->getPost('user_id');
+            $priceRaw  = $this->request->getPost('price');
+            $price     = format_angka_db((string)$priceRaw);
+            $is_active = $this->request->getPost('is_active') ? 1 : 0;
+
+            // Check if combination already exists
+            $existing = $this->itemAgentModel
+                ->where('item_id', $item_id)
+                ->where('user_id', $user_id)
+                ->first();
+
+            if ($existing) {
+                // Update existing
+                $data = [
+                    'price'     => $price,
+                    'is_active' => $is_active
+                ];
+                $result = $this->itemAgentModel->update($existing->id, $data);
+                $message = $result ? 'Data berhasil diupdate' : 'Data gagal diupdate';
+            } else {
+                // Insert new
+                $data = [
+                    'item_id'   => $item_id,
+                    'user_id'   => $user_id,
+                    'price'     => $price,
+                    'is_active' => $is_active ?? 1
+                ];
+                $result = $this->itemAgentModel->save($data);
+                $message = $result ? 'Data berhasil disimpan' : 'Data gagal disimpan';
+            }
+
+            return $this->response->setJSON([
+                'status'  => $result ? 'success' : 'error',
+                'message' => $message
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'status'  => 'error',
+                'message' => 'Error: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Delete agent price
+     * No permission check - same as main store() method
+     * If user can edit item, they can manage agent prices
+     */
+    public function deleteAgentPrice()
+    {
+        $id = $this->request->getPost('id');
+        if (!$id) {
+            return $this->response->setJSON([
+                'status'  => 'error',
+                'message' => 'ID tidak ditemukan'
+            ]);
+        }
+
+        try {
+            $itemAgent = $this->itemAgentModel->find($id);
+            if (!$itemAgent) {
+                return $this->response->setJSON([
+                    'status'  => 'error',
+                    'message' => 'Data tidak ditemukan'
+                ]);
+            }
+
+            $result = $this->itemAgentModel->delete($id);
+            $message = $result ? 'Data berhasil dihapus' : 'Data gagal dihapus';
+
+            return $this->response->setJSON([
+                'status'  => $result ? 'success' : 'error',
+                'message' => $message
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'status'  => 'error',
+                'message' => 'Error: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * List promo rules for a specific item
+     * If user can view item, they can see promo rules
+     */
+    public function promoList($itemId)
+    {
+        $this->response->setContentType('application/json');
+        
+        try {
+            $rows = $this->promoModel
+                ->select('product_promo_rule.*, i1.name AS item_name, i2.name AS bonus_name')
+                ->join('item i1', 'i1.id = product_promo_rule.item_id', 'left')
+                ->join('item i2', 'i2.id = product_promo_rule.bonus_item_id', 'left')
+                ->where('product_promo_rule.item_id', $itemId)
+                ->orderBy('product_promo_rule.created_at', 'DESC')
+                ->findAll();
+            
+            return $this->response->setJSON([
+                'status' => 'success', 
+                'data' => $rows
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'status' => 'error', 
+                'message' => 'Error: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Store or update promo rule
+     * If user can edit item, they can manage promo rules
+     */
+    public function promoStore()
+    {
+        $this->response->setContentType('application/json');
+        
+        $id = $this->request->getPost('id');
+        $data = [
+            'item_id'       => $this->request->getPost('item_id'),
+            'bonus_item_id' => $this->request->getPost('bonus_item_id'),
+            'min_qty'       => $this->request->getPost('min_qty') ?: 1,
+            'bonus_qty'     => $this->request->getPost('bonus_qty') ?: 1,
+            'is_multiple'   => $this->request->getPost('is_multiple') ? 1 : 0,
+            'start_date'    => $this->request->getPost('start_date') ?: null,
+            'end_date'      => $this->request->getPost('end_date') ?: null,
+            'status'        => $this->request->getPost('status') ?: 'active',
+            'notes'         => $this->request->getPost('notes'),
+        ];
+        
+        // Validate required fields
+        if (empty($data['item_id'])) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Item ID is required']);
+        }
+        if (empty($data['bonus_item_id'])) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Produk Bonus harus dipilih']);
+        }
+        if (empty($data['min_qty']) || $data['min_qty'] <= 0) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Jumlah Minimum harus lebih dari 0']);
+        }
+        if (empty($data['bonus_qty']) || $data['bonus_qty'] <= 0) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Jumlah Bonus harus lebih dari 0']);
+        }
+        
+        try {
+            if ($id) {
+                $result = $this->promoModel->update($id, $data);
+                $message = $result ? 'Aturan promo berhasil diperbarui' : 'Gagal memperbarui aturan promo';
+            } else {
+                $result = $this->promoModel->insert($data);
+                $message = $result ? 'Aturan promo berhasil disimpan' : 'Gagal menyimpan aturan promo';
+            }
+            
+            if (!$result) {
+                $errors = $this->promoModel->errors();
+                return $this->response->setJSON([
+                    'status' => 'error', 
+                    'message' => $message,
+                    'errors' => $errors
+                ]);
+            }
+            
+            return $this->response->setJSON([
+                'status' => 'success', 
+                'message' => $message,
+                'id' => $result
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'status' => 'error', 
+                'message' => 'Error: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Delete promo rule
+     * If user can edit item, they can manage promo rules
+     */
+    public function promoDelete($id)
+    {
+        $this->response->setContentType('application/json');
+        
+        if (!$id) {
+            return $this->response->setJSON([
+                'status' => 'error', 
+                'message' => 'ID tidak ditemukan'
+            ]);
+        }
+        
+        try {
+            $result = $this->promoModel->delete($id);
+            return $this->response->setJSON([
+                'status' => $result ? 'success' : 'error',
+                'message' => $result ? 'Data berhasil dihapus' : 'Gagal menghapus data'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'status' => 'error', 
+                'message' => 'Error: ' . $e->getMessage()
+            ]);
+        }
     }
 }
