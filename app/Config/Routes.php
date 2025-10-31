@@ -87,6 +87,10 @@ $routes->post('item/promoDelete/(:num)', 'Item::promoDelete/$1');
 # Item Agent helper API
 $routes->get('item-agent/list-by-item/(:num)', 'Item_Agent::listByItem/$1');
 
+# Migration Runner (Web-based migration tool)
+$routes->get('migrate/run', 'MigrationController::run');
+$routes->get('migrate/rollback', 'MigrationController::rollback');
+
 /**
  * --------------------------------------------------------------------
  * Route Definitions
