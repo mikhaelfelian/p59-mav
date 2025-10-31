@@ -87,6 +87,11 @@ class CreateItemTable extends Migration
                 'constraint' => ['0', '1'],
                 'default' => '1',
             ],
+            'is_catalog' => [
+                'type' => 'ENUM',
+                'constraint' => ['0', '1'],
+                'default' => '0',
+            ],
             'status' => [
                 'type' => 'ENUM',
                 'constraint' => ['0', '1'],

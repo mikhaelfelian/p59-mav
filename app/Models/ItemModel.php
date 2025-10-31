@@ -33,7 +33,9 @@ class ItemModel extends Model
         'short_description',
         'image',
         'price',
+        'agent_price',
         'is_stockable',
+        'is_catalog',
         'status'
     ];
 
@@ -50,7 +52,9 @@ class ItemModel extends Model
         'sku' => 'permit_empty|max_length[50]',
         'slug' => 'permit_empty|max_length[255]',
         'price' => 'permit_empty|decimal',
+        'agent_price' => 'permit_empty|decimal',
         'is_stockable' => 'in_list[0,1]',
+        'is_catalog' => 'in_list[0,1]',
         'status' => 'in_list[0,1]'
     ];
     protected $validationMessages   = [
@@ -63,9 +67,6 @@ class ItemModel extends Model
         ],
         'slug' => [
             'max_length' => 'Slug cannot exceed 255 characters'
-        ],
-        'price' => [
-            'decimal' => 'Price must be a valid decimal number'
         ],
         'is_stockable' => [
             'in_list' => 'Stockable status must be either 0 or 1'

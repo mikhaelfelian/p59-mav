@@ -21,16 +21,63 @@ if (!function_exists('format_angka_rp')) {
 
 if (!function_exists('format_angka_db')) {
     /**
-     * Format number for database (remove thousand separator and currency symbol)
-     * 
-     * @param mixed $angka Number to format
-     * @return float
+     * Normalize localized numeric string to a float usable for DB writes.
+     * Supports:
+     * - "1,234,567.89" (US)
+     * - "1.234.567,89" (ID/EU)
+     * - "1234567,89" or "1234567.89"
+     * - Also strips any non-numeric symbols (e.g., Rp, spaces)
      */
     function format_angka_db($str)
     {
-        $angka  = (float) $str;
-        $string = str_replace(',','.', str_replace('.','', $str));
-        return $string;
+        if ($str === null) {
+            return 0;
+        }
+        $str = trim((string) $str);
+        if ($str === '') {
+            return 0;
+        }
+
+        // Keep only digits, separators and minus
+        $str = preg_replace('/[^0-9.,-]/', '', $str);
+
+        $hasComma = strpos($str, ',') !== false;
+        $hasDot   = strpos($str, '.') !== false;
+
+        if ($hasComma && $hasDot) {
+            // Both present: the rightmost separator is the decimal
+            $lastDot   = strrpos($str, '.');
+            $lastComma = strrpos($str, ',');
+            if ($lastComma > $lastDot) {
+                // decimal = comma, thousands = dot
+                $str = str_replace('.', '', $str);
+                $str = str_replace(',', '.', $str);
+            } else {
+                // decimal = dot, thousands = comma
+                $str = str_replace(',', '', $str);
+                // dot stays as decimal
+            }
+        } elseif ($hasComma) {
+            // Only commas present. Heuristic: if <= 2 digits after last comma -> decimal
+            $lastComma = strrpos($str, ',');
+            $decLen = strlen($str) - $lastComma - 1;
+            if ($decLen > 0 && $decLen <= 2) {
+                $str = str_replace(',', '.', $str);
+            } else {
+                // treat as thousands
+                $str = str_replace(',', '', $str);
+            }
+        } elseif ($hasDot) {
+            // Only dots present. Heuristic similar to above
+            $lastDot = strrpos($str, '.');
+            $decLen = strlen($str) - $lastDot - 1;
+            if (!($decLen > 0 && $decLen <= 2)) {
+                // treat as thousands
+                $str = str_replace('.', '', $str);
+            }
+        }
+
+        return (float) $str;
     }
 }
 

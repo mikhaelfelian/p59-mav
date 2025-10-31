@@ -296,12 +296,14 @@ class Item_Brand extends BaseController
                 'description' => $row->description ?? '-',
                 'status' => $status,
                 'ignore_search_action' => '
-                    <button class="btn btn-sm btn-primary btn-edit rounded-0" data-id="' . $row->id . '">
-                        <i class="fa fa-edit"></i>
-                    </button>
-                    <button class="btn btn-sm btn-danger btn-delete rounded-0" data-id="' . $row->id . '" data-name="' . $row->name . '">
-                        <i class="fa fa-trash"></i>
-                    </button>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-primary btn-edit rounded-0" data-id="' . $row->id . '">
+                            <i class="fa fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger btn-delete rounded-0" data-id="' . $row->id . '" data-name="' . $row->name . '">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                    </div>
                 '
             ];
         }

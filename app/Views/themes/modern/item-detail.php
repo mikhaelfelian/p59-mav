@@ -16,11 +16,16 @@
                 <h5 class="card-title">Gambar Item</h5>
             </div>
             <div class="card-body text-center">
-                <?php if (!empty($item->image) && file_exists(FCPATH . 'public/uploads/' . $item->image)): ?>
+                <?php if (!empty($item->image)): ?>
                     <img src="<?= base_url('public/uploads/' . $item->image) ?>" 
                          alt="<?= esc($item->name) ?>" 
                          class="img-fluid rounded" 
-                         style="max-height: 300px;">
+                         style="max-height: 300px;"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <div class="text-muted" style="display:none;">
+                        <i class="fas fa-image fa-3x"></i>
+                        <p class="mt-2">Gambar tidak ditemukan</p>
+                    </div>
                 <?php else: ?>
                     <div class="text-muted">
                         <i class="fas fa-image fa-3x"></i>
@@ -60,6 +65,10 @@
                             <tr>
                                 <td><strong>Harga:</strong></td>
                                 <td>Rp <?= format_angka($item->price, 0) ?></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Harga Agen:</strong></td>
+                                <td>Rp <?= format_angka($item->agent_price, 0) ?></td>
                             </tr>
                         </table>
                     </div>

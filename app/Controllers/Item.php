@@ -26,6 +26,7 @@ class Item extends BaseController
         $this->itemCategoryModel = new \App\Models\ItemCategoryModel();
         $this->itemSpecModel = new \App\Models\ItemSpecModel();
         $this->itemSpecIdModel = new \App\Models\ItemSpecIdModel();
+        helper('angka');
         
         // Add TinyMCE, DataTables and form scripts
         $this->addJs($this->config->baseURL . 'public/vendors/tinymce/tinymce.min.js');
@@ -54,7 +55,7 @@ class Item extends BaseController
         $this->data['current_module']   = $this->currentModule;
         $this->data['item']             = [];
         $this->data['id']               = '';
-        $this->data['message']          = '';
+        $this->data['message']          = $this->session->getFlashdata('message') ?? '';
 
         // Reference data for dropdowns
         $this->data['brands']           = $this->itemBrandModel
@@ -66,11 +67,19 @@ class Item extends BaseController
         $this->data['specifications']   = $this->itemSpecModel
                                                ->where('status', '1')
                                                ->findAll();
+        // For promo tab dropdowns & agent price tab
+        $this->data['items']            = $this->model->select('id, name')->where('status','1')->findAll();
+        // Agents for agent price tab
+        try {
+            $agentModel = new \App\Models\AgentModel();
+            $this->data['agents'] = $agentModel->where('is_active','1')->findAll();
+        } catch (\Throwable $e) {
+            $this->data['agents'] = [];
+        }
 
         // Image data for filepicker
         $this->data['image']            = [];
-        // Product rules (empty on create)
-        $this->data['rules']            = [];
+        // Product rules removed (legacy)
 
         // AJAX/modal check
         $isAjax                         = $this->request->isAJAX() 
@@ -184,6 +193,7 @@ class Item extends BaseController
         $this->data['current_module']  = $this->currentModule;
         $this->data['item']            = $item;
         $this->data['id']              = $id;
+        $this->data['message']         = $this->session->getFlashdata('message') ?? '';
 
         // Referensi dropdowns
         $this->data['brands']          = $this->itemBrandModel
@@ -195,6 +205,14 @@ class Item extends BaseController
         $this->data['specifications']  = $this->itemSpecModel
                                             ->where('status', '1')
                                             ->findAll();
+        // For promo tab dropdowns & agent price tab
+        $this->data['items']           = $this->model->select('id, name')->where('status','1')->findAll();
+        try {
+            $agentModel = new \App\Models\AgentModel();
+            $this->data['agents'] = $agentModel->where('is_active','1')->findAll();
+        } catch (\Throwable $e) {
+            $this->data['agents'] = [];
+        }
 
         // Spesifikasi untuk item ini
         $this->data['existing_specifications'] = $this->itemSpecIdModel->getSpecsForItem($id);
@@ -205,18 +223,7 @@ class Item extends BaseController
             'nama_file'      => $item->image
         ] : [];
 
-        // Load product rules JSON if column exists
-        $this->data['rules'] = [];
-        try {
-            $db = \Config\Database::connect();
-            $fields = $db->getFieldNames('item');
-            if (in_array('product_rules', $fields)) {
-                $rulesJson = $item->product_rules ?? '';
-                $this->data['rules'] = $rulesJson ? (json_decode($rulesJson, true) ?: []) : [];
-            }
-        } catch (\Throwable $e) {
-            // ignore silently; feature degrades gracefully if column missing
-        }
+        // Legacy product rules removed
 
         // Cek AJAX/modal
         $isAjax = $this->request->isAJAX() 
@@ -231,6 +238,8 @@ class Item extends BaseController
 
     public function store()
     {
+        // Ensure schema supports agent_price to avoid silent drops when migration not run
+        $this->ensureAgentPriceColumn();
         $validation = \Config\Services::validation();
 
         $rules = [
@@ -240,18 +249,33 @@ class Item extends BaseController
             'brand_id'      => 'required|integer|is_natural_no_zero',
             'category_id'   => 'required|integer|is_natural_no_zero',
             'price'         => 'permit_empty|decimal',
-            'is_stockable'  => 'in_list[0,1]',
-            'status'        => 'in_list[0,1]'
+            'agent_price'   => 'permit_empty|decimal',
+            'is_stockable'  => 'permit_empty|in_list[0,1]',
+            'is_catalog'    => 'permit_empty|in_list[0,1]',
+            'status'        => 'permit_empty|in_list[0,1]'
         ];
 
+        // Run validation
         if (!$this->validate($rules)) {
-            $errors  = $validation->getErrors();
-            $message = implode('<br>', $errors);
+            $errors = $validation->getErrors();
+            
+            // Format error messages with field names
+            $errorMessages = [];
+            foreach ($errors as $field => $error) {
+                $fieldLabel = str_replace(['_', 'id'], [' ', 'ID'], $field);
+                $errorMessages[] = ucfirst($fieldLabel) . ': ' . $error;
+            }
+            $message = !empty($errorMessages) ? implode('<br>', $errorMessages) : 'Validasi gagal. Silakan periksa kembali data yang diinput.';
+            
+            // Log validation errors for debugging
+            log_message('error', 'Item validation failed: ' . print_r($errors, true));
+            log_message('debug', 'POST data received: ' . json_encode($this->request->getPost()));
 
             if ($this->request->isAJAX()) {
                 return $this->response->setJSON([
                     'status'  => 'error',
-                    'message' => $message
+                    'message' => $message,
+                    'errors'  => $errors
                 ]);
             }
 
@@ -265,9 +289,11 @@ class Item extends BaseController
         $description     = $this->request->getPost('description');
         $shortDescription= $this->request->getPost('short_description');
         $price           = $this->request->getPost('price');
+        $agentPrice      = $this->request->getPost('agent_price');
         $brandId         = $this->request->getPost('brand_id');
         $categoryId      = $this->request->getPost('category_id');
         $isStockable     = $this->request->getPost('is_stockable') ?? '1';
+        $isCatalog       = $this->request->getPost('is_catalog') ?? '0'; // <--- handle is_catalog post value
         $status          = $this->request->getPost('status') ?? '1';
         $id              = $this->request->getPost('id');
 
@@ -298,9 +324,9 @@ class Item extends BaseController
         }
         $userId = $userSession['id_user'];
 
-        // Clean price value (remove formatting)
-        $price = str_replace(['.', ','], '', $price);
-        $price = $price ? (float)$price : 0;
+        // Normalize price values using angka helper (supports 1.234.567,89 and 1,234,567.89)
+        $price = $price !== null ? format_angka_db((string)$price) : 0;
+        $agentPrice = $agentPrice !== null ? format_angka_db((string)$agentPrice) : 0;
 
         if ($id) {
             // Update existing record - keep existing SKU
@@ -326,19 +352,56 @@ class Item extends BaseController
                 'short_description' => $shortDescription,
                 'image'             => $image,
                 'price'             => $price,
+                'agent_price'       => $agentPrice,
                 'brand_id'          => $brandId,
                 'category_id'       => $categoryId,
                 'is_stockable'      => $isStockable,
+                'is_catalog'        => $isCatalog, // <--- add is_catalog field in update
                 'status'            => $status
             ];
 
-            $result  = $this->model->update($id, $data);
-            $message = $result ? 'Data berhasil diupdate' : 'Data gagal diupdate';
-
-            // Save Product Rules JSON if column exists
-            if ($result) {
-                $this->saveProductRulesIfAvailable($id);
+            // Initialize variables
+            $result = false;
+            $message = '';
+            
+            try {
+                // Skip model validation since we already validated in controller
+                $this->model->skipValidation(true);
+                $result = $this->model->update($id, $data);
+                
+                // Check for model errors
+                if (!$result) {
+                    $modelErrors = $this->model->errors();
+                    if (!empty($modelErrors)) {
+                        $message = 'Validasi gagal: ' . implode(', ', array_values($modelErrors));
+                    } else {
+                        // Check if record actually exists and was changed
+                        $db = \Config\Database::connect();
+                        $updated = $db->table('item')->where('id', $id)->countAllResults();
+                        if ($updated == 0) {
+                            $message = 'Data tidak ditemukan untuk diupdate.';
+                        } else {
+                            $message = 'Data gagal diupdate. Tidak ada perubahan atau terjadi kesalahan.';
+                        }
+                    }
+                } else {
+                    // Force persist agent_price even if model drops field due to schema/allowedFields mismatch
+                    try {
+                        $db = \Config\Database::connect();
+                        $db->table('item')->where('id', $id)->update(['agent_price' => $agentPrice]);
+                    } catch (\Throwable $e) {
+                        // Log but don't fail the update
+                        log_message('warning', 'Failed to update agent_price: ' . $e->getMessage());
+                    }
+                    $message = 'Data berhasil diupdate';
+                }
+            } catch (\Throwable $e) {
+                $result = false;
+                $message = 'Error saat update: ' . $e->getMessage();
+                log_message('error', 'Item update error: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString());
             }
+
+            // Legacy product rules removed
             
             // Handle specifications for update - save directly to ItemSpecIdModel
             if ($result) {
@@ -374,20 +437,51 @@ class Item extends BaseController
                 'short_description' => $shortDescription,
                 'image'             => $image,
                 'price'             => $price,
+                'agent_price'       => $agentPrice,
                 'brand_id'          => $brandId,
                 'category_id'       => $categoryId,
                 'is_stockable'      => $isStockable,
+                'is_catalog'        => $isCatalog, // <--- add is_catalog field in insert
                 'status'            => $status
             ];
 
-            $result  = $this->model->save($data);
-            $message = $result ? 'Data berhasil disimpan' : 'Data gagal disimpan';
+            // Initialize variables
+            $result = false;
+            $message = '';
+            
+            try {
+                // Skip model validation since we already validated in controller
+                $this->model->skipValidation(true);
+                $result = $this->model->save($data);
+                
+                // Check for model errors
+                if (!$result) {
+                    $modelErrors = $this->model->errors();
+                    if (!empty($modelErrors)) {
+                        $message = 'Validasi gagal: ' . implode(', ', array_values($modelErrors));
+                    } else {
+                        $message = 'Data gagal disimpan. Silakan coba lagi atau periksa koneksi database.';
+                    }
+                } else {
+                    $message = 'Data berhasil disimpan';
+                }
+            } catch (\Throwable $e) {
+                $result = false;
+                $message = 'Error saat insert: ' . $e->getMessage();
+                log_message('error', 'Item insert error: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString());
+            }
             
             // Handle specifications for new item - save directly to ItemSpecIdModel
             if ($result) {
                 $itemId = $this->model->getInsertID();
-                // Save Product Rules JSON if column exists
-                $this->saveProductRulesIfAvailable($itemId);
+                // Force persist agent_price for insert as well
+                try {
+                    $db = \Config\Database::connect();
+                    $db->table('item')->where('id', $itemId)->update(['agent_price' => $agentPrice]);
+                } catch (\Throwable $e) {
+                    // ignore
+                }
+                // Legacy product rules removed
                 
                 // Get specification data from POST
                 $specNames = $this->request->getPost('spec_name') ?? [];
@@ -422,35 +516,27 @@ class Item extends BaseController
         }
     }
 
-    private function saveProductRulesIfAvailable(int $itemId): void
+    // Legacy product rules method removed
+
+    private function ensureAgentPriceColumn(): void
     {
         try {
             $db = \Config\Database::connect();
             $fields = $db->getFieldNames('item');
-            if (!in_array('product_rules', $fields)) {
-                return; // column not present, skip
+            if (!in_array('agent_price', $fields)) {
+                $forge = \Config\Database::forge();
+                $forge->addColumn('item', [
+                    'agent_price' => [
+                        'type'       => 'DECIMAL',
+                        'constraint' => '10,2',
+                        'null'       => false,
+                        'default'    => 0.00,
+                        'after'      => 'price',
+                    ],
+                ]);
             }
-
-            // Accept individual inputs or prebuilt JSON payload
-            $payload = $this->request->getPost('rule_payload');
-            if ($payload) {
-                $rules = json_decode($payload, true);
-            } else {
-                $rules = [
-                    'min_order' => $this->request->getPost('rule_min_order') ?? '',
-                    'max_order' => $this->request->getPost('rule_max_order') ?? '',
-                    'unit'      => $this->request->getPost('rule_unit') ?? '',
-                    'backorder' => $this->request->getPost('rule_backorder') ?? '0',
-                    'notes'     => $this->request->getPost('rule_notes') ?? ''
-                ];
-            }
-
-            // Persist via Query Builder to bypass allowedFields protection
-            $db->table('item')
-               ->where('id', $itemId)
-               ->update(['product_rules' => json_encode($rules)]);
         } catch (\Throwable $e) {
-            // swallow errors to avoid breaking primary save flow
+            // Do not block save; if schema change fails, the model will simply ignore the field
         }
     }
 
@@ -589,24 +675,24 @@ class Item extends BaseController
 
             // Build action buttons based on existing RBAC system
             $action = '<div class="btn-group" role="group">';
-            
-            // Edit button - check update permission using existing system
-            if ($this->hasPermissionPrefix('update')) {
-                $action .= '<button type="button" class="btn btn-sm btn-warning btn-edit" data-id="' . $row->id . '" title="Edit">
-                    <i class="fa fa-edit"></i>
-                </button>';
-            }
-            
+                        
             // Detail button - always show if user has read permissions
             if ($this->hasPermissionPrefix('read')) {
-                $action .= '<button class="btn btn-sm btn-info btn-detail" data-id="' . $row->id . '" title="Detail">
+                $action .= '<button class="btn btn-sm btn-info btn-detail rounded-0" data-id="' . $row->id . '" title="Detail">
                     <i class="fa fa-eye"></i>
+                </button>';
+            }
+
+            // Edit button - check update permission using existing system
+            if ($this->hasPermissionPrefix('update')) {
+                $action .= '<button class="btn btn-sm btn-primary btn-edit rounded-0" data-id="' . $row->id . '">
+                    <i class="fa fa-edit"></i>
                 </button>';
             }
             
             // Delete button - check delete permission using existing system
             if ($this->hasPermissionPrefix('delete')) {
-                $action .= '<button type="button" class="btn btn-sm btn-danger btn-delete" data-id="' . $row->id . '" data-name="' . $row->name . '" title="Delete">
+                $action .= '<button class="btn btn-sm btn-danger btn-delete rounded-0" data-id="' . $row->id . '" data-name="' . $row->name . '">
                     <i class="fa fa-trash"></i>
                 </button>';
             }

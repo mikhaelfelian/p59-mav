@@ -279,13 +279,13 @@ class Item_Spec extends BaseController
                       </div>';
 
             $action = '<div class="btn-group" role="group">
-                        <button type="button" class="btn btn-sm btn-warning btn-edit" data-id="' . $row->id . '">
+                        <button class="btn btn-sm btn-primary btn-edit rounded-0" data-id="' . $row->id . '">
                             <i class="fa fa-edit"></i>
                         </button>
-                        <button type="button" class="btn btn-sm btn-danger btn-delete" data-id="' . $row->id . '" data-name="' . $row->name . '">
+                        <button class="btn btn-sm btn-danger btn-delete rounded-0" data-id="' . $row->id . '" data-name="' . $row->name . '">
                             <i class="fa fa-trash"></i>
                         </button>
-                      </div>';
+                    </div>';
 
             $result[] = [
                 'ignore_search_urut' => $no++,

@@ -72,6 +72,21 @@ $routes->post('item-spec/store', 'Item_Spec::store');
 $routes->post('item-spec/update/(:num)', 'Item_Spec::update/$1');
 $routes->post('item-spec/delete/(:num)', 'Item_Spec::delete/$1');
 
+# Agent Rules
+$routes->get('agent-rules', 'AgentRules::index');
+$routes->get('agent-rules/form', 'AgentRules::form');
+$routes->get('agent-rules/form/(:num)', 'AgentRules::form/$1');
+$routes->post('agent-rules/save', 'AgentRules::save');
+$routes->post('agent-rules/delete/(:num)', 'AgentRules::delete/$1');
+
+# Product Promo
+$routes->get('product-promo/list/(:num)', 'ProductPromo::listByItem/$1');
+$routes->post('product-promo/save', 'ProductPromo::save');
+$routes->post('product-promo/delete/(:num)', 'ProductPromo::delete/$1');
+
+# Item Agent helper API
+$routes->get('item-agent/list-by-item/(:num)', 'Item_Agent::listByItem/$1');
+
 /**
  * --------------------------------------------------------------------
  * Route Definitions

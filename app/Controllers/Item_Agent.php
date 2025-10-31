@@ -662,4 +662,18 @@ class Item_Agent extends BaseController
 
         return $this->view('item-agent-upload-form', $this->data);
     }
+
+    public function listByItem($itemId)
+    {
+        if (!$this->hasPermissionPrefix('read')) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Tidak memiliki izin.']);
+        }
+        $rows = $this->itemAgentModel
+            ->select('item_agent.*, agent.name as agent_name, agent.code as agent_code')
+            ->join('agent', 'agent.id = item_agent.user_id', 'left')
+            ->where('item_agent.item_id', $itemId)
+            ->orderBy('item_agent.created_at','DESC')
+            ->findAll();
+        return $this->response->setJSON(['status' => 'success', 'data' => $rows]);
+    }
 }
