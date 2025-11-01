@@ -34,9 +34,6 @@ $routes->get('catalog', 'Frontend_Catalog::index'); // Alias for catalog
 $routes->get('location', 'Frontend_Location::index'); // Alias for frontend/location
 $routes->get('check-warranty', 'Frontend_Garansi::index'); // Warranty check page
 
-// Utility routes (for system setup - no authentication required)
-$routes->get('util', 'Util::index'); // Utility controller for module/role injection
-
 
 // Backend routes are defined below. Add your backend or admin panel routes here.
 # Category
@@ -98,10 +95,6 @@ $routes->post('item/promoDelete/(:num)', 'Item::promoDelete/$1');
 # Item Agent helper API
 $routes->get('item-agent/list-by-item/(:num)', 'Item_Agent::listByItem/$1');
 
-# Migration Runner (Web-based migration tool)
-$routes->get('migrate/run', 'MigrationController::run');
-$routes->get('migrate/rollback', 'MigrationController::rollback');
-
 # Item SN (Serial Number) Management
 $routes->get('item-sn/(:num)', 'Item_Sn::index/$1');
 $routes->post('item-sn/store', 'Item_Sn::store');
@@ -117,6 +110,27 @@ $routes->post('item-varian/store', 'Item_Varian::store');
 $routes->get('item-varian/delete/(:num)', 'Item_Varian::delete/$1');
 $routes->get('item-varian/getByItem/(:num)', 'Item_Varian::getByItem/$1');
 
+# Sales Management
+
+# Platform Management
+# Specific routes must come before parameterized routes
+$routes->post('platform/store', 'Platform::store');
+$routes->post('platform/getDataDT', 'Platform::getDataDT');
+$routes->get('platform/add', 'Platform::add');
+$routes->get('platform/edit/(:num)', 'Platform::edit/$1');
+$routes->post('platform/update/(:num)', 'Platform::update/$1');
+$routes->get('platform/delete/(:num)', 'Platform::delete/$1');
+$routes->get('platform', 'Platform::index');
+
+
+
+
+# Migration Runner (Web-based migration tool)
+$routes->get('migrate/run', 'MigrationController::run');
+$routes->get('migrate/rollback', 'MigrationController::rollback');
+
+// Utility routes (for system setup - no authentication required)
+$routes->get('util', 'Util::index'); // Utility controller for module/role injection
 /**
  * --------------------------------------------------------------------
  * Route Definitions

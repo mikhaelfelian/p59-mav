@@ -15,15 +15,14 @@
 
 		// Daftar kolom tabel dengan label dalam Bahasa Indonesia
 		$column = [
-			'ignore_search_urut' => 'No',
-			'sku' => 'SKU',
-			'name' => 'Nama Item',
-			'brand_name' => 'Brand',
-			'category_name' => 'Kategori',
-			'price' => 'Harga',
-			'is_stockable' => 'Stockable',
-			'status' => 'Status',
-			'ignore_search_action' => 'Aksi'
+			'ignore_search_urut'   => 'No',
+			'sku'                  => 'SKU',
+			'name'                 => 'Nama Item',
+			'brand_name'           => 'Brand',
+			'category_name'        => 'Kategori',
+			'is_stockable'         => 'Stockable',
+			'status'               => 'Status',
+			'ignore_search_action' => 'Aksi',
 		];
 
 		$settings['order'] = [2, 'asc'];
