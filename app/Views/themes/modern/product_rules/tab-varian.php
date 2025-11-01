@@ -31,7 +31,7 @@
 					success: function(html) {
 						$('#varian-tab-content').removeClass('loading').html(html || '<div class="alert alert-warning">Tidak ada data yang dikembalikan</div>');
 						
-						// After content is loaded, ensure modal is moved to body and table is initialized
+						// After content is loaded, initialize table
 						setTimeout(function() {
 							// Call loadVariantTable if available
 							if (typeof window.loadVariantTable === 'function') {
