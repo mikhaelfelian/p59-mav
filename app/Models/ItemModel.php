@@ -47,19 +47,19 @@ class ItemModel extends Model
     protected $deletedField  = 'deleted_at';
 
     // Validation
-    protected $validationRules      = [
-        'name' => 'required|max_length[255]',
-        'sku' => 'permit_empty|max_length[50]',
-        'slug' => 'permit_empty|max_length[255]',
-        'price' => 'permit_empty|decimal',
+    protected $validationRules = [
+        'name'        => 'required|max_length[255]',
+        'sku'         => 'permit_empty|max_length[50]',
+        'slug'        => 'permit_empty|max_length[255]',
+        'price'       => 'permit_empty|decimal',
         'agent_price' => 'permit_empty|decimal',
-        'is_stockable' => 'in_list[0,1]',
-        'is_catalog' => 'in_list[0,1]',
-        'status' => 'in_list[0,1]'
+        'is_catalog'  => 'in_list[0,1]',
+        'status'      => 'in_list[0,1]'
     ];
-    protected $validationMessages   = [
+
+    protected $validationMessages = [
         'name' => [
-            'required' => 'Item name is required',
+            'required'   => 'Item name is required',
             'max_length' => 'Item name cannot exceed 255 characters'
         ],
         'sku' => [
@@ -68,11 +68,8 @@ class ItemModel extends Model
         'slug' => [
             'max_length' => 'Slug cannot exceed 255 characters'
         ],
-        'is_stockable' => [
-            'in_list' => 'Stockable status must be either 0 or 1'
-        ],
         'status' => [
-            'in_list' => 'Status must be either 0 or 1'
+            'in_list'    => 'Status must be either 0 or 1'
         ]
     ];
     protected $skipValidation       = false;

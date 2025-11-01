@@ -118,11 +118,11 @@ class Util extends Controller
     {
         $modules = [
             [
-                'nama_module' => 'frontend-garansi',
-                'judul_module' => 'Frontend Garansi',
-                'deskripsi' => 'Frontend warranty check page',
+                'nama_module'      => 'item-sn',
+                'judul_module'     => 'Item SN',
+                'deskripsi'        => 'Item SN management',
                 'id_module_status' => 1,
-                'login' => 'N'
+                'login'            => 'N'
             ]
         ];
         

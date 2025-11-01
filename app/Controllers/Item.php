@@ -391,7 +391,7 @@ class Item extends BaseController
                 'agent_price'       => $agentPrice,
                 'brand_id'          => $brandId,
                 'category_id'       => $categoryId,
-                'is_stockable'      => $isStockable,
+                'is_stockable'      => '1',
                 'is_catalog'        => $isCatalog,
                 'status'            => $status
             ];
@@ -463,7 +463,7 @@ class Item extends BaseController
                 'agent_price'       => $agentPrice,
                 'brand_id'          => $brandId,
                 'category_id'       => $categoryId,
-                'is_stockable'      => $isStockable,
+                'is_stockable'      => '1',
                 'is_catalog'        => $isCatalog,
                 'status'            => $status
             ];

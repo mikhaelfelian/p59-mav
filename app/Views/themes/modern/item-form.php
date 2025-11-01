@@ -37,6 +37,9 @@ $isModal = $isModal ?? false;
 					<li class="nav-item" role="presentation">
 						<a class="nav-link" data-bs-toggle="tab" href="#tab-agent-price" role="tab">Harga Khusus Agen</a>
 					</li>
+					<li class="nav-item" role="presentation">
+						<a class="nav-link" data-bs-toggle="tab" href="#tab-input-sn" role="tab">Input SN</a>
+					</li>
 			</ul>
 
 			<div class="tab-content mt-3">
@@ -131,15 +134,6 @@ $isModal = $isModal ?? false;
 									'data-type' => 'currency'
 								]) ?>
 							</div>
-
-							<div class="mb-3">
-								<label class="control-label mb-2">Stockable</label>
-								<div class="form-switch">
-									<input type="checkbox" name="is_stockable" value="1" class="form-check-input"
-										<?= set_value('is_stockable', @$item->is_stockable) == '1' ? 'checked' : '' ?> />
-									<label class="form-check-label">Item dapat di-stock</label>
-								</div>
-							</div>
 							<div class="mb-3">
 								<label class="control-label mb-2">Tampilkan di Web</label>
 								<div class="form-switch">
@@ -151,10 +145,19 @@ $isModal = $isModal ?? false;
 
 							<div class="mb-3">
 								<label class="control-label mb-2">Status</label>
-								<div>
-									<?php
-									echo options(['class' => 'form-control', 'name' => 'status'], ['1' => 'Aktif', '0' => 'Tidak Aktif'], set_value('status', @$item->status));
-									?>
+								<div class="form-check form-switch">
+									<?php $statusValue = set_value('status', @$item->status ?? '1'); ?>
+									<input type="hidden" name="status" value="0" id="status-hidden">
+									<input type="checkbox" name="status" value="1" class="form-check-input" id="item-status"
+										<?= $statusValue == '1' ? 'checked' : '' ?> />
+									<label class="form-check-label" for="item-status">
+										<span class="badge bg-success me-2 <?= $statusValue == '1' ? '' : 'd-none' ?>" id="status-badge">
+											<i class="fas fa-check-circle me-1"></i> Aktif
+										</span>
+										<span class="badge bg-danger me-2 <?= $statusValue == '1' ? 'd-none' : '' ?>" id="status-badge-inactive">
+											<i class="fas fa-times-circle me-1"></i> Tidak Aktif
+										</span>
+									</label>
 								</div>
 							</div>
 
@@ -265,6 +268,14 @@ $isModal = $isModal ?? false;
 						'agents' => $agents ?? []
 					]); ?>
 				</div>
+
+				<!-- Input SN Tab -->
+				<div class="tab-pane fade" id="tab-input-sn" role="tabpanel">
+					<?= view('themes/modern/product_rules/tab-input-sn', [
+						'id' => $id ?? '',
+						'config' => $config ?? null
+					]); ?>
+				</div>
 			</div>
 
 			<div class="row mb-3">
@@ -330,6 +341,30 @@ $isModal = $isModal ?? false;
 			slugInput.addEventListener('blur', function() { if(!this.value) slugManuallyEdited = false; });
 		}
 		
+		// Status switch toggle handler
+		const statusSwitch = document.getElementById('item-status');
+		const statusBadge = document.getElementById('status-badge');
+		const statusBadgeInactive = document.getElementById('status-badge-inactive');
+		
+		if(statusSwitch && statusBadge && statusBadgeInactive) {
+			// Update badge on toggle
+			function updateStatusBadge() {
+				if(statusSwitch.checked) {
+					statusBadge.classList.remove('d-none');
+					statusBadgeInactive.classList.add('d-none');
+				} else {
+					statusBadge.classList.add('d-none');
+					statusBadgeInactive.classList.remove('d-none');
+				}
+			}
+			
+			// Initial state
+			updateStatusBadge();
+			
+			// Listen for changes
+			statusSwitch.addEventListener('change', updateStatusBadge);
+		}
+		
 		// Ensure submit button works AND ensure price conversion happens
 		const formItem = document.getElementById('form-item');
 		const btnSubmit = document.getElementById('btn-submit');
@@ -337,17 +372,38 @@ $isModal = $isModal ?? false;
 			btnSubmit.disabled = false;
 			btnSubmit.style.pointerEvents = 'auto';
 			
+			// Handle status value before form submission
+			const statusHidden = document.getElementById('status-hidden');
+			const statusSwitch = document.getElementById('item-status');
+			
+			// Form submit handler
+			const handleFormSubmit = function() {
+				convertPriceValuesBeforeSubmit(formItem);
+				
+				// Ensure correct status value is sent
+				if(statusSwitch && statusHidden) {
+					if(statusSwitch.checked) {
+						// When checked, disable hidden input so only checkbox value (1) is sent
+						statusHidden.disabled = true;
+					} else {
+						// When unchecked, disable checkbox so only hidden input value (0) is sent
+						statusSwitch.disabled = true;
+					}
+				}
+			};
+			
 			// DOUBLE CHECK: Also add jQuery submit handler as backup
 			if (typeof jQuery !== 'undefined') {
-				jQuery(formItem).on('submit', function(e) {
-					convertPriceValuesBeforeSubmit(formItem);
-				});
+				jQuery(formItem).on('submit', handleFormSubmit);
 			}
 			
 			// TRIPLE CHECK: Also intercept button click
 			btnSubmit.addEventListener('click', function(e) {
-				convertPriceValuesBeforeSubmit(formItem);
+				handleFormSubmit();
 			}, true);
+			
+			// Also handle form's native submit
+			formItem.addEventListener('submit', handleFormSubmit);
 		}
 	});
     // Agent price management functionality

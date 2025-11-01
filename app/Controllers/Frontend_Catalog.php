@@ -24,17 +24,29 @@ class Frontend_Catalog extends BaseController
         $this->data['current_module'] = $this->currentModule;
         $this->data['msg'] = $this->session->getFlashdata('message');
         
-        // Get active items with brand and category information
-        $this->data['items'] = $this->itemModel->select('item.*, item_brand.name as brand_name, item_category.category as category_name')
+        // Items per page
+        $perPage = $this->request->getGet('per_page') ?? 12; // Default 12 items per page
+        
+        // Get active items with brand and category information using pagination
+        $items = $this->itemModel->select('item.*, item_brand.name as brand_name, item_category.category as category_name')
                                                 ->join('item_brand', 'item_brand.id = item.brand_id', 'left')
                                                 ->join('item_category', 'item_category.id = item.category_id', 'left')
                                                 ->where('item.status', '1')
-                                                ->get()
-                                                ->getResultArray();
+                                                ->where('item.is_catalog', '1')
+                                                ->orderBy('item.name', 'ASC')
+                                                ->paginate($perPage, 'default');
+        
+        // Get pager instance for pagination links
+        $pager = $this->itemModel->pager;
         
         // Layout data for MAV theme - from database
         $this->data['title'] = $this->currentModule['judul_module'] ?? 'Katalog Produk';
         $this->data['meta_description'] = $this->currentModule['deskripsi'] ?? 'Lihat katalog lengkap produk Multi Automobile Vision. Temukan produk berkualitas tinggi dengan harga terbaik.';
+        
+        // Pass items and pager to view
+        $this->data['items'] = $items;
+        $this->data['pager'] = $pager;
+        $this->data['perPage'] = $perPage;
         
         // Render using the MAV catalog template
         return view('themes/mav/catalog', $this->data);

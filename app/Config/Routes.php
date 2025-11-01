@@ -102,6 +102,14 @@ $routes->get('item-agent/list-by-item/(:num)', 'Item_Agent::listByItem/$1');
 $routes->get('migrate/run', 'MigrationController::run');
 $routes->get('migrate/rollback', 'MigrationController::rollback');
 
+# Item SN (Serial Number) Management
+$routes->get('item-sn/(:num)', 'Item_Sn::index/$1');
+$routes->post('item-sn/store', 'Item_Sn::store');
+$routes->post('item-sn/importExcel', 'Item_Sn::importExcel');
+$routes->get('item-sn/downloadTemplate', 'Item_Sn::downloadTemplate');
+$routes->post('item-sn/getSnList', 'Item_Sn::getSnList');
+$routes->get('item-sn/delete/(:num)', 'Item_Sn::delete/$1');
+
 /**
  * --------------------------------------------------------------------
  * Route Definitions
