@@ -31,6 +31,9 @@ $isModal = $isModal ?? false;
 				<li class="nav-item" role="presentation">
 					<a class="nav-link" data-bs-toggle="tab" href="#tab-spec" role="tab">Spesifikasi</a>
 				</li>
+				<li class="nav-item" role="presentation">
+					<a class="nav-link" data-bs-toggle="tab" href="#tab-varian" role="tab">Varian</a>
+				</li>
 					<li class="nav-item" role="presentation">
 						<a class="nav-link" data-bs-toggle="tab" href="#tab-promo" role="tab">Aturan Promo Produk</a>
 					</li>
@@ -250,6 +253,13 @@ $isModal = $isModal ?? false;
 					</div>
 				</div>
 
+				<!-- Varian Tab -->
+				<div class="tab-pane fade" id="tab-varian" role="tabpanel">
+					<?= view('themes/modern/product_rules/tab-varian', [
+						'id' => $id ?? '',
+						'config' => $config ?? null
+					]); ?>
+				</div>
 
 				<!-- Aturan Promo Produk Tab -->
 				<div class="tab-pane fade" id="tab-promo" role="tabpanel">

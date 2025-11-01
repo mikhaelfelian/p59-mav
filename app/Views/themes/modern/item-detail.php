@@ -113,7 +113,7 @@
                 <?php if (!empty($item->description)): ?>
                 <div class="mt-3">
                     <h6><strong>Deskripsi:</strong></h6>
-                    <p><?= nl2br(esc($item->description)) ?></p>
+                    <p><?= strip_tags($item->description) ?></p>
                 </div>
                 <?php endif; ?>
                 

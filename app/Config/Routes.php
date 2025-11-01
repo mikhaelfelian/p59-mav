@@ -110,6 +110,13 @@ $routes->get('item-sn/downloadTemplate', 'Item_Sn::downloadTemplate');
 $routes->post('item-sn/getSnList', 'Item_Sn::getSnList');
 $routes->get('item-sn/delete/(:num)', 'Item_Sn::delete/$1');
 
+# Item Variant Management
+$routes->get('item-varian/(:num)', 'Item_Varian::index/$1');
+$routes->get('item-varian/add/(:num)', 'Item_Varian::add/$1');
+$routes->post('item-varian/store', 'Item_Varian::store');
+$routes->get('item-varian/delete/(:num)', 'Item_Varian::delete/$1');
+$routes->get('item-varian/getByItem/(:num)', 'Item_Varian::getByItem/$1');
+
 /**
  * --------------------------------------------------------------------
  * Route Definitions

@@ -118,11 +118,11 @@ class Util extends Controller
     {
         $modules = [
             [
-                'nama_module'      => 'item-sn',
-                'judul_module'     => 'Item SN',
-                'deskripsi'        => 'Item SN management',
+                'nama_module'      => 'item-varian',
+                'judul_module'     => 'Item Varian',
+                'deskripsi'        => 'Item Varian Manajemen',
                 'id_module_status' => 1,
-                'login'            => 'N'
+                'login'            => 'Y'
             ]
         ];
         

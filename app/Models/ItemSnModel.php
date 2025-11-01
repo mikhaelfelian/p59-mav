@@ -11,7 +11,7 @@ use CodeIgniter\Model;
  * Description: Model for managing item serial numbers (SN) with CRUD operations
  * This file represents the Model.
  */
-class Item_SnModel extends Model
+class ItemSnModel extends Model
 {
     protected $table = 'item_sn';
     protected $primaryKey = 'id';
@@ -21,6 +21,7 @@ class Item_SnModel extends Model
     protected $protectFields = true;
     protected $allowedFields = [
         'item_id',
+        'variant_id',
         'agent_id',
         'user_id',
         'sn',
@@ -221,3 +222,4 @@ class Item_SnModel extends Model
         ];
     }
 }
+

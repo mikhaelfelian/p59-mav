@@ -44,13 +44,21 @@
     </div>
     
     <!-- Pagination -->
-    <?php if (isset($pager) && $pager->getPageCount() > 1): ?>
+    <?php if (isset($pager) && isset($pagerInfo) && $pagerInfo['totalPages'] > 1): ?>
+      <?php 
+      $currentPage = $pagerInfo['currentPage'];
+      $totalPages = $pagerInfo['totalPages'];
+      $totalItems = $pagerInfo['totalItems'];
+      $perPage = $pagerInfo['perPage'];
+      $startPage = max(1, $currentPage - 2);
+      $endPage = min($totalPages, $currentPage + 2);
+      ?>
       <div class="pagination-wrapper" style="margin-top: 40px; display: flex; justify-content: center; align-items: center; gap: 20px; flex-wrap: wrap;">
         <!-- Pagination Info -->
         <div class="pagination-info" style="color: var(--text-dim); font-size: 0.875rem;">
-          Menampilkan <?= ($pager->getCurrentPage() * $pager->getPerPage()) - $pager->getPerPage() + 1 ?> - 
-          <?= min($pager->getCurrentPage() * $pager->getPerPage(), $pager->getTotal()) ?> 
-          dari <?= $pager->getTotal() ?> produk
+          Menampilkan <?= ($currentPage - 1) * $perPage + 1 ?> - 
+          <?= min($currentPage * $perPage, $totalItems) ?> 
+          dari <?= $totalItems ?> produk
         </div>
         
         <!-- Pagination Links -->
@@ -59,7 +67,7 @@
             <!-- Previous Link -->
             <?php if ($pager->hasPrevious()): ?>
               <li class="page-item">
-                <a class="page-link" href="<?= $pager->getPreviousPageURI() ?>" 
+                <a class="page-link" href="<?= $pager->getPrevious() ?>" 
                    style="padding: 8px 16px; border: 1px solid var(--border-color, #e0e0e0); border-radius: 4px; text-decoration: none; color: var(--text-color, #333); background: var(--bg-color, #fff); transition: all 0.2s;">
                   &laquo; Sebelumnya
                 </a>
@@ -74,15 +82,10 @@
             
             <!-- Page Numbers -->
             <?php 
-            $currentPage = $pager->getCurrentPage();
-            $totalPages = $pager->getPageCount();
-            $startPage = max(1, $currentPage - 2);
-            $endPage = min($totalPages, $currentPage + 2);
-            
             // Show first page if not near start
             if ($startPage > 1): ?>
               <li class="page-item">
-                <a class="page-link" href="<?= $pager->getPageURI(1) ?>" 
+                <a class="page-link" href="<?= $pager->getFirst() ?>" 
                    style="padding: 8px 12px; border: 1px solid var(--border-color, #e0e0e0); border-radius: 4px; text-decoration: none; color: var(--text-color, #333); background: var(--bg-color, #fff); transition: all 0.2s;">
                   1
                 </a>
@@ -96,22 +99,24 @@
               <?php endif; ?>
             <?php endif; ?>
             
-            <!-- Current page range -->
-            <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
-              <li class="page-item <?= $i == $currentPage ? 'active' : '' ?>">
-                <?php if ($i == $currentPage): ?>
+            <!-- Current page range using PagerRenderer links -->
+            <?php 
+            $pager->setSurroundCount(2);
+            foreach ($pager->links() as $link): ?>
+              <li class="page-item <?= $link['active'] ? 'active' : '' ?>">
+                <?php if ($link['active']): ?>
                   <span class="page-link" 
                         style="padding: 8px 12px; border: 1px solid var(--primary-color, #007bff); border-radius: 4px; color: #fff; background: var(--primary-color, #007bff); font-weight: 600;">
-                    <?= $i ?>
+                    <?= $link['title'] ?>
                   </span>
                 <?php else: ?>
-                  <a class="page-link" href="<?= $pager->getPageURI($i) ?>" 
+                  <a class="page-link" href="<?= $link['uri'] ?>" 
                      style="padding: 8px 12px; border: 1px solid var(--border-color, #e0e0e0); border-radius: 4px; text-decoration: none; color: var(--text-color, #333); background: var(--bg-color, #fff); transition: all 0.2s;">
-                    <?= $i ?>
+                    <?= $link['title'] ?>
                   </a>
                 <?php endif; ?>
               </li>
-            <?php endfor; ?>
+            <?php endforeach; ?>
             
             <!-- Show last page if not near end -->
             <?php if ($endPage < $totalPages): ?>
@@ -123,7 +128,7 @@
                 </li>
               <?php endif; ?>
               <li class="page-item">
-                <a class="page-link" href="<?= $pager->getPageURI($totalPages) ?>" 
+                <a class="page-link" href="<?= $pager->getLast() ?>" 
                    style="padding: 8px 12px; border: 1px solid var(--border-color, #e0e0e0); border-radius: 4px; text-decoration: none; color: var(--text-color, #333); background: var(--bg-color, #fff); transition: all 0.2s;">
                   <?= $totalPages ?>
                 </a>
@@ -133,7 +138,7 @@
             <!-- Next Link -->
             <?php if ($pager->hasNext()): ?>
               <li class="page-item">
-                <a class="page-link" href="<?= $pager->getNextPageURI() ?>" 
+                <a class="page-link" href="<?= $pager->getNext() ?>" 
                    style="padding: 8px 16px; border: 1px solid var(--border-color, #e0e0e0); border-radius: 4px; text-decoration: none; color: var(--text-color, #333); background: var(--bg-color, #fff); transition: all 0.2s;">
                   Selanjutnya &raquo;
                 </a>
@@ -148,11 +153,11 @@
           </ul>
         </nav>
       </div>
-    <?php elseif (isset($pager) && $pager->getTotal() > 0): ?>
+    <?php elseif (isset($pagerInfo) && $pagerInfo['totalItems'] > 0): ?>
       <!-- Show info even if only one page -->
       <div class="pagination-wrapper" style="margin-top: 40px; display: flex; justify-content: center; align-items: center;">
         <div class="pagination-info" style="color: var(--text-dim); font-size: 0.875rem;">
-          Menampilkan semua <?= $pager->getTotal() ?> produk
+          Menampilkan semua <?= $pagerInfo['totalItems'] ?> produk
         </div>
       </div>
     <?php endif; ?>

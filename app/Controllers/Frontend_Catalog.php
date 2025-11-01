@@ -36,8 +36,19 @@ class Frontend_Catalog extends BaseController
                                                 ->orderBy('item.name', 'ASC')
                                                 ->paginate($perPage, 'default');
         
-        // Get pager instance for pagination links
+        // Convert objects to arrays for view compatibility
+        $items = array_map(function($item) {
+            return (array) $item;
+        }, $items);
+        
+        // Get pager instance and create renderer for pagination links
         $pager = $this->itemModel->pager;
+        $pagerRenderer = new \CodeIgniter\Pager\PagerRenderer($pager->getDetails('default'));
+        
+        // Get pagination info from Pager instance
+        $currentPage = $pager->getCurrentPage('default');
+        $totalPages = $pager->getPageCount('default');
+        $totalItems = $pager->getTotal('default');
         
         // Layout data for MAV theme - from database
         $this->data['title'] = $this->currentModule['judul_module'] ?? 'Katalog Produk';
@@ -45,8 +56,13 @@ class Frontend_Catalog extends BaseController
         
         // Pass items and pager to view
         $this->data['items'] = $items;
-        $this->data['pager'] = $pager;
-        $this->data['perPage'] = $perPage;
+        $this->data['pager'] = $pagerRenderer;
+        $this->data['pagerInfo'] = [
+            'currentPage' => $currentPage,
+            'totalPages' => $totalPages,
+            'totalItems' => $totalItems,
+            'perPage' => $perPage
+        ];
         
         // Render using the MAV catalog template
         return view('themes/mav/catalog', $this->data);

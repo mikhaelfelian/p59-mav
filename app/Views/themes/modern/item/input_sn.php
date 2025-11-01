@@ -12,6 +12,17 @@
     <div class="card-body">
         <form id="sn-form">
             <input type="hidden" name="item_id" value="<?= esc($item_id) ?>">
+            <?php if (!empty($variant_id)): ?>
+                <input type="hidden" name="variant_id" value="<?= esc($variant_id) ?>">
+                <?php if (!empty($variant_info)): ?>
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Varian:</strong> <?= esc($variant_info['variant_name']) ?> 
+                        (SKU: <?= esc($variant_info['sku_variant']) ?>)
+                        <br><small>Serial Number yang dimasukkan akan dikaitkan dengan varian ini.</small>
+                    </div>
+                <?php endif; ?>
+            <?php endif; ?>
             
             <!-- Row 1: Agent Selection -->
             <div class="row g-3 mb-3">

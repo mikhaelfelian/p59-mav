@@ -18,7 +18,7 @@ class Item_Sn extends BaseController
     public function __construct()
     {
         parent::__construct();
-        $this->model = new \App\Models\Item_SnModel();
+        $this->model = new \App\Models\ItemSnModel();
         $this->agentModel = new \App\Models\AgentModel();
         $this->itemModel = new \App\Models\ItemModel();
     }
@@ -81,8 +81,20 @@ class Item_Sn extends BaseController
             }
         }
 
+        // Get variant_id from query string (if coming from "Manage SN" button)
+        $variantId = $this->request->getGet('variant_id') ?? null;
+        
+        // If variant_id is provided, get variant info for display
+        $variantInfo = null;
+        if ($variantId) {
+            $variantModel = new \App\Models\ItemVarianModel();
+            $variantInfo = $variantModel->find($variantId);
+        }
+
         $data = [
             'item_id' => $item_id,
+            'variant_id' => $variantId,
+            'variant_info' => $variantInfo,
             'agents' => $agents,
             'is_agent_locked' => $isAgentLocked,
             'locked_agent_id' => $lockedAgentId,
@@ -126,6 +138,7 @@ class Item_Sn extends BaseController
         }
 
         $itemId = $this->request->getPost('item_id');
+        $variantId = $this->request->getPost('variant_id') ?: null;
         $agentId = $this->request->getPost('agent_id');
         $snList = $this->request->getPost('sn_list');
         // Always default to '0' - these fields cannot be set via form for security
@@ -190,6 +203,7 @@ class Item_Sn extends BaseController
 
             $data = [
                 'item_id' => $itemId,
+                'variant_id' => $variantId,
                 'agent_id' => $agentId,
                 'user_id' => $this->user['id_user'],
                 'sn' => $sn,
@@ -241,6 +255,7 @@ class Item_Sn extends BaseController
 
         $file = $this->request->getFile('excel_file');
         $itemId = $this->request->getPost('item_id');
+        $variantId = $this->request->getPost('variant_id') ?: null;
         $agentId = $this->request->getPost('agent_id');
 
         if (!$file || !$file->isValid() || $file->hasMoved()) {
@@ -271,6 +286,18 @@ class Item_Sn extends BaseController
                 return $this->response->setJSON([
                     'status' => 'error',
                     'message' => 'Anda tidak memiliki akses ke agen yang dipilih.'
+                ]);
+            }
+        }
+
+        // If variant_id is provided, validate it belongs to the item
+        if ($variantId) {
+            $variantModel = new \App\Models\ItemVarianModel();
+            $variant = $variantModel->find($variantId);
+            if (!$variant || $variant['item_id'] != $itemId) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Varian tidak valid untuk item ini.'
                 ]);
             }
         }
@@ -311,6 +338,7 @@ class Item_Sn extends BaseController
 
                 $data[] = [
                     'item_id' => $itemId,
+                    'variant_id' => $variantId,
                     'agent_id' => $agentId,
                     'user_id' => $this->user['id_user'],
                     'sn' => $sn,
@@ -362,6 +390,12 @@ class Item_Sn extends BaseController
     {
         // Check if user has permission (use return=true to avoid exit)
         if (!$this->hasPermissionPrefix('read', true)) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Tidak memiliki izin untuk mengunduh template.'
+                ]);
+            }
             return redirect()->back()->with('message', ['status' => 'error', 'message' => 'Tidak memiliki izin untuk mengunduh template.']);
         }
 
@@ -383,18 +417,27 @@ class Item_Sn extends BaseController
             $sheet->setCellValue('A2', 'SN001234567');
             $sheet->setCellValue('B2', '');
 
-            // Save to temporary file
-            $tempFile = tempnam(sys_get_temp_dir(), 'item_sn_template_');
-            $tempFile .= '.xlsx';
+            // Generate Excel file to output
+            $filename = 'item_sn_template.xlsx';
             
+            // Set response headers
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment;filename="' . $filename . '"');
+            header('Cache-Control: max-age=0');
+            
+            // Write directly to output
             $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
-            $writer->save($tempFile);
-
-            // Return file for download
-            return $this->response->download($tempFile, 'item_sn_template.xlsx')->deleteFileAfterSend(true);
+            $writer->save('php://output');
+            exit;
 
         } catch (\Exception $e) {
             log_message('error', 'Item_Sn::downloadTemplate error: ' . $e->getMessage());
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Gagal membuat template: ' . $e->getMessage()
+                ]);
+            }
             return redirect()->back()->with('message', ['status' => 'error', 'message' => 'Gagal membuat template: ' . $e->getMessage()]);
         }
     }
@@ -511,8 +554,9 @@ class Item_Sn extends BaseController
         }
 
         // Build query
-        $query = $this->model->select('item_sn.*, agent.name as agent_name, agent.code as agent_code')
+        $query = $this->model->select('item_sn.*, agent.name as agent_name, agent.code as agent_code, item_variant.variant_name, item_variant.sku_variant')
                             ->join('agent', 'agent.id = item_sn.agent_id', 'left')
+                            ->join('item_variant', 'item_variant.id = item_sn.variant_id', 'left')
                             ->where('item_sn.item_id', $itemId);
 
         // Filter by agent if user is agent (can only see own SNs)

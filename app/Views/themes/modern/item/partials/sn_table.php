@@ -11,6 +11,7 @@
             <tr>
                 <th>No</th>
                 <th>SN</th>
+                <th>Variant</th>
                 <th>Agen</th>
                 <th>Is Sell</th>
                 <th>Is Activated</th>
@@ -54,6 +55,9 @@
                     return meta.row + 1;
                 }},
                 { data: 'sn' },
+                { data: 'variant_name', render: function(data, type, row) {
+                    return data ? '<span class="badge bg-info">' + (data || '-') + '</span>' : '<span class="text-muted">-</span>';
+                }},
                 { data: 'agent_name', render: function(data, type, row) {
                     return (row.agent_code || '') + ' ' + (data || '-');
                 }},
