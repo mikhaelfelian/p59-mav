@@ -26,10 +26,9 @@ $(document).ready(function () {
             }
         });
 
-        // Event tombol tambah data
+        // Event tombol tambah data - redirect to add page
         $('.btn-add').on('click', function (e) {
-            e.preventDefault();
-            showForm('add');
+            // Let the link work normally - no preventDefault
         });
 
         // Event tombol detail
@@ -39,11 +38,10 @@ $(document).ready(function () {
             showDetail(id);
         });
 
-        // Event tombol edit
+        // Event tombol edit - redirect to edit page
         $(document).on('click', '.btn-edit', function (e) {
-            e.preventDefault();
             var id = $(this).data('id');
-            showForm('edit', id);
+            window.location.href = base_url + 'agent/edit?id=' + id;
         });
 
         // Event tombol hapus
@@ -167,92 +165,92 @@ $(document).ready(function () {
         });
     }
 
-    // Fungsi untuk menampilkan form tambah/edit di modal
-    function showForm(type = 'add', id = '') {
-        var current_url = base_url + 'agent';
-        var $bootbox = bootbox.dialog({
-            title: type == 'add' ? 'Tambah Agen' : 'Edit Agen',
-            message: '<div class="text-center text-secondary"><div class="spinner-border"></div></div>',
-            buttons: {
-                cancel: {
-                    label: 'Batal'
-                },
-                success: {
-                    label: 'Simpan',
-                    className: 'btn-success submit',
-                    callback: function() {
-                        $bootbox.find('.alert').remove();
-                        var $button_submit = $bootbox.find('button.submit');
-                        var $button = $bootbox.find('button');
-                        $button_submit.prepend('<i class="fas fa-circle-notch fa-spin me-2 fa-lg"></i>');
-                        $button.prop('disabled', true);
+    // // Fungsi untuk menampilkan form tambah/edit di modal
+    // function showForm(type = 'add', id = '') {
+    //     var current_url = base_url + 'agent';
+    //     var $bootbox = bootbox.dialog({
+    //         title: type == 'add' ? 'Tambah Agen' : 'Edit Agen',
+    //         message: '<div class="text-center text-secondary"><div class="spinner-border"></div></div>',
+    //         buttons: {
+    //             cancel: {
+    //                 label: 'Batal'
+    //             },
+    //             success: {
+    //                 label: 'Simpan',
+    //                 className: 'btn-success submit',
+    //                 callback: function() {
+    //                     $bootbox.find('.alert').remove();
+    //                     var $button_submit = $bootbox.find('button.submit');
+    //                     var $button = $bootbox.find('button');
+    //                     $button_submit.prepend('<i class="fas fa-circle-notch fa-spin me-2 fa-lg"></i>');
+    //                     $button.prop('disabled', true);
                         
-                        var form = $bootbox.find('form')[0];
-                        $.ajax({
-                            type: 'POST',
-                            url: current_url + '/store',
-                            data: new FormData(form),
-                            processData: false,
-                            contentType: false,
-                            dataType: 'json',
-                            success: function (data) {
-                                $bootbox.modal('hide');
-                                if (data.status == 'success') {
-                                    const Toast = Swal.mixin({
-                                        toast: true,
-                                        position: 'top-end',
-                                        showConfirmButton: false,
-                                        timer: 2500,
-                                        timerProgressBar: true,
-                                        iconColor: 'white',
-                                        customClass: {
-                                            popup: 'bg-success text-light toast p-2'
-                                        },
-                                        didOpen: (toast) => {
-                                            toast.addEventListener('mouseenter', Swal.stopTimer)
-                                            toast.addEventListener('mouseleave', Swal.resumeTimer)
-                                        }
-                                    })
-                                    Toast.fire({
-                                        html: '<div class="toast-content"><i class="far fa-check-circle me-2"></i> ' + data.message + '</div>'
-                                    })
-                                    $('#table-result').DataTable().ajax.reload();
-                                } else {
-                                    Swal.fire({
-                                        icon: 'error',
-                                        title: 'Error!',
-                                        text: data.message
-                                    });
-                                }
-                            },
-                            error: function (xhr) {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Error!',
-                                    text: 'Terjadi kesalahan saat memproses permintaan Anda.'
-                                });
-                                console.log(xhr.responseText);
-                            }
-                        })
-                        return false;
-                    }
-                }
-            }
-        });
-        $bootbox.find('.modal-dialog').css('max-width', '800px');
-        var $button = $bootbox.find('button').prop('disabled', true);
-        var $button_submit = $bootbox.find('button.submit');
+    //                     var form = $bootbox.find('form')[0];
+    //                     $.ajax({
+    //                         type: 'POST',
+    //                         url: current_url + '/store',
+    //                         data: new FormData(form),
+    //                         processData: false,
+    //                         contentType: false,
+    //                         dataType: 'json',
+    //                         success: function (data) {
+    //                             $bootbox.modal('hide');
+    //                             if (data.status == 'success') {
+    //                                 const Toast = Swal.mixin({
+    //                                     toast: true,
+    //                                     position: 'top-end',
+    //                                     showConfirmButton: false,
+    //                                     timer: 2500,
+    //                                     timerProgressBar: true,
+    //                                     iconColor: 'white',
+    //                                     customClass: {
+    //                                         popup: 'bg-success text-light toast p-2'
+    //                                     },
+    //                                     didOpen: (toast) => {
+    //                                         toast.addEventListener('mouseenter', Swal.stopTimer)
+    //                                         toast.addEventListener('mouseleave', Swal.resumeTimer)
+    //                                     }
+    //                                 })
+    //                                 Toast.fire({
+    //                                     html: '<div class="toast-content"><i class="far fa-check-circle me-2"></i> ' + data.message + '</div>'
+    //                                 })
+    //                                 $('#table-result').DataTable().ajax.reload();
+    //                             } else {
+    //                                 Swal.fire({
+    //                                     icon: 'error',
+    //                                     title: 'Error!',
+    //                                     text: data.message
+    //                                 });
+    //                             }
+    //                         },
+    //                         error: function (xhr) {
+    //                             Swal.fire({
+    //                                 icon: 'error',
+    //                                 title: 'Error!',
+    //                                 text: 'Terjadi kesalahan saat memproses permintaan Anda.'
+    //                             });
+    //                             console.log(xhr.responseText);
+    //                         }
+    //                     })
+    //                     return false;
+    //                 }
+    //             }
+    //         }
+    //     });
+    //     $bootbox.find('.modal-dialog').css('max-width', '800px');
+    //     var $button = $bootbox.find('button').prop('disabled', true);
+    //     var $button_submit = $bootbox.find('button.submit');
         
-        var formUrl = current_url + '/' + (type == 'add' ? 'add' : 'edit');
-        if (id) {
-            formUrl += '?id=' + id;
-        }
+    //     var formUrl = current_url + '/' + (type == 'add' ? 'add' : 'edit');
+    //     if (id) {
+    //         formUrl += '?id=' + id;
+    //     }
         
-        $.get(formUrl, function(html){
-            $button.prop('disabled', false);
-            $bootbox.find('.modal-body').empty().append(html);
-        });
-    }
+    //     $.get(formUrl, function(html){
+    //         $button.prop('disabled', false);
+    //         $bootbox.find('.modal-body').empty().append(html);
+    //     });
+    // }
 
     // Fungsi untuk menghapus data agen
     function deleteItem(id) {

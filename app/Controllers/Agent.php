@@ -341,15 +341,15 @@ class Agent extends BaseController
             log_message('error', 'Error loading user role in agent edit: ' . $e->getMessage());
         }
 
-        // Cek AJAX/modal
-        $isAjax = $this->request->isAJAX() 
-                  || $this->request->getHeader('X-Requested-With') !== null;
+        // // Cek AJAX/modal
+        // $isAjax = $this->request->isAJAX() 
+        //           || $this->request->getHeader('X-Requested-With') !== null;
         
-        if ($isAjax) {
-            return view('themes/modern/agent-form', $this->data);
-        } else {
+        // if ($isAjax) {
+        //     return view('themes/modern/agent-form', $this->data);
+        // } else {
             return $this->view('agent-form', $this->data);
-        }
+        // }
     }
 
     public function store()

@@ -72,6 +72,17 @@ $routes->post('item-spec/store', 'Item_Spec::store');
 $routes->post('item-spec/update/(:num)', 'Item_Spec::update/$1');
 $routes->post('item-spec/delete/(:num)', 'Item_Spec::delete/$1');
 
+# Item Agent
+$routes->get('item-agent', 'Item_Agent::index');
+$routes->get('item-agent/add', 'Item_Agent::add');
+$routes->get('item-agent/edit', 'Item_Agent::edit');
+$routes->match(['get', 'post'], 'item-agent/delete', 'Item_Agent::delete');
+$routes->match(['get', 'post'], 'item-agent/getDataDT', 'Item_Agent::getDataDT');
+$routes->match(['get', 'post'], 'item-agent/toggleStatus', 'Item_Agent::toggleStatus');
+$routes->post('item-agent/store', 'Item_Agent::store');
+$routes->post('item-agent/update/(:num)', 'Item_Agent::update/$1');
+$routes->post('item-agent/delete/(:num)', 'Item_Agent::delete/$1');
+
 # Agent Rules
 $routes->get('agent-rules', 'AgentRules::index');
 $routes->get('agent-rules/form', 'AgentRules::form');

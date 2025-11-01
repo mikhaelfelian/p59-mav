@@ -55,7 +55,7 @@
 		?>
 		<span id="dataTables-column" style="display:none"><?= json_encode($column_dt) ?></span>
 		<span id="dataTables-setting" style="display:none"><?= json_encode($settings) ?></span>
-		<span id="dataTables-url" style="display:none"><?= $config->baseURL ?>item-agent/getItemAgentDT</span>
+		<span id="dataTables-url" style="display:none"><?= $config->baseURL ?>item-agent/getDataDT</span>
 	</div>
 </div>
 

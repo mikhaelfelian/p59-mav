@@ -398,7 +398,7 @@ class Item_Agent extends BaseController
         ]);
     }
 
-    public function getItemAgentDT()
+    public function getDataDT()
     {
         // Check read permissions using existing RBAC system
         if (!$this->hasPermissionPrefix('read')) {
