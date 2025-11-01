@@ -38,7 +38,7 @@
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">&nbsp;</label>
                     <div>
-                        <a href="<?= rtrim($config->baseURL, '/') ?>/item-sn/downloadTemplate" class="btn btn-info btn-sm" target="_blank">
+                        <a href="<?= rtrim($config->baseURL, '/') ?>/item-sn/downloadTemplate" class="btn btn-info btn-sm">
                             <i class="fas fa-download me-1"></i> Download Template Excel
                         </a>
                     </div>
