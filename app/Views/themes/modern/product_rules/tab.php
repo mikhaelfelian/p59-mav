@@ -65,7 +65,7 @@
             <div class="row mt-3">
                 <div class="col-12">
                     <div class="d-flex justify-content-end gap-2">
-                        <button type="button" class="btn btn-primary px-4" id="btn-save-promo">Simpan Aturan</button>
+                        <button type="button" class="btn btn-primary px-4" id="btn-save-promo">Simpan</button>
                     </div>
                 </div>
             </div>

@@ -31,7 +31,7 @@ class Login extends \App\Controllers\BaseController
 			
 			$this->login();
 			if ($this->session->get('logged_in')) {
-				return redirect()->to($this->config->baseURL);
+				return redirect()->to($this->config->baseURL.'/login');
 			}
 		}
 		
@@ -112,6 +112,7 @@ class Login extends \App\Controllers\BaseController
 		}
 		$this->session->destroy();
 
-		return redirect()->to(site_url('login'));
+		header('Location: ' . $this->config->baseURL);
+		exit();
 	}
 }
