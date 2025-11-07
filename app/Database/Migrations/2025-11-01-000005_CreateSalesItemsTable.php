@@ -15,6 +15,9 @@ class CreateSalesItemsTable extends Migration
 {
     public function up()
     {
+        if ($this->db->tableExists('sales_items')) {
+            return;
+        }
         $this->forge->addField([
             'id' => [
                 'type'           => 'INT',

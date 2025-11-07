@@ -57,12 +57,18 @@ class CreateProductPromoRuleTable extends Migration
         $this->forge->addKey('id', true);
         $this->forge->addKey('item_id');
         $this->forge->addKey('status');
-        $this->forge->createTable('product_promo_rule', true);
+        
+        // Create table with check for existing table
+        if (!$this->db->tableExists('item_promo_rule')) {
+            $this->forge->createTable('item_promo_rule', true);
+        }
     }
 
     public function down()
     {
-        $this->forge->dropTable('product_promo_rule', true);
+        if ($this->db->tableExists('item_promo_rule')) {
+            $this->forge->dropTable('item_promo_rule', true);
+        }
     }
 }
 

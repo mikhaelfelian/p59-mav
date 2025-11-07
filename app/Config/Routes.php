@@ -34,6 +34,11 @@ $routes->get('catalog', 'Frontend_Catalog::index'); // Alias for catalog
 $routes->get('location', 'Frontend_Location::index'); // Alias for frontend/location
 $routes->get('check-warranty', 'Frontend_Garansi::index'); // Warranty check page
 
+// Cart and Checkout routes
+$routes->get('cart', 'Checkout::cart'); // Cart page
+$routes->get('checkout', 'Checkout::index'); // Checkout page
+$routes->post('checkout/process', 'Checkout::process'); // Process checkout
+
 
 // Backend routes are defined below. Add your backend or admin panel routes here.
 # Category
@@ -92,6 +97,9 @@ $routes->get('item/promoList/(:num)', 'Item::promoList/$1');
 $routes->post('item/promoStore', 'Item::promoStore');
 $routes->post('item/promoDelete/(:num)', 'Item::promoDelete/$1');
 
+# Product Rule (Item controller)
+$routes->post('item/saveProductRule/(:num)', 'Item::saveProductRule/$1');
+
 # Item Agent helper API
 $routes->get('item-agent/list-by-item/(:num)', 'Item_Agent::listByItem/$1');
 
@@ -121,6 +129,16 @@ $routes->get('platform/edit/(:num)', 'Platform::edit/$1');
 $routes->post('platform/update/(:num)', 'Platform::update/$1');
 $routes->get('platform/delete/(:num)', 'Platform::delete/$1');
 $routes->get('platform', 'Platform::index');
+
+# Sales Management
+$routes->group('sales',  function($routes){
+    $routes->get('/', 'Sales::index');
+    $routes->get('add', 'Sales::create');
+    $routes->post('store', 'Sales::store');
+    $routes->get('(:num)', 'Sales::detail/$1');
+    $routes->post('getDataDT', 'Sales::getDataDT');
+    $routes->get('getUnusedSNs', 'Sales::getUnusedSNs');
+});
 
 
 

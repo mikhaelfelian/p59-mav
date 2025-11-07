@@ -33,7 +33,13 @@
           <li><a href="<?= base_url('check-warranty') ?>">Cek Garansi</a></li>
         </ul>
       </nav>
-      <a class="btn btn-amber" href="<?php echo base_url('login'); ?>" role="button">Masuk</a>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <a href="<?= base_url('cart') ?>" style="position: relative; padding: 8px 16px; text-decoration: none; color: inherit; display: flex; align-items: center; gap: 8px;">
+          <i class="fas fa-shopping-cart" style="font-size: 1.2rem;"></i>
+          <span id="cart-badge" style="display: none; position: absolute; top: 0; right: 0; background: #dc3545; color: #fff; border-radius: 50%; width: 20px; height: 20px; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; font-weight: 600;">0</span>
+        </a>
+        <a class="btn btn-amber" href="<?php echo base_url('login'); ?>" role="button">Masuk</a>
+      </div>
     </div>
   </header>
 

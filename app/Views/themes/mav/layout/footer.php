@@ -38,6 +38,39 @@
   </a>
 
   <script src="<?= base_url('themes/mav/assets/js/main.js') ?>" defer></script>
+  <script>
+  // Global cart badge initialization
+  (function() {
+    function updateCartBadge() {
+      try {
+        const cart = localStorage.getItem('mav_cart');
+        const cartData = cart ? JSON.parse(cart) : [];
+        const count = cartData.reduce((total, item) => total + (parseInt(item.qty) || 0), 0);
+        const badge = document.getElementById('cart-badge');
+        if (badge) {
+          badge.textContent = count;
+          badge.style.display = count > 0 ? 'flex' : 'none';
+        }
+      } catch (e) {
+        console.error('Error updating cart badge:', e);
+      }
+    }
+    
+    // Update badge on page load
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', updateCartBadge);
+    } else {
+      updateCartBadge();
+    }
+    
+    // Update badge when storage changes (for cross-tab updates)
+    window.addEventListener('storage', function(e) {
+      if (e.key === 'mav_cart') {
+        updateCartBadge();
+      }
+    });
+  })();
+  </script>
 </body>
 
 </html>

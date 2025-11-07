@@ -8,6 +8,8 @@
 
 namespace App\Models;
 
+use CodeIgniter\Model;
+
 /**
  * Dashboard Model
  * Handles dashboard analytics and statistics
@@ -23,83 +25,67 @@ namespace App\Models;
  * @link       https://github.com/mikhaelfelian/p59-mav
  * @notes      Refactored to CI4-compliant structure using BaseModel inheritance and Query Builder
  */
-class DashboardModel extends BaseModel
+class DashboardModel extends Model
 {
+    // These properties are not directly used but are kept for compatibility
     protected $table = 'dashboard';
     protected $primaryKey = 'id_dashboard';
     protected $allowedFields = [];
     protected $useTimestamps = false;
 
     /**
-     * Get list of years from transactions
+     * Get list of years from sales (using created_at)
      * 
      * @return array
      */
     public function getListTahun(): array
     {
-        return $this->builder('toko_penjualan')
-                   ->select('YEAR(tgl_transaksi) AS tahun')
-                   ->groupBy('tahun')
-                   ->get()
-                   ->getResultArray();
+        return $this->db->table('sales')
+            ->select('YEAR(created_at) AS tahun')
+            ->groupBy('tahun')
+            ->orderBy('tahun', 'DESC')
+            ->get()
+            ->getResultArray();
     }
 
     /**
      * Get total items sold with growth calculation
+     * Using sales_item_sn for item count, based on its created_at
      * 
      * @param int $tahun Year
      * @return array
      */
     public function getTotalItemTerjual(int $tahun): array
     {
-        $tahun_curr = $tahun . '%';
-        $tahun_prev = ($tahun - 1) . '%';
-
-        $result = $this->builder('toko_penjualan_detail')
-                      ->select('COUNT(IF(tgl_transaksi LIKE "' . $tahun_curr . '", id_barang, NULL)) AS jml')
-                      ->select('COUNT(IF(tgl_transaksi LIKE "' . $tahun_prev . '", id_barang, NULL)) AS jml_prev')
-                      ->join('toko_penjualan', 'toko_penjualan.id_penjualan = toko_penjualan_detail.id_penjualan', 'left')
-                      ->where('tgl_transaksi LIKE "' . $tahun_curr . '" OR tgl_transaksi LIKE "' . $tahun_prev . '"', null, false)
-                      ->get()
-                      ->getResultArray();
-
-        if (empty($result)) {
-            return ['jml' => 0, 'jml_prev' => 0, 'growth' => 0];
-        }
-
-        $jml = $result[0]['jml'] ?? 0;
-        $jml_prev = $result[0]['jml_prev'] ?? 0;
+        $builder = $this->db->table('sales_item_sn');
+        $builder->select([
+            "(SELECT COUNT(id) FROM sales_item_sn WHERE YEAR(created_at) = {$tahun}) AS jml",
+            "(SELECT COUNT(id) FROM sales_item_sn WHERE YEAR(created_at) = " . ($tahun - 1) . ") AS jml_prev"
+        ]);
+        $result = $builder->get()->getRowArray();
+        $jml = (int)($result['jml'] ?? 0);
+        $jml_prev = (int)($result['jml_prev'] ?? 0);
         $growth = $jml_prev > 0 ? round(($jml - $jml_prev) / $jml_prev * 100, 2) : 0;
-
         return ['jml' => $jml, 'jml_prev' => $jml_prev, 'growth' => $growth];
     }
 
     /**
-     * Get total number of transactions with growth calculation
+     * Get total transactions value (sum of grand_total) with growth calculation
      * 
      * @param int $tahun Year
      * @return array
      */
     public function getTotalJumlahTransaksi(int $tahun): array
     {
-        $tahun_curr = $tahun . '%';
-        $tahun_prev = ($tahun - 1) . '%';
-
-        $result = $this->builder('toko_penjualan')
-                      ->select('COUNT(IF(tgl_transaksi LIKE "' . $tahun_curr . '", id_penjualan, NULL)) AS jml')
-                      ->select('COUNT(IF(tgl_transaksi LIKE "' . $tahun_prev . '", id_penjualan, NULL)) AS jml_prev')
-                      ->where('tgl_transaksi LIKE "' . $tahun_curr . '" OR tgl_transaksi LIKE "' . $tahun_prev . '"', null, false)
-                      ->get()
-                      ->getResultArray();
-
-        if (empty($result)) {
-            return ['jml' => 0, 'jml_prev' => 0, 'growth' => 0];
-        }
-
-        $jml = $result[0]['jml'] ?? 0;
-        $jml_prev = $result[0]['jml_prev'] ?? 0;
+        $builder = $this->db->table('sales')
+            ->select([
+                "(SELECT COALESCE(SUM(grand_total),0) FROM sales WHERE YEAR(created_at) = {$tahun}) AS jml",
+                "(SELECT COALESCE(SUM(grand_total),0) FROM sales WHERE YEAR(created_at) = " . ($tahun - 1) . ") AS jml_prev"
+            ]);
+        $result = $builder->get()->getRowArray();
+        $jml = floatval($result['jml'] ?? 0);
+        $jml_prev = floatval($result['jml_prev'] ?? 0);
         $growth = $jml_prev > 0 ? round(($jml - $jml_prev) / $jml_prev * 100, 2) : 0;
-
         return ['jml' => $jml, 'jml_prev' => $jml_prev, 'growth' => $growth];
     }
 
@@ -111,23 +97,31 @@ class DashboardModel extends BaseModel
      */
     public function getTotalPelangganAktif(int $tahun): array
     {
-        $tahun_curr = $tahun . '%';
-        $tahun_prev = ($tahun - 1) . '%';
+        // current year
+        $result_curr = $this->db->table('sales')
+            ->select('customer_id')
+            ->where('customer_id IS NOT NULL', null, false)
+            ->where('YEAR(created_at)', $tahun)
+            ->groupBy('customer_id')
+            ->get()->getResultArray();
+        $jml = count($result_curr);
 
-        // Get active customer counts
-        $result = $this->builder('toko_penjualan')
-                      ->select('MAX(IF(tgl_transaksi LIKE "' . $tahun_curr . '", 1, NULL)) AS jml')
-                      ->select('MAX(IF(tgl_transaksi LIKE "' . $tahun_prev . '", 1, NULL)) AS jml_prev')
-                      ->where('tgl_transaksi LIKE "' . $tahun_curr . '" OR tgl_transaksi LIKE "' . $tahun_prev . '"', null, false)
-                      ->groupBy('id_pelanggan')
-                      ->get()
-                      ->getResultArray();
+        // previous year
+        $result_prev = $this->db->table('sales')
+            ->select('customer_id')
+            ->where('customer_id IS NOT NULL', null, false)
+            ->where('YEAR(created_at)', $tahun - 1)
+            ->groupBy('customer_id')
+            ->get()->getResultArray();
+        $jml_prev = count($result_prev);
 
-        $jml = count(array_filter($result, function($r) { return $r['jml'] == 1; }));
-        $jml_prev = count(array_filter($result, function($r) { return $r['jml_prev'] == 1; }));
-
-        // Get total customers
-        $total = $this->builder('toko_pelanggan')->countAllResults();
+        // total unique customers (with non-null customer_id ever in sales)
+        $result_total = $this->db->table('sales')
+            ->select('customer_id')
+            ->where('customer_id IS NOT NULL', null, false)
+            ->groupBy('customer_id')
+            ->get()->getResultArray();
+        $total = count($result_total);
 
         $growth = $jml_prev > 0 ? round(($jml - $jml_prev) / $jml_prev * 100) : 0;
 
@@ -135,31 +129,24 @@ class DashboardModel extends BaseModel
     }
 
     /**
-     * Get total sales value with growth calculation
+     * Get total sales value with growth calculation (grand_total)
      * 
      * @param int $tahun Year
      * @return array
      */
     public function getTotalNilaiPenjualan(int $tahun): array
     {
-        $tahun_curr = $tahun . '%';
-        $tahun_prev = ($tahun - 1) . '%';
-
-        $result = $this->builder('toko_penjualan')
-                      ->select('SUM(IF(tgl_transaksi LIKE "' . $tahun_curr . '", total_harga, 0)) AS jml')
-                      ->select('SUM(IF(tgl_transaksi LIKE "' . $tahun_prev . '", total_harga, 0)) AS jml_prev')
-                      ->where('tgl_transaksi LIKE "' . $tahun_curr . '" OR tgl_transaksi LIKE "' . $tahun_prev . '"', null, false)
-                      ->get()
-                      ->getRowArray();
-
-        if (!$result) {
-            return ['jml' => 0, 'jml_prev' => 0, 'growth' => 0];
-        }
-
+        $tahun_curr = intval($tahun);
+        $tahun_prev = intval($tahun) - 1;
+        $builder = $this->db->table('sales');
+        $builder->select([
+            "(SELECT COALESCE(SUM(grand_total),0) FROM sales WHERE YEAR(created_at) = $tahun_curr) AS jml",
+            "(SELECT COALESCE(SUM(grand_total),0) FROM sales WHERE YEAR(created_at) = $tahun_prev) AS jml_prev"
+        ]);
+        $result = $builder->get()->getRowArray();
         $jml = floatval($result['jml'] ?? 0);
         $jml_prev = floatval($result['jml_prev'] ?? 0);
         $growth = $jml_prev > 0 ? round(($jml - $jml_prev) / $jml_prev * 100, 2) : 0;
-
         return ['jml' => $jml, 'jml_prev' => $jml_prev, 'growth' => $growth];
     }
 
@@ -171,20 +158,49 @@ class DashboardModel extends BaseModel
      */
     public function getPembelianPelangganTerbesar(int $tahun): array
     {
-        return $this->builder('toko_penjualan')
-                   ->select('toko_penjualan.id_pelanggan, toko_pelanggan.foto, toko_pelanggan.nama_pelanggan')
-                   ->select('SUM(toko_penjualan.total_harga) AS total_harga')
-                   ->join('toko_pelanggan', 'toko_pelanggan.id_pelanggan = toko_penjualan.id_pelanggan', 'left')
-                   ->where('YEAR(toko_penjualan.tgl_transaksi)', $tahun)
-                   ->groupBy('toko_penjualan.id_pelanggan')
-                   ->orderBy('total_harga', 'DESC')
-                   ->limit(5)
-                   ->get()
-                   ->getResultArray();
+        // customer_id can be null
+        return $this->db->table('sales')
+            ->select('sales.customer_id')
+            ->select('customer.name')
+            ->select('customer.name AS nama_pelanggan')
+            ->select('customer.plat_code')
+            ->select('customer.plat_number')
+            ->select('customer.plat_last')
+            ->select('SUM(sales.grand_total) AS total_harga')
+            ->join('customer', 'customer.id = sales.customer_id', 'left')
+            ->where('YEAR(sales.created_at)', $tahun)
+            ->where('sales.customer_id IS NOT NULL', null, false)
+            ->groupBy('sales.customer_id')
+            ->orderBy('total_harga', 'DESC')
+            ->limit(5)
+            ->get()
+            ->getResultArray();
     }
 
     /**
-     * Get sales series by month for multiple years
+     * Get sales per month for a single year (for AJAX endpoint)
+     * 
+     * @param int $tahun Year
+     * @return array
+     */
+    public function getPenjualan(int $tahun): array
+    {
+        $tgl_start = $tahun . '-01-01 00:00:00';
+        $tgl_end = $tahun . '-12-31 23:59:59';
+
+        return $this->db->table('sales')
+            ->select('MONTH(created_at) AS bulan')
+            ->select('SUM(grand_total) AS total')
+            ->where('created_at >=', $tgl_start)
+            ->where('created_at <=', $tgl_end)
+            ->groupBy('MONTH(created_at)')
+            ->orderBy('bulan', 'ASC')
+            ->get()
+            ->getResultArray();
+    }
+
+    /**
+     * Get sales series by month for multiple years from 'sales' table
      * 
      * @param array $list_tahun List of years
      * @return array
@@ -193,24 +209,25 @@ class DashboardModel extends BaseModel
     {
         $result = [];
         foreach ($list_tahun as $tahun) {
-            $tgl_start = $tahun . '-01-01';
-            $tgl_end = $tahun . '-12-31';
+            $tgl_start = $tahun . '-01-01 00:00:00';
+            $tgl_end = $tahun . '-12-31 23:59:59';
 
-            $result[$tahun] = $this->builder('toko_penjualan')
-                                  ->select('MONTH(tgl_transaksi) AS bulan')
-                                  ->select('COUNT(id_penjualan) as JML')
-                                  ->select('SUM(total_harga) as total')
-                                  ->where('tgl_transaksi >=', $tgl_start)
-                                  ->where('tgl_transaksi <=', $tgl_end)
-                                  ->groupBy('MONTH(tgl_transaksi)')
-                                  ->get()
-                                  ->getResultArray();
+            $result[$tahun] = $this->db->table('sales')
+                ->select('MONTH(created_at) AS bulan')
+                ->select('COUNT(id) AS JML')
+                ->select('SUM(grand_total) AS total')
+                ->where('created_at >=', $tgl_start)
+                ->where('created_at <=', $tgl_end)
+                ->groupBy('MONTH(created_at)')
+                ->orderBy('bulan', 'ASC')
+                ->get()
+                ->getResultArray();
         }
         return $result;
     }
 
     /**
-     * Get total sales series for multiple years
+     * Get total sales (grand_total) series for multiple years from sales table
      * 
      * @param array $list_tahun List of years
      * @return array
@@ -219,174 +236,184 @@ class DashboardModel extends BaseModel
     {
         $result = [];
         foreach ($list_tahun as $tahun) {
-            $tgl_start = $tahun . '-01-01';
-            $tgl_end = $tahun . '-12-31';
-
-            $result[$tahun] = $this->builder('toko_penjualan')
-                                  ->select('SUM(total_harga) AS total')
-                                  ->where('tgl_transaksi >=', $tgl_start)
-                                  ->where('tgl_transaksi <=', $tgl_end)
-                                  ->get()
-                                  ->getResultArray();
+            $tgl_start = $tahun . '-01-01 00:00:00';
+            $tgl_end = $tahun . '-12-31 23:59:59';
+            $result[$tahun] = $this->db->table('sales')
+                ->select('SUM(grand_total) AS total')
+                ->where('created_at >=', $tgl_start)
+                ->where('created_at <=', $tgl_end)
+                ->get()
+                ->getRowArray(); // only one row per year
         }
         return $result;
     }
 
     /**
-     * Get items sold in a year
+     * Get top 7 items sold in a year (from `sales_detail` and `item` table)
      * 
      * @param int $tahun Year
      * @return array
      */
     public function getItemTerjual(int $tahun): array
     {
-        $tgl_start = $tahun . '-01-01';
-        $tgl_end = $tahun . '-12-31';
+        $tgl_start = $tahun . '-01-01 00:00:00';
+        $tgl_end = $tahun . '-12-31 23:59:59';
 
-        return $this->builder('toko_penjualan_detail')
-                   ->select('toko_barang.id_barang, toko_barang.nama_barang')
-                   ->select('COUNT(toko_penjualan_detail.id_barang) AS jml')
-                   ->join('toko_penjualan', 'toko_penjualan.id_penjualan = toko_penjualan_detail.id_penjualan', 'left')
-                   ->join('toko_barang', 'toko_barang.id_barang = toko_penjualan_detail.id_barang', 'left')
-                   ->where('toko_penjualan.tgl_transaksi >=', $tgl_start)
-                   ->where('toko_penjualan.tgl_transaksi <=', $tgl_end)
-                   ->groupBy('toko_barang.id_barang')
-                   ->orderBy('jml', 'DESC')
-                   ->limit(7)
-                   ->get()
-                   ->getResultArray();
+        return $this->db->table('sales_detail')
+            ->select('sales_detail.item_id')
+            ->select('COALESCE(sales_detail.item, item.name) AS nama_barang')
+            ->select('SUM(sales_detail.qty) AS jml')
+            ->join('sales', 'sales.id = sales_detail.sale_id', 'left')
+            ->join('item', 'item.id = sales_detail.item_id', 'left')
+            ->where('sales.created_at >=', $tgl_start)
+            ->where('sales.created_at <=', $tgl_end)
+            ->groupBy('sales_detail.item_id')
+            ->orderBy('jml', 'DESC')
+            ->limit(7)
+            ->get()
+            ->getResultArray();
     }
 
     /**
      * Get categories sold in a year
+     * (Assumes there is item_category table, item table with category_id)
      * 
      * @param int $tahun Year
      * @return array
      */
     public function getKategoriTerjual(int $tahun): array
     {
-        $tgl_start = $tahun . '-01-01';
-        $tgl_end = $tahun . '-12-31';
+        $tgl_start = $tahun . '-01-01 00:00:00';
+        $tgl_end = $tahun . '-12-31 23:59:59';
 
-        return $this->builder('toko_penjualan_detail')
-                   ->select('toko_barang_kategori.id_kategori, toko_barang_kategori.nama_kategori')
-                   ->select('COUNT(toko_penjualan_detail.id_barang) AS jml')
-                   ->select('SUM(toko_penjualan_detail.harga) AS nilai')
-                   ->join('toko_penjualan', 'toko_penjualan.id_penjualan = toko_penjualan_detail.id_penjualan', 'left')
-                   ->join('toko_barang', 'toko_barang.id_barang = toko_penjualan_detail.id_barang', 'left')
-                   ->join('toko_barang_kategori', 'toko_barang_kategori.id_kategori = toko_barang.id_kategori', 'left')
-                   ->where('toko_penjualan.tgl_transaksi >=', $tgl_start)
-                   ->where('toko_penjualan.tgl_transaksi <=', $tgl_end)
-                   ->groupBy('toko_barang_kategori.id_kategori')
-                   ->orderBy('nilai', 'DESC')
-                   ->limit(7)
-                   ->get()
-                   ->getResultArray();
+        // Only join if you have item_category setup
+        return $this->db->table('sales_detail')
+            ->select('item.category_id AS id_kategori, item_category.category AS nama_kategori')
+            ->select('COUNT(sales_detail.item_id) AS jml')
+            ->select('SUM(sales_detail.amount) AS nilai')
+            ->join('sales', 'sales.id = sales_detail.sale_id', 'left')
+            ->join('item', 'item.id = sales_detail.item_id', 'left')
+            ->join('item_category', 'item_category.id = item.category_id', 'left')
+            ->where('sales.created_at >=', $tgl_start)
+            ->where('sales.created_at <=', $tgl_end)
+            ->groupBy('item.category_id')
+            ->orderBy('nilai', 'DESC')
+            ->limit(7)
+            ->get()
+            ->getResultArray();
     }
 
     /**
-     * Get latest items
+     * Get latest items (item table must have created_at)
      * 
      * @return array
      */
     public function getItemTerbaru(): array
     {
-        return $this->builder('toko_barang')
-                   ->orderBy('tgl_input', 'DESC')
-                   ->limit(5)
-                   ->get()
-                   ->getResultArray();
+        return $this->db->table('item')
+            ->select('item.*, item.name AS nama_barang, item.price AS harga_jual')
+            ->orderBy('created_at', 'DESC')
+            ->limit(5)
+            ->get()
+            ->getResultArray();
     }
 
     /**
-     * Get latest sales transactions
-     * 
+     * Get latest sales transactions for a given year (from sales and sales_detail)
      * @param int $tahun Year
      * @return array
      */
     public function penjualanTerbaru(int $tahun): array
     {
-        $tahun_str = $tahun . '%';
+        $start_date = $tahun . '-01-01 00:00:00';
+        $end_date = $tahun . '-12-31 23:59:59';
 
-        return $this->builder('toko_penjualan')
-                   ->select('toko_pelanggan.nama_pelanggan')
-                   ->select('SUM(toko_penjualan_detail.jml_barang) AS jml_barang')
-                   ->select('MAX(toko_penjualan.total_harga) AS total_harga')
-                   ->select('MAX(toko_penjualan.tgl_transaksi) AS tgl_transaksi')
-                   ->select('toko_penjualan.id_penjualan')
-                   ->join('toko_penjualan_detail', 'toko_penjualan_detail.id_penjualan = toko_penjualan.id_penjualan', 'left')
-                   ->join('toko_pelanggan', 'toko_pelanggan.id_pelanggan = toko_penjualan.id_pelanggan', 'left')
-                   ->like('toko_penjualan.tgl_transaksi', $tahun_str)
-                   ->groupBy('toko_penjualan.id_penjualan')
-                   ->orderBy('toko_penjualan.tgl_transaksi', 'DESC')
-                   ->limit(50)
-                   ->get()
-                   ->getResultArray();
+        return $this->db->table('sales')
+            ->select('COALESCE(customer.name, "Umum") AS nama_pelanggan')
+            ->select('COALESCE(SUM(sales_detail.qty), 0) AS jumlah_item')
+            ->select('COALESCE(SUM(sales_detail.qty), 0) AS jml_barang')
+            ->select('sales.grand_total')
+            ->select('sales.total_amount')
+            ->select('sales.payment_status')
+            ->select('sales.created_at')
+            ->select('sales.created_at AS tgl_transaksi')
+            ->select('sales.id AS id_penjualan')
+            ->join('sales_detail', 'sales_detail.sale_id = sales.id', 'left')
+            ->join('customer', 'customer.id = sales.customer_id', 'left')
+            ->where('sales.created_at >=', $start_date)
+            ->where('sales.created_at <=', $end_date)
+            ->groupBy('sales.id')
+            ->orderBy('sales.created_at', 'DESC')
+            ->limit(50)
+            ->get()
+            ->getResultArray();
     }
 
     /**
-     * Count all sales data
-     * 
+     * Count all distinct sold items from sales_detail+sales for a given year
      * @param int $tahun Year
      * @return int
      */
     public function countAllDataPejualanTerbesar(int $tahun): int
     {
-        $tgl_start = $tahun . '-01-01';
-        $tgl_end = $tahun . '-12-31';
+        $start_date = $tahun . '-01-01 00:00:00';
+        $end_date   = $tahun . '-12-31 23:59:59';
 
-        return $this->builder('toko_penjualan_detail')
-                   ->select('id_barang')
-                   ->join('toko_penjualan', 'toko_penjualan.id_penjualan = toko_penjualan_detail.id_penjualan', 'left')
-                   ->where('toko_penjualan.tgl_transaksi >=', $tgl_start)
-                   ->where('toko_penjualan.tgl_transaksi <=', $tgl_end)
-                   ->groupBy('id_barang')
-                   ->countAllResults();
+        return $this->db->table('sales_detail')
+            ->select('sales_detail.item_id')
+            ->join('sales', 'sales.id = sales_detail.sale_id', 'left')
+            ->where('sales.created_at >=', $start_date)
+            ->where('sales.created_at <=', $end_date)
+            ->groupBy('sales_detail.item_id')
+            ->countAllResults();
     }
 
     /**
-     * Get list of sales data with pagination
-     * 
+     * Get list of best selling items (by sales amount) for a given year, with paging/search/sort
+     *
      * @param int $tahun Year
      * @return array
      */
     public function getListDataPenjualanTerbesar(int $tahun): array
     {
-        $columns = $this->request->getPost('columns');
-        $search_all = $this->request->getPost('search')['value'] ?? '';
-        $order_data = $this->request->getPost('order') ?? [];
-        $start = $this->request->getPost('start') ?? 0;
-        $length = $this->request->getPost('length') ?? 10;
+        $request = \Config\Services::request();
+        $columns    = $request->getPost('columns');
+        $search_all = $request->getPost('search')['value'] ?? '';
+        $order_data = $request->getPost('order') ?? [];
+        $start      = $request->getPost('start') ?? 0;
+        $length     = $request->getPost('length') ?? 10;
 
-        $tgl_start = $tahun . '-01-01';
-        $tgl_end = $tahun . '-12-31';
+        $start_date = $tahun . '-01-01 00:00:00';
+        $end_date   = $tahun . '-12-31 23:59:59';
 
-        // Get total sales for contribution calculation
-        $total_sales = $this->builder('toko_penjualan_detail')
-                          ->select('SUM(harga) as total')
-                          ->join('toko_penjualan', 'toko_penjualan.id_penjualan = toko_penjualan_detail.id_penjualan', 'left')
-                          ->where('toko_penjualan.tgl_transaksi >=', $tgl_start)
-                          ->where('toko_penjualan.tgl_transaksi <=', $tgl_end)
-                          ->get()
-                          ->getRowArray();
-        $total_penjualan = $total_sales['total'] ?? 1;
+        // Get total sales (sum of all 'amount') for this year, for contribution calculation
+        $total_sales_row = $this->db->table('sales_detail')
+            ->select('SUM(amount) as total')
+            ->join('sales', 'sales.id = sales_detail.sale_id', 'left')
+            ->where('sales.created_at >=', $start_date)
+            ->where('sales.created_at <=', $end_date)
+            ->get()
+            ->getRowArray();
+        $total_penjualan = $total_sales_row && isset($total_sales_row['total']) ? (float)$total_sales_row['total'] : 1;
 
-        // Build main query
-        $builder = $this->builder('toko_penjualan_detail')
-                       ->select('toko_barang.id_barang, toko_barang.nama_barang, toko_barang.harga_satuan')
-                       ->select('COUNT(toko_penjualan_detail.id_barang) AS jml_terjual')
-                       ->select('SUM(toko_penjualan_detail.harga) AS total_harga')
-                       ->join('toko_penjualan', 'toko_penjualan.id_penjualan = toko_penjualan_detail.id_penjualan', 'left')
-                       ->join('toko_barang', 'toko_barang.id_barang = toko_penjualan_detail.id_barang', 'left')
-                       ->where('toko_penjualan.tgl_transaksi >=', $tgl_start)
-                       ->where('toko_penjualan.tgl_transaksi <=', $tgl_end)
-                       ->groupBy('toko_barang.id_barang');
+         // Build main query (group by item)
+         $builder = $this->db->table('sales_detail')
+             ->select('sales_detail.item_id')
+             ->select('COALESCE(sales_detail.item, item.name) AS nama_barang')
+             ->select('SUM(sales_detail.qty) AS jml_terjual')
+             ->select('SUM(sales_detail.amount) AS total_harga')
+             ->select('MAX(sales_detail.price) AS harga_satuan')
+             ->join('sales', 'sales.id = sales_detail.sale_id', 'left')
+             ->join('item', 'item.id = sales_detail.item_id', 'left')
+             ->where('sales.created_at >=', $start_date)
+             ->where('sales.created_at <=', $end_date)
+             ->groupBy('sales_detail.item_id');
 
         // Apply search
         if ($search_all && !empty($columns)) {
             $builder->groupStart();
             foreach ($columns as $val) {
-                if (strpos($val['data'] ?? '', 'ignore') === false) {
+                if (strpos($val['data'] ?? '', 'ignore') === false && isset($val['data']) && !empty($val['data'])) {
                     $builder->orLike($val['data'], $search_all);
                 }
             }
@@ -397,9 +424,12 @@ class DashboardModel extends BaseModel
         if (!empty($order_data) && isset($columns[$order_data[0]['column']])) {
             $dir = strtoupper($order_data[0]['dir'] ?? 'ASC');
             $column = $columns[$order_data[0]['column']]['data'] ?? '';
-            if (strpos($column, 'ignore_search') === false) {
+            if ($column && strpos($column, 'ignore_search') === false) {
                 $builder->orderBy($column, $dir);
             }
+        } else {
+            // Default order: biggest total_harga first
+            $builder->orderBy('total_harga', 'DESC');
         }
 
         // Get total filtered
@@ -408,9 +438,11 @@ class DashboardModel extends BaseModel
         // Get paginated data
         $data = $builder->limit($length, $start)->get()->getResultArray();
 
-        // Add contribution percentage
+        // Add contribution percentage to each row
         foreach ($data as &$row) {
-            $row['kontribusi'] = round(($row['total_harga'] / $total_penjualan) * 100, 0);
+            $row['kontribusi'] = $total_penjualan > 0
+                ? round((($row['total_harga'] ?? 0) / $total_penjualan) * 100, 0)
+                : 0;
         }
 
         return ['data' => $data, 'total_filtered' => $total_filtered];

@@ -117,12 +117,20 @@ class Util extends Controller
     protected function injectModules()
     {
         $modules = [
+
             [
-                'nama_module'      => 'platform',
-                'judul_module'     => 'Platform',
-                'deskripsi'        => 'Platform Management',
+                'nama_module'      => 'cart',
+                'judul_module'     => 'Cart',
+                'deskripsi'        => 'Shopping Cart & Checkout',
                 'id_module_status' => 1,
-                'login'            => 'Y'
+                'login'            => 'N'
+            ],
+            [
+                'nama_module'      => 'checkout',
+                'judul_module'     => 'Checkout',
+                'deskripsi'        => 'Order Checkout & Payment',
+                'id_module_status' => 1,
+                'login'            => 'N'
             ]
         ];
         

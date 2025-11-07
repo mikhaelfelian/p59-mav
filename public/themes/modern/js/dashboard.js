@@ -227,15 +227,18 @@ $(document).ready(function() {
 		}
 	};
 	
-	data_kategori = JSON.parse(jumlah_item_kategori)
+	// Variables are already JavaScript arrays from PHP json_encode, no need to parse
+	data_kategori = jumlah_item_kategori || [];
 	
 	let background_kategori = [];
-	item_terjual.map( () => {
-		background_kategori.push(dynamicColors());
-	})
+	if (data_kategori && data_kategori.length > 0) {
+		data_kategori.map( () => {
+			background_kategori.push(dynamicColors());
+		})
+	}
 	
 	const dataChartKategori = {
-		labels: JSON.parse(label_kategori),
+		labels: label_kategori || [],
 		datasets: [{
 			label: 'Top Kategori',
 			data: data_kategori,

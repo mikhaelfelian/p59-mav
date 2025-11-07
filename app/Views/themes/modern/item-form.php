@@ -32,11 +32,11 @@ $isModal = $isModal ?? false;
 					<a class="nav-link" data-bs-toggle="tab" href="#tab-spec" role="tab">Spesifikasi</a>
 				</li>
 				<li class="nav-item" role="presentation">
-					<a class="nav-link" data-bs-toggle="tab" href="#tab-varian" role="tab">Varian</a>
+					<a class="nav-link" data-bs-toggle="tab" href="#tab-promo" role="tab">Aturan Promo Produk</a>
 				</li>
-					<li class="nav-item" role="presentation">
-						<a class="nav-link" data-bs-toggle="tab" href="#tab-promo" role="tab">Aturan Promo Produk</a>
-					</li>
+				<li class="nav-item" role="presentation">
+					<a class="nav-link" data-bs-toggle="tab" href="#tab-product-rule" role="tab">Product Rules</a>
+				</li>
 					<li class="nav-item" role="presentation">
 						<a class="nav-link" data-bs-toggle="tab" href="#tab-agent-price" role="tab">Harga Khusus Agen</a>
 					</li>
@@ -115,6 +115,20 @@ $isModal = $isModal ?? false;
 										echo options(['class' => 'form-control select2', 'name' => 'category_id', 'required' => 'required'], $categoryOptions, set_value('category_id', @$item->category_id));
 									} ?>
 								</div>
+							</div>
+
+							<div class="mb-3">
+								<label class="control-label mb-2" for="warranty">Garansi</label>
+								<input
+									type="number"
+									name="warranty"
+									class="form-control"
+									id="warranty"
+									min="0"
+									value="<?= set_value('warranty', @$item->warranty) ?>"
+									placeholder="Garansi dalam bulan"
+								/>
+								<small class="form-text text-muted">Garansi dalam bulan. <i>*(12 = 1 tahun)</i></small>
 							</div>
 
 							<div class="mb-3">
@@ -253,19 +267,21 @@ $isModal = $isModal ?? false;
 					</div>
 				</div>
 
-				<!-- Varian Tab -->
-				<div class="tab-pane fade" id="tab-varian" role="tabpanel">
-					<?= view('themes/modern/product_rules/tab-varian', [
-						'id' => $id ?? '',
-						'config' => $config ?? null
-					]); ?>
-				</div>
-
 				<!-- Aturan Promo Produk Tab -->
 				<div class="tab-pane fade" id="tab-promo" role="tabpanel">
 					<?= view('themes/modern/product_rules/tab', [
 						'items' => $items ?? [], 
 						'id' => $id ?? '',
+						'config' => $config ?? null
+					]); ?>
+				</div>
+
+				<!-- Product Rules Tab -->
+				<div class="tab-pane fade" id="tab-product-rule" role="tabpanel">
+					<?= view('themes/modern/product_rules/tab-product-rule', [
+						'items' => $items ?? [], 
+						'id' => $id ?? '',
+						'product_rule' => $product_rule ?? null,
 						'config' => $config ?? null
 					]); ?>
 				</div>

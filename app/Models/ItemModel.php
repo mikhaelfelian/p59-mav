@@ -36,7 +36,8 @@ class ItemModel extends Model
         'agent_price',
         'is_stockable',
         'is_catalog',
-        'status'
+        'status',
+        'warranty'
     ];
 
     // Dates
@@ -54,7 +55,8 @@ class ItemModel extends Model
         'price'       => 'permit_empty|decimal',
         'agent_price' => 'permit_empty|decimal',
         'is_catalog'  => 'in_list[0,1]',
-        'status'      => 'in_list[0,1]'
+        'status'      => 'in_list[0,1]',
+        'warranty'    => 'permit_empty|integer|greater_than_equal_to[0]'
     ];
 
     protected $validationMessages = [

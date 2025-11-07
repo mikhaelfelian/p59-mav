@@ -19,6 +19,7 @@ class Item extends BaseController
     protected $itemSpecIdModel;
     protected $itemAgentModel;
     protected $promoModel;
+    protected $productRuleModel;
 
     public function __construct()
     {
@@ -30,6 +31,7 @@ class Item extends BaseController
         $this->itemSpecIdModel = new \App\Models\ItemSpecIdModel();
         $this->itemAgentModel = new \App\Models\ItemAgentModel();
         $this->promoModel = new \App\Models\ProductPromoRuleModel();
+        $this->productRuleModel = new \App\Models\ProductRuleModel();
         helper('angka');
         
         // Add TinyMCE, DataTables and form scripts
@@ -83,7 +85,8 @@ class Item extends BaseController
 
         // Image data for filepicker
         $this->data['image']            = [];
-        // Product rules removed (legacy)
+        // Product rule data (1-to-1 relationship)
+        $this->data['product_rule']     = null;
 
         // AJAX/modal check
         $isAjax                         = $this->request->isAJAX() 
@@ -227,7 +230,8 @@ class Item extends BaseController
             'nama_file'      => $item->image
         ] : [];
 
-        // Legacy product rules removed
+        // Product rule data (1-to-1 relationship)
+        $this->data['product_rule'] = $this->productRuleModel->getByItemId($id);
 
         // Cek AJAX/modal
         $isAjax = $this->request->isAJAX() 
@@ -255,6 +259,7 @@ class Item extends BaseController
         $isStockable      = $this->request->getPost('is_stockable') ?? '1';
         $isCatalog        = $this->request->getPost('is_catalog') ?? '1';
         $status           = $this->request->getPost('status') ?? '1';
+        $warranty         = $this->request->getPost('warranty');
         $id               = $this->request->getPost('id');
 
         // Enforce status to only allow '1' or '0'
@@ -393,7 +398,8 @@ class Item extends BaseController
                 'category_id'       => $categoryId,
                 'is_stockable'      => '1',
                 'is_catalog'        => $isCatalog,
-                'status'            => $status
+                'status'            => $status,
+                'warranty'          => !empty($warranty) ? (int)$warranty : null
             ];
 
             $result = false;
@@ -465,7 +471,8 @@ class Item extends BaseController
                 'category_id'       => $categoryId,
                 'is_stockable'      => '1',
                 'is_catalog'        => $isCatalog,
-                'status'            => $status
+                'status'            => $status,
+                'warranty'          => !empty($warranty) ? (int)$warranty : null
             ];
 
             $result = false;
@@ -877,11 +884,11 @@ class Item extends BaseController
         
         try {
             $rows = $this->promoModel
-                ->select('product_promo_rule.*, i1.name AS item_name, i2.name AS bonus_name')
-                ->join('item i1', 'i1.id = product_promo_rule.item_id', 'left')
-                ->join('item i2', 'i2.id = product_promo_rule.bonus_item_id', 'left')
-                ->where('product_promo_rule.item_id', $itemId)
-                ->orderBy('product_promo_rule.created_at', 'DESC')
+                ->select('item_promo_rule.*, i1.name AS item_name, i2.name AS bonus_name')
+                ->join('item i1', 'i1.id = item_promo_rule.item_id', 'left')
+                ->join('item i2', 'i2.id = item_promo_rule.bonus_item_id', 'left')
+                ->where('item_promo_rule.item_id', $itemId)
+                ->orderBy('item_promo_rule.created_at', 'DESC')
                 ->findAll();
             
             return $this->response->setJSON([
@@ -986,6 +993,142 @@ class Item extends BaseController
         } catch (\Exception $e) {
             return $this->response->setJSON([
                 'status' => 'error', 
+                'message' => 'Error: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Save or update product rule
+     * Handles both cashback and buy_get rule types
+     * 
+     * @param int $itemId Item ID
+     * @return \CodeIgniter\HTTP\ResponseInterface
+     */
+    public function saveProductRule($itemId)
+    {
+        $this->response->setContentType('application/json');
+        
+        if (!$itemId) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Item ID is required'
+            ]);
+        }
+
+        // Verify item exists
+        $item = $this->model->find($itemId);
+        if (!$item) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Item tidak ditemukan'
+            ]);
+        }
+
+        $postData = $this->request->getPost();
+        $ruleType = $postData['rule_type'] ?? '';
+        
+        // Validate rule type
+        if (!in_array($ruleType, ['cashback', 'buy_get'])) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Rule type harus cashback atau buy_get'
+            ]);
+        }
+
+        // Prepare data based on rule type
+        $data = [
+            'item_id' => $itemId,
+            'rule_type' => $ruleType,
+            'is_active' => isset($postData['is_active']) ? (int)$postData['is_active'] : 1,
+            'notes' => $postData['notes'] ?? null
+        ];
+
+        // Cashback rule specific fields
+        if ($ruleType === 'cashback') {
+            $data['threshold_amount'] = !empty($postData['threshold_amount']) ? (float)$postData['threshold_amount'] : null;
+            $data['cashback_amount'] = !empty($postData['cashback_amount']) ? (float)$postData['cashback_amount'] : null;
+            
+            // Validate cashback fields
+            if (empty($data['threshold_amount']) || $data['threshold_amount'] <= 0) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Threshold Amount harus diisi dan lebih dari 0 untuk cashback rule'
+                ]);
+            }
+            if (empty($data['cashback_amount']) || $data['cashback_amount'] <= 0) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Cashback Amount harus diisi dan lebih dari 0 untuk cashback rule'
+                ]);
+            }
+        }
+
+        // Buy Get rule specific fields
+        if ($ruleType === 'buy_get') {
+            $data['min_qty'] = !empty($postData['min_qty']) ? (int)$postData['min_qty'] : null;
+            $data['bonus_item_id'] = !empty($postData['bonus_item_id']) ? (int)$postData['bonus_item_id'] : null;
+            $data['bonus_qty'] = !empty($postData['bonus_qty']) ? (int)$postData['bonus_qty'] : null;
+            $data['is_multiple'] = isset($postData['is_multiple']) ? (int)$postData['is_multiple'] : 0;
+            
+            // Validate buy_get fields
+            if (empty($data['min_qty']) || $data['min_qty'] <= 0) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Minimum Quantity harus diisi dan lebih dari 0 untuk buy_get rule'
+                ]);
+            }
+            if (empty($data['bonus_item_id'])) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Bonus Item harus dipilih untuk buy_get rule'
+                ]);
+            }
+            if (empty($data['bonus_qty']) || $data['bonus_qty'] <= 0) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Bonus Quantity harus diisi dan lebih dari 0 untuk buy_get rule'
+                ]);
+            }
+        }
+
+        try {
+            // Check if rule already exists for this item (1-to-1 relationship)
+            $existingRule = $this->productRuleModel->getByItemId($itemId);
+            
+            if ($existingRule) {
+                // Update existing rule
+                $result = $this->productRuleModel->update($existingRule->id, $data);
+                $message = $result ? 'Product rule berhasil diperbarui' : 'Gagal memperbarui product rule';
+                $ruleId = $existingRule->id;
+            } else {
+                // Insert new rule
+                $result = $this->productRuleModel->insert($data);
+                $message = $result ? 'Product rule berhasil disimpan' : 'Gagal menyimpan product rule';
+                $ruleId = $result ? $this->productRuleModel->getInsertID() : null;
+            }
+            
+            if (!$result) {
+                $errors = $this->productRuleModel->errors();
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => $message,
+                    'errors' => $errors
+                ]);
+            }
+            
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => $message,
+                'data' => [
+                    'id' => $ruleId,
+                    'rule_type' => $ruleType
+                ]
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'ProductRule save error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'status' => 'error',
                 'message' => 'Error: ' . $e->getMessage()
             ]);
         }

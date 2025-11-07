@@ -6,7 +6,7 @@ use CodeIgniter\Model;
 
 class ProductPromoRuleModel extends Model
 {
-    protected $table            = 'product_promo_rule';
+    protected $table            = 'item_promo_rule';
     protected $primaryKey       = 'id';
     protected $returnType       = 'object';
     protected $protectFields    = true;

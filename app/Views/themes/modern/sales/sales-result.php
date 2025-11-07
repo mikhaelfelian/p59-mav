@@ -3,7 +3,7 @@
  * Created by: Mikhael Felian Waskito - mikhaelfelian@gmail.com
  * Date: 2025-11-01
  * Github: github.com/mikhaelfelian
- * Description: View for sales list with DataTables
+ * Description: View for sales list/result with DataTables
  */
 ?>
 <div class="card">
@@ -12,31 +12,28 @@
 	</div>
 
 	<div class="card-body">
-		<?php if ($this->hasPermissionPrefix('create', true)): ?>
 		<a href="<?= $config->baseURL ?>sales/create" class="btn btn-success btn-xs btn-add">
-			<i class="fa fa-plus pe-1"></i> Tambah Penjualan
+			<i class="fa fa-plus pe-1"></i> Tambah
 		</a>
-		<?php endif; ?>
 		<hr />
+		
 		<?php
-		if (!empty($message)) {
-			show_alert($message);
+		if (!empty($msg)) {
+			show_alert($msg);
 		}
 
 		// Define columns for DataTables
 		$column = [
-			'ignore_search_urut' => 'No',
-			'invoice_code' => 'Invoice Code',
-			'invoice_date' => 'Tanggal',
-			'customer_name' => 'Customer',
-			'agent_name' => 'Agen',
-			'grand_total' => 'Total',
-			'status_payment' => 'Status Pembayaran',
-			'status_order' => 'Status Order',
-			'ignore_search_action' => 'Aksi'
+			'ignore_search_urut'    => 'No',
+			'invoice_no'            => 'Invoice No',
+			'customer_name'         => 'Customer',
+			'grand_total'           => 'Total',
+			'status'                => 'Status',
+			'created_at'            => 'Created At',
+			'ignore_search_action'  => 'Actions'
 		];
 
-		$settings['order'] = [1, 'desc']; // Order by invoice_date descending
+		$settings['order'] = [6, 'desc']; // Order by created_at descending
 		$index = 0;
 		$th = '';
 		
@@ -99,57 +96,6 @@ $(document).ready(function() {
 			"emptyTable": "Tidak ada data",
 			"zeroRecords": "Data tidak ditemukan"
 		}
-	});
-
-	// Handle delete button
-	$(document).on('click', '.btn-delete-sale', function(e) {
-		e.preventDefault();
-		var id = $(this).data('id');
-		var invoice = $(this).data('invoice');
-
-		Swal.fire({
-			title: 'Apakah Anda yakin?',
-			text: "Hapus penjualan dengan invoice: " + invoice + "?",
-			icon: 'warning',
-			showCancelButton: true,
-			confirmButtonColor: '#3085d6',
-			cancelButtonColor: '#d33',
-			confirmButtonText: 'Ya, hapus!'
-		}).then((result) => {
-			if (result.isConfirmed) {
-				$.ajax({
-					url: '<?= $config->baseURL ?>sales/delete/' + id,
-					type: 'GET',
-					dataType: 'json',
-					success: function(response) {
-						if (response.status === 'success') {
-							Swal.fire({
-								icon: 'success',
-								title: 'Berhasil!',
-								text: response.message,
-								timer: 2000,
-								showConfirmButton: false
-							}).then(function() {
-								$('#table-result').DataTable().ajax.reload();
-							});
-						} else {
-							Swal.fire({
-								icon: 'error',
-								title: 'Error!',
-								text: response.message
-							});
-						}
-					},
-					error: function() {
-						Swal.fire({
-							icon: 'error',
-							title: 'Error!',
-							text: 'Terjadi kesalahan saat menghapus data.'
-						});
-					}
-				});
-			}
-		});
 	});
 });
 </script>
