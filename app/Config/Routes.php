@@ -92,6 +92,11 @@ $routes->get('agent-rules/form/(:num)', 'AgentRules::form/$1');
 $routes->post('agent-rules/save', 'AgentRules::save');
 $routes->post('agent-rules/delete/(:num)', 'AgentRules::delete/$1');
 
+# Agent Gateway Check (for agent/post integration)
+$routes->match(['get', 'post'], 'agent/checkActiveGateway', 'Agent::checkActiveGateway');
+$routes->match(['get', 'post'], 'agent/getGatewayByCode', 'Agent::getGatewayByCode');
+$routes->get('agent/getGatewayByCode/(:any)', 'Agent::getGatewayByCode/$1');
+
 # Product Promo (moved to Item controller)
 $routes->get('item/promoList/(:num)', 'Item::promoList/$1');
 $routes->post('item/promoStore', 'Item::promoStore');
@@ -128,6 +133,9 @@ $routes->get('platform/add', 'Platform::add');
 $routes->get('platform/edit/(:num)', 'Platform::edit/$1');
 $routes->post('platform/update/(:num)', 'Platform::update/$1');
 $routes->get('platform/delete/(:num)', 'Platform::delete/$1');
+$routes->match(['get', 'post'], 'platform/checkActiveGateway', 'Platform::checkActiveGateway');
+$routes->match(['get', 'post'], 'platform/getGatewayByCode', 'Platform::getGatewayByCode');
+$routes->get('platform/getGatewayByCode/(:any)', 'Platform::getGatewayByCode/$1');
 $routes->get('platform', 'Platform::index');
 
 # Sales Management
@@ -138,6 +146,8 @@ $routes->group('sales',  function($routes){
     $routes->get('(:num)', 'Sales::detail/$1');
     $routes->post('getDataDT', 'Sales::getDataDT');
     $routes->get('getUnusedSNs', 'Sales::getUnusedSNs');
+    // Payment gateway callback endpoint
+    $routes->match(['get', 'post'], 'paymentCallback', 'Sales::paymentCallback');
 });
 
 

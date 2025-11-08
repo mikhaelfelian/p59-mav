@@ -45,6 +45,11 @@
 	box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
 }
 
+.summary-input-group .form-control {
+	background: rgba(255,255,255,0.95);
+	border: none;
+}
+
 #sales-items-table {
 	font-size: 0.9rem;
 }
@@ -257,6 +262,10 @@
 }
 </style>
 
+<!-- Select2 CSS -->
+<link rel="stylesheet" href="<?= base_url('public/vendors/jquery.select2/css/select2.min.css') ?>">
+<link rel="stylesheet" href="<?= base_url('public/vendors/jquery.select2/bootstrap-5-theme/select2-bootstrap-5-theme.min.css') ?>">
+
 <div class="container-fluid px-0">
 	<?php
 	if (!empty($message)) {
@@ -297,24 +306,21 @@
 				</div>
 				
 				<div class="col-md-3">
-					<label class="form-label">Nama Pelanggan</label>
-					<div class="position-relative">
-						<div class="input-group">
-							<span class="input-group-text bg-light"><i class="fas fa-user"></i></span>
-							<?= form_input([
-								'name' => 'customer_name',
-								'type' => 'text',
-								'class' => 'form-control rounded-0',
-								'id' => 'customer_name',
-								'value' => set_value('customer_name', ''),
-								'placeholder' => 'Cari nama pelanggan...',
-								'autocomplete' => 'off'
-							]) ?>
-						</div>
-						<input type="hidden" name="customer_id" id="customer_id" value="">
-						<div id="customer-autocomplete" class="autocomplete-dropdown" style="display: none;"></div>
+					<label class="form-label">Nama Pelanggan <span class="text-danger">*</span></label>
+					<div class="input-group">
+						<span class="input-group-text bg-light"><i class="fas fa-user"></i></span>
+						<?= form_input([
+							'name' => 'customer_name',
+							'type' => 'text',
+							'class' => 'form-control',
+							'id' => 'customer_name',
+							'value' => set_value('customer_name', ''),
+							'placeholder' => 'Masukkan nama pelanggan',
+							'required' => 'required'
+						]) ?>
 					</div>
-					<small class="text-muted"><i class="fas fa-info-circle"></i> Ketik nama untuk mencari, atau isi manual untuk pelanggan baru</small>
+					<small class="text-muted"><i class="fas fa-info-circle"></i> Customer akan dibuat otomatis saat menyimpan</small>
+					<input type="hidden" name="customer_id" id="customer_id" value="">
 				</div>
 				<div class="col-md-6">
 					<label class="form-label d-block">Plat Kendaraan <span class="text-danger">*</span></label>
@@ -416,10 +422,10 @@
 								</div>
 								<div class="col-md-5">
 									<label class="form-label">Nomor Seri</label>
-									<select id="select-sn" class="form-select form-select-lg" multiple size="3">
+									<select id="select-sn" class="form-select form-select-lg select2">
 										<option value="">-- Pilih Nomor Seri --</option>
 									</select>
-									<small class="text-muted"><i class="fas fa-info-circle"></i> Tekan Ctrl/Cmd untuk memilih lebih dari satu</small>
+									<small class="text-muted"><i class="fas fa-info-circle"></i> Pilih nomor seri</small>
 								</div>
 								<div class="col-md-2">
 									<label class="form-label">&nbsp;</label>
@@ -581,170 +587,16 @@
 	</form>
 </div>
 
+<!-- Select2 JS -->
+<script src="<?= base_url('public/vendors/jquery.select2/js/select2.full.min.js') ?>"></script>
+
 <script>
 $(document).ready(function() {
 	let items = [];
 	let isSubmitting = false;
-	let customerSearchTimeout;
-	let selectedCustomerId = null;
-	let autocompleteIndex = -1;
-
-	// Customer autocomplete
-	$('#customer_name').on('input', function() {
-		clearTimeout(customerSearchTimeout);
-		let $this = $(this);
-		let searchTerm = $this.val().trim();
-		
-		// Reset selection if input changed manually
-		if (searchTerm.length === 0) {
-			selectedCustomerId = null;
-			$('#customer_id').val('');
-			$('#plate_code, #plate_number, #plate_suffix').val('');
-			$('#customer-autocomplete').hide().empty();
-		}
-		
-		if (searchTerm.length >= 2) {
-			customerSearchTimeout = setTimeout(function() {
-				searchCustomers(searchTerm);
-			}, 300);
-		} else {
-			$('#customer-autocomplete').hide().empty();
-		}
-	});
-
-	$('#customer_name').on('keydown', function(e) {
-		let $dropdown = $('#customer-autocomplete');
-		let $items = $dropdown.find('.autocomplete-item');
-		
-		if ($items.length === 0) return;
-		
-		if (e.keyCode === 40) { // Down arrow
-			e.preventDefault();
-			autocompleteIndex = Math.min(autocompleteIndex + 1, $items.length - 1);
-			$items.removeClass('active').eq(autocompleteIndex).addClass('active');
-			$dropdown.scrollTop($items.eq(autocompleteIndex).position().top + $dropdown.scrollTop());
-		} else if (e.keyCode === 38) { // Up arrow
-			e.preventDefault();
-			autocompleteIndex = Math.max(autocompleteIndex - 1, -1);
-			$items.removeClass('active');
-			if (autocompleteIndex >= 0) {
-				$items.eq(autocompleteIndex).addClass('active');
-				$dropdown.scrollTop($items.eq(autocompleteIndex).position().top + $dropdown.scrollTop());
-			}
-		} else if (e.keyCode === 13) { // Enter
-			e.preventDefault();
-			if (autocompleteIndex >= 0 && autocompleteIndex < $items.length) {
-				$items.eq(autocompleteIndex).click();
-			}
-		} else if (e.keyCode === 27) { // Escape
-			$dropdown.hide().empty();
-			autocompleteIndex = -1;
-		}
-	});
-
-	$(document).on('click', function(e) {
-		if (!$(e.target).closest('#customer_name, #customer-autocomplete').length) {
-			$('#customer-autocomplete').hide();
-		}
-	});
-
-	function searchCustomers(term) {
-		$.ajax({
-			url: '<?= $config->baseURL ?>sales/searchCustomers',
-			type: 'GET',
-			data: { term: term },
-			dataType: 'json',
-			success: function(response) {
-				if (response.status === 'success' && response.data && response.data.length > 0) {
-					displayAutocomplete(response.data);
-				} else {
-					$('#customer-autocomplete').hide().empty();
-				}
-			},
-			error: function() {
-				$('#customer-autocomplete').hide().empty();
-			}
-		});
-	}
-
-	function displayAutocomplete(customers) {
-		let $dropdown = $('#customer-autocomplete');
-		$dropdown.empty();
-		
-		customers.forEach(function(customer, index) {
-			let plateInfo = '';
-			if (customer.plate_code && customer.plate_number) {
-				plateInfo = customer.plate_code + '-' + customer.plate_number;
-				if (customer.plate_suffix) {
-					plateInfo += '-' + customer.plate_suffix;
-				}
-			}
-			
-			let $item = $('<div>', {
-				class: 'autocomplete-item',
-				'data-id': customer.id,
-				'data-name': customer.label,
-				'data-phone': customer.phone || '',
-				'data-plate-code': customer.plate_code || '',
-				'data-plate-number': customer.plate_number || '',
-				'data-plate-suffix': customer.plate_suffix || ''
-			});
-			
-			$item.append($('<div>', {
-				class: 'autocomplete-item-name',
-				text: customer.label
-			}));
-			
-			let details = [];
-			if (customer.phone) {
-				details.push('<i class="fas fa-phone"></i>' + customer.phone);
-			}
-			if (plateInfo) {
-				details.push('<i class="fas fa-car"></i>' + plateInfo);
-			}
-			
-			if (details.length > 0) {
-				$item.append($('<div>', {
-					class: 'autocomplete-item-details',
-					html: details.join(' &nbsp; ')
-				}));
-			}
-			
-			$item.on('click', function() {
-				selectCustomer($(this));
-			});
-			
-			$dropdown.append($item);
-		});
-		
-		$dropdown.show();
-		autocompleteIndex = -1;
-	}
-
-	function selectCustomer($item) {
-		let customerId = $item.data('id');
-		let customerName = $item.data('name');
-		let plateCode = $item.data('plate-code');
-		let plateNumber = $item.data('plate-number');
-		let plateSuffix = $item.data('plate-suffix');
-		
-		$('#customer_name').val(customerName);
-		$('#customer_id').val(customerId);
-		selectedCustomerId = customerId;
-		
-		if (plateCode) {
-			$('#plate_code').val(plateCode);
-		}
-		if (plateNumber) {
-			$('#plate_number').val(plateNumber);
-		}
-		if (plateSuffix) {
-			$('#plate_suffix').val(plateSuffix);
-		}
-		
-		$('#customer-autocomplete').hide().empty();
-		autocompleteIndex = -1;
-	}
+	
+	// Store platform data for API check
+	let platformsData = <?= json_encode($platforms ?? []) ?>;
 
 	let searchTimeout;
 	$('#product-search').on('input', function() {
@@ -785,7 +637,11 @@ $(document).ready(function() {
 	$('#select-item').on('change', function() {
 		let itemId = $(this).val();
 		let $snSelect = $('#select-sn');
-		$snSelect.html('<option value="">Loading...</option>').prop('disabled', true);
+		
+		// Clear and disable Select2
+		$snSelect.empty().append('<option value="">Loading...</option>');
+		$snSelect.prop('disabled', true);
+		$snSelect.val(null).trigger('change.select2');
 
 		if (itemId) {
 			$.ajax({
@@ -794,8 +650,14 @@ $(document).ready(function() {
 				data: { item_id: itemId },
 				dataType: 'json',
 				success: function(response) {
-					$snSelect.html('<option value="">-- Pilih Nomor Seri --</option>');
+					// Clear existing options
+					$snSelect.empty();
+					
+					// Add placeholder option
+					$snSelect.append('<option value="">-- Pilih Nomor Seri --</option>');
+					
 					if (response.status === 'success' && response.data && response.data.length > 0) {
+						// Add options from response
 						$.each(response.data, function(i, sn) {
 							$snSelect.append(
 								$('<option>', {
@@ -808,15 +670,23 @@ $(document).ready(function() {
 					} else {
 						$snSelect.append('<option value="">Tidak ada nomor seri tersedia</option>');
 					}
+					
+					// Re-enable and update Select2
 					$snSelect.prop('disabled', false);
+					$snSelect.val(null).trigger('change.select2');
 				},
 				error: function() {
-					$snSelect.html('<option value="">Gagal memuat nomor seri</option>');
+					$snSelect.empty();
+					$snSelect.append('<option value="">Gagal memuat nomor seri</option>');
 					$snSelect.prop('disabled', false);
+					$snSelect.val(null).trigger('change.select2');
 				}
 			});
 		} else {
-			$snSelect.html('<option value="">-- Pilih Nomor Seri --</option>').prop('disabled', false);
+			$snSelect.empty();
+			$snSelect.append('<option value="">-- Pilih Nomor Seri --</option>');
+			$snSelect.prop('disabled', false);
+			$snSelect.val(null).trigger('change.select2');
 		}
 	});
 
@@ -882,7 +752,7 @@ $(document).ready(function() {
 
 	$('#btn-add-item').on('click', function() {
 		let itemId = $('#select-item').val();
-		let selectedSns = $('#select-sn').val() || [];
+		let selectedSnId = $('#select-sn').val();
 
 		if (!itemId) {
 			showToast('Pilih produk terlebih dahulu', 'warning');
@@ -893,16 +763,15 @@ $(document).ready(function() {
 		let itemPrice = parseFloat(itemOption.data('price')) || 0;
 
 		let sns = [];
-		$('#select-sn option:selected').each(function() {
+		if (selectedSnId) {
+			let selectedSnOption = $('#select-sn option:selected');
 			sns.push({
-				item_sn_id: $(this).val(),
-				sn: $(this).data('sn') || $(this).text()
+				item_sn_id: selectedSnId,
+				sn: selectedSnOption.data('sn') || selectedSnOption.text()
 			});
-		});
-		let qty = 1;
-		if (sns.length > 0) {
-			qty = 1;
 		}
+		
+		let qty = 1;
 		let newItem = {
 			item_id: itemId,
 			variant_id: null,
@@ -917,7 +786,7 @@ $(document).ready(function() {
 		items.push(newItem);
 		updateItemsTable();
 		$('#select-item').val('').trigger('change');
-		$('#select-sn').html('<option value="">-- Pilih Nomor Seri --</option>');
+		$('#select-sn').empty().append('<option value="">-- Pilih Nomor Seri --</option>').val(null).trigger('change.select2');
 		$('#product-search').val('').focus();
 	});
 
@@ -1052,43 +921,184 @@ $(document).ready(function() {
 		$submitBtn.prop('disabled', true).html('<span class="loading-spinner"></span> Menyimpan...');
 		$('#discount-input').val($('#discount-input').val() || '0');
 		$('#tax-input').val($('#tax-input').val() || '0');
-		let formData = $(this).serialize();
-		$.ajax({
-			url: $(this).attr('action'),
-			type: 'POST',
-			data: formData,
-			dataType: 'json',
-			success: function(response) {
-				if (response.status === 'success') {
-					showToast(response.message || 'Penjualan berhasil disimpan.', 'success');
-					setTimeout(function() {
-						window.location.href = '<?= $config->baseURL ?>sales';
-					}, 1500);
-				} else {
-					showToast(response.message || 'Gagal menyimpan penjualan.', 'error');
+		
+		// Check if platform is selected and has status_pos=1 and gw_status=1
+		let platformId = $('#platform_id').val();
+		let selectedPlatform = null;
+		if (platformId && platformsData) {
+			selectedPlatform = platformsData.find(function(p) {
+				return p.id == platformId;
+			});
+		}
+		
+		// If platform has status_pos=1 and gw_status=1, call external API
+		if (selectedPlatform && selectedPlatform.status_pos == '1' && selectedPlatform.gw_status == '1') {
+			// Prepare API request data
+			let invoiceNo = $('#invoice_no').val();
+			let grandTotalInput = $('#grand-total-input').val() || '0';
+			let grandTotal = parseFloat(String(grandTotalInput).replace(/[^\d.-]/g, '')) || 0;
+			let customerName = $('#customer_name').val() || '';
+			
+			// Get customer data - customer will be created automatically
+			// Use empty values as customer is new
+			let customerPhone = '';
+			let customerEmail = '';
+			
+			// Split customer name into firstName and lastName
+			let nameParts = customerName.trim().split(/\s+/);
+			let firstName = nameParts[0] || '';
+			let lastName = nameParts.slice(1).join(' ') || '';
+			
+			// If no lastName, use firstName as lastName
+			if (!lastName) {
+				lastName = firstName;
+			}
+			
+			let apiData = {
+				code: selectedPlatform.gw_code || 'QRIS',
+				orderId: invoiceNo,
+				amount: Math.round(grandTotal),
+				customer: {
+					firstName: firstName,
+					lastName: lastName,
+					email: customerEmail || 'customer@example.com',
+					phone: customerPhone || ''
+				}
+			};
+			
+			// Call external API
+			$submitBtn.html('<span class="loading-spinner"></span> Mengirim ke gateway...');
+			$.ajax({
+				url: 'https://dev.osu.biz.id/mig/esb/v1/api/payments',
+				type: 'POST',
+				contentType: 'application/json',
+				data: JSON.stringify(apiData),
+				dataType: 'json',
+				success: function(apiResponse) {
+					// Store gateway response data
+					let gatewayResponse = {
+						code: apiResponse.code || '',
+						orderId: apiResponse.orderId || invoiceNo,
+						status: apiResponse.status || 'PENDING',
+						url: apiResponse.url || '',
+						settlementTime: apiResponse.settlementTime || null,
+						paymentGatewayAdminFee: apiResponse.paymentGatewayAdminFee || 0,
+						chargeFee: apiResponse.chargeFee || 0,
+						originalAmount: apiResponse.originalAmount || grandTotal
+					};
+					
+					// Store in hidden field for form submission
+					$('#gateway_response').remove();
+					$('form').append('<input type="hidden" id="gateway_response" name="gateway_response" value="' + 
+						encodeURIComponent(JSON.stringify(gatewayResponse)) + '">');
+					
+					// If QR code URL exists, show it to user
+					if (gatewayResponse.url) {
+						Swal.fire({
+							title: 'QR Code Pembayaran',
+							html: `
+								<div class="text-center">
+									<p class="mb-3">Silakan scan QR code berikut untuk melakukan pembayaran:</p>
+									<img src="${gatewayResponse.url}" alt="QR Code" class="img-fluid mb-3" style="max-width: 300px;">
+									<p class="text-muted small mb-2">Status: <strong>${gatewayResponse.status}</strong></p>
+									${gatewayResponse.paymentGatewayAdminFee > 0 ? 
+										'<p class="text-muted small">Biaya Admin: Rp ' + gatewayResponse.paymentGatewayAdminFee.toLocaleString('id-ID') + '</p>' : ''}
+									<a href="${gatewayResponse.url}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+										<i class="fas fa-external-link-alt"></i> Buka QR Code
+									</a>
+								</div>
+							`,
+							icon: 'info',
+							showCancelButton: true,
+							confirmButtonText: 'Lanjutkan Simpan',
+							cancelButtonText: 'Batal',
+							confirmButtonColor: '#4e73df',
+							width: '500px'
+						}).then((result) => {
+							if (result.isConfirmed) {
+								// Proceed with form submission
+								submitForm();
+							} else {
+								// User cancelled, reset button
+								isSubmitting = false;
+								$submitBtn.prop('disabled', false).html(originalText);
+							}
+						});
+					} else {
+						// No QR code URL, proceed directly
+						submitForm();
+					}
+				},
+				error: function(xhr) {
+					let errorMsg = 'Gagal mengirim ke payment gateway.';
+					if (xhr.responseJSON && xhr.responseJSON.message) {
+						errorMsg = xhr.responseJSON.message;
+					} else if (xhr.responseText) {
+						try {
+							let error = JSON.parse(xhr.responseText);
+							if (error.message) {
+								errorMsg = error.message;
+							}
+						} catch(e) {
+							// Use default error message
+						}
+					}
+					Swal.fire({
+						icon: 'error',
+						title: 'Error',
+						text: errorMsg,
+						confirmButtonColor: '#dc3545'
+					});
 					isSubmitting = false;
 					$submitBtn.prop('disabled', false).html(originalText);
 				}
-			},
-			error: function(xhr) {
-				let errorMsg = 'Gagal menyimpan penjualan.';
-				if (xhr.responseJSON && xhr.responseJSON.message) {
-					errorMsg = xhr.responseJSON.message;
-				} else if (xhr.responseText) {
-					try {
-						let error = JSON.parse(xhr.responseText);
-						if (error.message) {
-							errorMsg = error.message;
-						}
-					} catch(e) {
-						// Use default error message
+			});
+		} else {
+			// No platform or platform doesn't meet criteria, proceed with normal submission
+			submitForm();
+		}
+		
+		// Function to submit the form
+		function submitForm() {
+			$submitBtn.html('<span class="loading-spinner"></span> Menyimpan...');
+			let formData = $('#form-sales').serialize();
+			$.ajax({
+				url: $('#form-sales').attr('action'),
+				type: 'POST',
+				data: formData,
+				dataType: 'json',
+				success: function(response) {
+					if (response.status === 'success') {
+						showToast(response.message || 'Penjualan berhasil disimpan.', 'success');
+						setTimeout(function() {
+							window.location.href = '<?= $config->baseURL ?>sales';
+						}, 1500);
+					} else {
+						showToast(response.message || 'Gagal menyimpan penjualan.', 'error');
+						isSubmitting = false;
+						$submitBtn.prop('disabled', false).html(originalText);
 					}
+				},
+				error: function(xhr) {
+					let errorMsg = 'Gagal menyimpan penjualan.';
+					if (xhr.responseJSON && xhr.responseJSON.message) {
+						errorMsg = xhr.responseJSON.message;
+					} else if (xhr.responseText) {
+						try {
+							let error = JSON.parse(xhr.responseText);
+							if (error.message) {
+								errorMsg = error.message;
+							}
+						} catch(e) {
+							// Use default error message
+						}
+					}
+					showToast(errorMsg, 'error');
+					isSubmitting = false;
+					$submitBtn.prop('disabled', false).html(originalText);
 				}
-				showToast(errorMsg, 'error');
-				isSubmitting = false;
-				$submitBtn.prop('disabled', false).html(originalText);
-			}
-		});
+			});
+		}
 	});
 
 	updateItemsTable();
@@ -1118,6 +1128,22 @@ $(document).ready(function() {
 				if (confirm('Batalkan penjualan ini?')) {
 					window.location.href = '<?= $config->baseURL ?>sales';
 				}
+			}
+		}
+	});
+
+	// Initialize Select2 for serial number select (single select)
+	$('#select-sn').select2({
+		theme: 'bootstrap-5',
+		width: '100%',
+		placeholder: '-- Pilih Nomor Seri --',
+		allowClear: true,
+		language: {
+			noResults: function() {
+				return "Tidak ada hasil ditemukan";
+			},
+			searching: function() {
+				return "Mencari...";
 			}
 		}
 	});

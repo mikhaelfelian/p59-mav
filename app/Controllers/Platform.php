@@ -117,8 +117,17 @@ class Platform extends BaseController
             'platform' => 'permit_empty|max_length[160]',
             'description' => 'permit_empty',
             'status' => 'in_list[0,1]',
-            'status_sys' => 'permit_empty|in_list[0,1]'
+            'status_agent' => 'permit_empty|in_list[0,1]',
+            'status_pos' => 'permit_empty|in_list[0,1]',
+            'gw_code' => 'permit_empty|max_length[50]',
+            'gw_status' => 'permit_empty|in_list[0,1]'
         ];
+        
+        // Only validate logo if file is uploaded
+        $file = $this->request->getFile('logo');
+        if ($file && $file->isValid() && !$file->hasMoved()) {
+            $rules['logo'] = 'uploaded[logo]|max_size[logo,2048]|ext_in[logo,jpg,jpeg,png,gif]|is_image[logo]';
+        }
 
         if (!$this->validate($rules)) {
             $errors = $validation->getErrors();
@@ -138,10 +147,73 @@ class Platform extends BaseController
         $code = $this->request->getPost('code');
         $platform = $this->request->getPost('platform');
         $description = $this->request->getPost('description');
-        $status = $this->request->getPost('status') ?? '1';
         // Checkbox: if not set or empty, default to '0'
-        $statusSys = $this->request->getPost('status_sys') ? '1' : '0';
+        $status = $this->request->getPost('status') ? '1' : '0';
+        $statusAgent = $this->request->getPost('status_agent') ? '1' : '0';
+        $statusPos = $this->request->getPost('status_pos') ? '1' : '0';
+        $gwCode = $this->request->getPost('gw_code');
+        $gwStatus = $this->request->getPost('gw_status') ? '1' : '0';
         $id = $this->request->getPost('id');
+        
+        // Handle logo upload
+        $logo = '';
+        $file = $this->request->getFile('logo');
+        $logoOld = $this->request->getPost('logo_old');
+        
+        // Create upload directory if it doesn't exist
+        $uploadPath = ROOTPATH . 'public/uploads/platform/';
+        if (!is_dir($uploadPath)) {
+            mkdir($uploadPath, 0755, true);
+        }
+        
+        if ($file && $file->isValid() && !$file->hasMoved()) {
+            // Validate file
+            if ($file->getSize() > 2097152) { // 2MB
+                $message = 'Ukuran file logo maksimal 2MB.';
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => $message
+                    ]);
+                }
+                return redirect()->back()->withInput()->with('message', ['status' => 'error', 'message' => $message]);
+            }
+            
+            $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+            if (!in_array($file->getMimeType(), $allowedTypes)) {
+                $message = 'Format file harus JPG, PNG, atau GIF.';
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => $message
+                    ]);
+                }
+                return redirect()->back()->withInput()->with('message', ['status' => 'error', 'message' => $message]);
+            }
+            
+            // Generate unique filename
+            $newName = $file->getRandomName();
+            if ($file->move($uploadPath, $newName)) {
+                $logo = $newName;
+                
+                // Delete old logo if exists
+                if ($logoOld && file_exists($uploadPath . $logoOld)) {
+                    @unlink($uploadPath . $logoOld);
+                }
+            } else {
+                $message = 'Gagal mengupload logo.';
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => $message
+                    ]);
+                }
+                return redirect()->back()->withInput()->with('message', ['status' => 'error', 'message' => $message]);
+            }
+        } elseif ($id && $logoOld) {
+            // Keep existing logo if no new file uploaded
+            $logo = $logoOld;
+        }
 
         // Get user session
         $userSession = session('user');
@@ -164,8 +236,16 @@ class Platform extends BaseController
             'platform' => $platform,
             'description' => $description,
             'status' => $status,
-            'status_sys' => $statusSys
+            'status_agent' => $statusAgent,
+            'status_pos' => $statusPos,
+            'gw_code' => $gwCode,
+            'gw_status' => $gwStatus
         ];
+        
+        // Only add logo if it's set (new upload or existing)
+        if (!empty($logo)) {
+            $data['logo'] = $logo;
+        }
 
         if ($id) {
             // Update existing record
@@ -335,9 +415,16 @@ class Platform extends BaseController
                 ? '<span class="badge bg-success">Aktif</span>' 
                 : '<span class="badge bg-danger">Tidak Aktif</span>';
             
-            $statusSysBadge = $row['status_sys'] == '1' 
-                ? '<span class="badge bg-info">Ya</span>' 
-                : '<span class="badge bg-secondary">Tidak</span>';
+            $gwStatusBadge = ($row['gw_status'] ?? '0') == '1' 
+                ? '<span class="badge bg-success">Aktif</span>' 
+                : '<span class="badge bg-secondary">Tidak Aktif</span>';
+            
+            $logoDisplay = '';
+            if (!empty($row['logo']) && file_exists(ROOTPATH . 'public/uploads/platform/' . $row['logo'])) {
+                $logoDisplay = '<img src="' . base_url('public/uploads/platform/' . $row['logo']) . '" alt="Logo" style="max-width: 50px; max-height: 50px;" class="img-thumbnail">';
+            } else {
+                $logoDisplay = '<span class="text-muted">-</span>';
+            }
 
             $actionButtons = '<div class="btn-group" role="group">';
             $actionButtons .= '<button type="button" class="btn btn-sm btn-warning btn-edit" data-id="' . $row['id'] . '" title="Edit"><i class="fas fa-edit"></i></button>';
@@ -349,8 +436,10 @@ class Platform extends BaseController
                 'code' => esc($row['code'] ?? '-'),
                 'platform' => esc($row['platform'] ?? '-'),
                 'description' => esc(substr($row['description'] ?? '', 0, 100)) . (strlen($row['description'] ?? '') > 100 ? '...' : ''),
+                'gw_code' => esc($row['gw_code'] ?? '-'),
+                'gw_status' => $gwStatusBadge,
+                'logo' => $logoDisplay,
                 'status' => $statusBadge,
-                'status_sys' => $statusSysBadge,
                 'ignore_search_action' => $actionButtons
             ];
 
@@ -363,6 +452,62 @@ class Platform extends BaseController
             'recordsFiltered' => $totalFiltered,
             'data' => $result
         ]);
+    }
+
+    /**
+     * Check active gateway for agent/post integration
+     * Returns active gateway platforms
+     */
+    public function checkActiveGateway()
+    {
+        $gateways = $this->model->getActiveGateways();
+        
+        if ($this->request->isAJAX() || $this->request->getHeader('X-Requested-With')) {
+            return $this->response->setJSON([
+                'status' => 'success',
+                'data' => $gateways
+            ]);
+        }
+        
+        return $gateways;
+    }
+
+    /**
+     * Get gateway by code (for agent/post integration)
+     */
+    public function getGatewayByCode($gwCode = null)
+    {
+        if (!$gwCode) {
+            $gwCode = $this->request->getGet('gw_code') ?? $this->request->getPost('gw_code');
+        }
+        
+        if (!$gwCode) {
+            if ($this->request->isAJAX() || $this->request->getHeader('X-Requested-With')) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Gateway code tidak ditemukan'
+                ]);
+            }
+            return null;
+        }
+        
+        $gateway = $this->model->getByGatewayCode($gwCode);
+        
+        if ($this->request->isAJAX() || $this->request->getHeader('X-Requested-With')) {
+            if ($gateway) {
+                return $this->response->setJSON([
+                    'status' => 'success',
+                    'data' => $gateway
+                ]);
+            } else {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Gateway tidak ditemukan atau tidak aktif'
+                ]);
+            }
+        }
+        
+        return $gateway;
     }
 }
 

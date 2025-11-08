@@ -86,22 +86,6 @@ $isModal = $isModal ?? false;
 
 						<div class="col-md-3">
 							<div class="mb-3">
-								<label class="control-label mb-2">Brand <span class="text-danger">*</span></label>
-								<div>
-									<?php
-									if (empty($brands)) {
-										echo '<div class="alert alert-danger">Data brand masih kosong</div>';
-									} else {
-										$brandOptions = [];
-										foreach ($brands as $brand) {
-											$brandOptions[$brand->id] = $brand->name;
-										}
-										echo options(['class' => 'form-control select2', 'name' => 'brand_id', 'required' => 'required'], $brandOptions, set_value('brand_id', @$item->brand_id));
-									} ?>
-								</div>
-							</div>
-
-							<div class="mb-3">
 								<label class="control-label mb-2">Kategori <span class="text-danger">*</span></label>
 								<div>
 									<?php
@@ -113,6 +97,22 @@ $isModal = $isModal ?? false;
 											$categoryOptions[$category->id] = $category->category;
 										}
 										echo options(['class' => 'form-control select2', 'name' => 'category_id', 'required' => 'required'], $categoryOptions, set_value('category_id', @$item->category_id));
+									} ?>
+								</div>
+							</div>
+
+							<div class="mb-3">
+								<label class="control-label mb-2">Brand <span class="text-danger">*</span></label>
+								<div>
+									<?php
+									if (empty($brands)) {
+										echo '<div class="alert alert-danger">Data brand masih kosong</div>';
+									} else {
+										$brandOptions = [];
+										foreach ($brands as $brand) {
+											$brandOptions[$brand->id] = $brand->name;
+										}
+										echo options(['class' => 'form-control select2', 'name' => 'brand_id', 'required' => 'required'], $brandOptions, set_value('brand_id', @$item->brand_id));
 									} ?>
 								</div>
 							</div>

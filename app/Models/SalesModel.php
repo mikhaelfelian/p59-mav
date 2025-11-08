@@ -32,7 +32,8 @@ class SalesModel extends Model
         'discount_amount',
         'tax_amount',
         'grand_total',
-        'payment_status'
+        'payment_status',
+        'settlement_time'
     ];
 
     // Dates

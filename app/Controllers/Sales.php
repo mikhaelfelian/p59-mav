@@ -100,44 +100,61 @@ class Sales extends BaseController
      */
     public function searchCustomers(): ResponseInterface
     {
-        $searchTerm = $this->request->getGet('term') ?? '';
-        
-        if (empty($searchTerm) || strlen($searchTerm) < 2) {
-            return $this->response->setJSON(['status' => 'success', 'data' => []]);
-        }
-        
-        $customers = $this->customerModel
-            ->groupStart()
-                ->like('name', $searchTerm)
-                ->orLike('phone', $searchTerm)
-                ->orLike('plate_code', $searchTerm)
-                ->orLike('plate_number', $searchTerm)
-                ->orLike('plat_code', $searchTerm)
-                ->orLike('plat_number', $searchTerm)
-            ->groupEnd()
-            ->orderBy('name', 'ASC')
-            ->limit(20)
-            ->findAll();
-
-        $results = [];
-        foreach ($customers as $customer) {
-            // Use plat_* fields if available, otherwise fallback to plate_* fields
-            $plateCode = !empty($customer['plat_code']) ? $customer['plat_code'] : ($customer['plate_code'] ?? '');
-            $plateNumber = !empty($customer['plat_number']) ? $customer['plat_number'] : ($customer['plate_number'] ?? '');
-            $plateSuffix = !empty($customer['plat_last']) ? $customer['plat_last'] : ($customer['plate_suffix'] ?? '');
+        try {
+            $searchTerm = $this->request->getGet('term') ?? '';
             
-            $results[] = [
-                'id' => $customer['id'],
-                'label' => $customer['name'],
-                'value' => $customer['name'],
-                'phone' => $customer['phone'] ?? '',
-                'plate_code' => $plateCode,
-                'plate_number' => $plateNumber,
-                'plate_suffix' => $plateSuffix
-            ];
+            if (empty($searchTerm) || strlen($searchTerm) < 2) {
+                return $this->response->setJSON(['status' => 'success', 'data' => []]);
+            }
+            
+            // Escape search term to prevent SQL injection
+            $searchTerm = trim($searchTerm);
+            
+            // Explicitly select fields to avoid issues
+            $customers = $this->customerModel
+                ->select('id, name, phone, email, plat_code, plat_number, plat_last, plate_code, plate_number, plate_suffix')
+                ->groupStart()
+                    ->like('name', $searchTerm)
+                    ->orLike('phone', $searchTerm)
+                    ->orLike('plat_code', $searchTerm)
+                    ->orLike('plat_number', $searchTerm)
+                    ->orLike('plat_last', $searchTerm)
+                ->groupEnd()
+                ->orderBy('name', 'ASC')
+                ->limit(20)
+                ->findAll();
+
+            $results = [];
+            foreach ($customers as $customer) {
+                // Use plat_* fields if available, otherwise fallback to plate_* fields
+                $plateCode = !empty($customer['plat_code']) ? $customer['plat_code'] : ($customer['plate_code'] ?? '');
+                $plateNumber = !empty($customer['plat_number']) ? $customer['plat_number'] : ($customer['plate_number'] ?? '');
+                $plateSuffix = !empty($customer['plat_last']) ? $customer['plat_last'] : ($customer['plate_suffix'] ?? '');
+                
+                $results[] = [
+                    'id' => $customer['id'] ?? 0,
+                    'label' => $customer['name'] ?? '',
+                    'value' => $customer['name'] ?? '',
+                    'phone' => $customer['phone'] ?? '',
+                    'email' => $customer['email'] ?? '',
+                    'plate_code' => $plateCode,
+                    'plate_number' => $plateNumber,
+                    'plate_suffix' => $plateSuffix
+                ];
+            }
+            
+            return $this->response->setJSON(['status' => 'success', 'data' => $results]);
+            
+        } catch (\Exception $e) {
+            log_message('error', 'Sales::searchCustomers error: ' . $e->getMessage());
+            log_message('error', 'Sales::searchCustomers trace: ' . $e->getTraceAsString());
+            
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Gagal mencari customer: ' . $e->getMessage(),
+                'data' => []
+            ])->setStatusCode(500);
         }
-        
-        return $this->response->setJSON(['status' => 'success', 'data' => $results]);
     }
 
     /**
@@ -161,8 +178,9 @@ class Sales extends BaseController
                 ->orderBy('name', 'ASC')
                 ->findAll();
 
-            // Get active platforms for dropdown
+            // Get active platforms for dropdown (include status_pos and gw_status for API check)
         $platforms = $this->platformModel
+            ->select('platform.*, platform.status_pos, platform.gw_status, platform.gw_code')
             ->where('status', '1')
             ->orderBy('platform', 'ASC')
             ->findAll();
@@ -892,6 +910,155 @@ class Sales extends BaseController
                 'status' => 'error',
                 'message' => 'Gagal memuat data serial number.'
             ]);
+        }
+    }
+
+    /**
+     * Payment gateway callback endpoint
+     * Receives callback from payment gateway (e.g., Midtrans)
+     * 
+     * Expected POST/GET data:
+     * {
+     *   "orderId": "ORD-0012345",
+     *   "status": "PAID",
+     *   "settlementTime": "2025-11-07T10:20:00"
+     * }
+     * 
+     * Status values: PAID, PENDING, FAILED, CANCELED, EXPIRED
+     * 
+     * @return ResponseInterface
+     */
+    public function paymentCallback(): ResponseInterface
+    {
+        try {
+            // Get JSON data from request body or POST data
+            $jsonData = null;
+            $rawInput = $this->request->getBody();
+            
+            if (!empty($rawInput)) {
+                $jsonData = json_decode($rawInput, true);
+            }
+            
+            // Fallback to POST data if JSON body is empty
+            if (empty($jsonData)) {
+                $jsonData = $this->request->getPost();
+            }
+            
+            // Fallback to GET data if POST is empty
+            if (empty($jsonData)) {
+                $jsonData = $this->request->getGet();
+            }
+            
+            // Validate required fields
+            if (empty($jsonData['orderId'])) {
+                log_message('error', 'Sales::paymentCallback - Missing orderId');
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'orderId is required'
+                ])->setStatusCode(400);
+            }
+            
+            if (empty($jsonData['status'])) {
+                log_message('error', 'Sales::paymentCallback - Missing status');
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'status is required'
+                ])->setStatusCode(400);
+            }
+            
+            $orderId = trim($jsonData['orderId']);
+            $status = strtoupper(trim($jsonData['status']));
+            $settlementTime = !empty($jsonData['settlementTime']) ? trim($jsonData['settlementTime']) : null;
+            
+            // Validate status value
+            $validStatuses = ['PAID', 'PENDING', 'FAILED', 'CANCELED', 'EXPIRED'];
+            if (!in_array($status, $validStatuses)) {
+                log_message('error', 'Sales::paymentCallback - Invalid status: ' . $status);
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Invalid status. Must be one of: ' . implode(', ', $validStatuses)
+                ])->setStatusCode(400);
+            }
+            
+            // Find sale by invoice_no (orderId)
+            $sale = $this->model->where('invoice_no', $orderId)->first();
+            
+            if (!$sale) {
+                log_message('error', 'Sales::paymentCallback - Sale not found for orderId: ' . $orderId);
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Sale not found for orderId: ' . $orderId
+                ])->setStatusCode(404);
+            }
+            
+            // Map API status to payment_status
+            // payment_status: 0=unpaid, 1=partial, 2=paid
+            $paymentStatusMap = [
+                'PAID' => '2',      // paid
+                'PENDING' => '0',   // unpaid
+                'FAILED' => '0',    // unpaid
+                'CANCELED' => '0',  // unpaid
+                'EXPIRED' => '0'    // unpaid
+            ];
+            
+            $paymentStatus = $paymentStatusMap[$status] ?? '0';
+            
+            // Prepare update data
+            $updateData = [
+                'payment_status' => $paymentStatus
+            ];
+            
+            // Add settlement_time if provided and status is PAID
+            if ($status === 'PAID' && $settlementTime) {
+                // Parse settlementTime (ISO 8601 format: 2025-11-07T10:20:00)
+                try {
+                    $settlementDateTime = new \DateTime($settlementTime);
+                    $updateData['settlement_time'] = $settlementDateTime->format('Y-m-d H:i:s');
+                } catch (\Exception $e) {
+                    log_message('error', 'Sales::paymentCallback - Invalid settlementTime format: ' . $settlementTime);
+                    // Continue without settlement_time if parsing fails
+                }
+            }
+            
+            // Update sale record
+            $this->model->skipValidation(true);
+            $updateResult = $this->model->update($sale['id'], $updateData);
+            $this->model->skipValidation(false);
+            
+            if (!$updateResult) {
+                $errors = $this->model->errors();
+                $errorMsg = 'Failed to update sale: ';
+                if ($errors && is_array($errors)) {
+                    $errorMsg .= implode(', ', $errors);
+                }
+                log_message('error', 'Sales::paymentCallback - ' . $errorMsg);
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => $errorMsg
+                ])->setStatusCode(500);
+            }
+            
+            log_message('info', 'Sales::paymentCallback - Successfully updated sale ' . $sale['id'] . ' with status: ' . $status);
+            
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'Payment status updated successfully',
+                'data' => [
+                    'orderId' => $orderId,
+                    'status' => $status,
+                    'payment_status' => $paymentStatus,
+                    'settlement_time' => $updateData['settlement_time'] ?? null
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            log_message('error', 'Sales::paymentCallback error: ' . $e->getMessage());
+            log_message('error', 'Sales::paymentCallback trace: ' . $e->getTraceAsString());
+            
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Internal server error: ' . $e->getMessage()
+            ])->setStatusCode(500);
         }
     }
 

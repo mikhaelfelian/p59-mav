@@ -10,6 +10,7 @@ use App\Models\WilayahPropinsiModel;
 use App\Models\WilayahKabupatenModel;
 use App\Models\WilayahKecamatanModel;
 use App\Models\WilayahKelurahanModel;
+use App\Models\PlatformModel;
 
 /**
  * Created by: Mikhael Felian Waskito - mikhaelfelian@gmail.com
@@ -27,6 +28,7 @@ class Agent extends BaseController
     protected $wilayahKabupatenModel;
     protected $wilayahKecamatanModel;
     protected $wilayahKelurahanModel;
+    protected $platformModel;
 
     public function __construct()
     {
@@ -38,6 +40,7 @@ class Agent extends BaseController
         $this->wilayahKabupatenModel = new WilayahKabupatenModel();
         $this->wilayahKecamatanModel = new WilayahKecamatanModel();
         $this->wilayahKelurahanModel = new WilayahKelurahanModel();
+        $this->platformModel = new PlatformModel();
     }
 
     public function index()
@@ -104,6 +107,10 @@ class Agent extends BaseController
             $userOptions[$user->id_user] = $user->nama . ' (' . $user->email . ')';
         }
         $this->data['userOptions'] = $userOptions;
+
+        // Pass user role information to view
+        $this->data['userRoles'] = $this->user['role'] ?? [];
+        $this->data['isRoleLocked'] = isset($this->user['role'][4]);
 
         // Cek AJAX/modal
         $isAjax = $this->request->isAJAX() 
@@ -329,6 +336,10 @@ class Agent extends BaseController
             log_message('error', 'Error loading users in agent edit: ' . $e->getMessage());
             $this->data['userOptions'] = ['' => 'Select User'];
         }
+
+        // Pass user role information to view
+        $this->data['userRoles'] = $this->user['role'] ?? [];
+        $this->data['isRoleLocked'] = isset($this->user['role'][4]);
 
         // Load existing user-role data for this agent with error handling
         try {
@@ -584,75 +595,74 @@ class Agent extends BaseController
                 $order_dir = $order['dir'] ?? 'ASC';
             }
 
-            // Debug information
-            $debugInfo = [];
-
-            // Build base query
-            $query = $this->model->select('agent.*');
-            
-            // Apply permission-based filtering using existing RBAC system
+            // Check if user needs permission filtering
+            $needsPermissionFilter = false;
+            $userId = null;
             if ($this->hasPermissionPrefix('read')) {
-                // Check if user has read_own but not read_all (same logic as checkRoleAction)
                 if (in_array('read_own', $this->userPermission) && !in_array('read_all', $this->userPermission)) {
-                    // User can only see agents they are assigned to via user_role_agent table
+                    $needsPermissionFilter = true;
                     $userId = $this->user['id_user'];
-                    $debugInfo['applyingFilter'] = 'read_own filter for user_id: ' . $userId;
-                    
-                    // Join with user_role_agent to filter by user's assigned agents
-                    $query->join('user_role_agent', 'user_role_agent.agent_id = agent.id')
-                          ->where('user_role_agent.user_id', $userId);
-                } else {
-                    $debugInfo['applyingFilter'] = 'No read_own filter - user has read_all or no read permissions';
                 }
-                // If user has read_all, no filtering is applied (shows all agents)
+            }
+
+            // Get total records (before search filter) - use fresh query builder
+            $db = \Config\Database::connect();
+            
+            if ($needsPermissionFilter) {
+                // Use subquery approach to avoid duplicate column issues
+                $totalBuilder = $db->table('agent')
+                                 ->select('agent.id')
+                                 ->join('user_role_agent', 'user_role_agent.agent_id = agent.id', 'inner')
+                                 ->where('user_role_agent.user_id', $userId)
+                                 ->groupBy('agent.id');
             } else {
-                $debugInfo['applyingFilter'] = 'User has no read permissions';
+                $totalBuilder = $db->table('agent');
             }
+            $recordsTotal = $totalBuilder->countAllResults(false);
 
-            // Get total records (before search filter) - clone the query
-            $totalQuery = clone $query;
-            $recordsTotal = $totalQuery->countAllResults(false);
-
-            // Apply search filter
+            // Get filtered records count (with search filter) - use fresh query builder
+            if ($needsPermissionFilter) {
+                $filteredBuilder = $db->table('agent')
+                                     ->select('agent.id')
+                                     ->join('user_role_agent', 'user_role_agent.agent_id = agent.id', 'inner')
+                                     ->where('user_role_agent.user_id', $userId)
+                                     ->groupBy('agent.id');
+            } else {
+                $filteredBuilder = $db->table('agent');
+            }
             if (!empty($search)) {
-                $query->groupStart()
-                      ->like('name', $search)
-                      ->orLike('code', $search)
-                      ->orLike('address', $search)
-                      ->groupEnd();
+                $filteredBuilder->groupStart()
+                               ->like('agent.name', $search)
+                               ->orLike('agent.code', $search)
+                               ->orLike('agent.address', $search)
+                               ->groupEnd();
             }
-            
-            // Get filtered records count - clone the query again
-            $filteredQuery = clone $query;
-            $recordsFiltered = $filteredQuery->countAllResults(false);
+            $recordsFiltered = $filteredBuilder->countAllResults(false);
 
-            // Get data with pagination - create a fresh query for data retrieval
-            $dataQuery = $this->model->select('agent.*');
-            
-            // Apply the same permission filtering as the main query
-            if ($this->hasPermissionPrefix('read')) {
-                if (in_array('read_own', $this->userPermission) && !in_array('read_all', $this->userPermission)) {
-                    $userId = $this->user['id_user'];
-                    $dataQuery->join('user_role_agent', 'user_role_agent.agent_id = agent.id')
-                              ->where('user_role_agent.user_id', $userId);
-                }
+            // Get data with pagination - use fresh query builder
+            if ($needsPermissionFilter) {
+                // Use inner join and groupBy to avoid duplicate issues
+                $dataBuilder = $db->table('agent')
+                                 ->select('agent.*')
+                                 ->join('user_role_agent', 'user_role_agent.agent_id = agent.id', 'inner')
+                                 ->where('user_role_agent.user_id', $userId)
+                                 ->groupBy('agent.id');
+            } else {
+                $dataBuilder = $db->table('agent')->select('agent.*');
             }
             
-            // Apply search filter to data query
             if (!empty($search)) {
-                $dataQuery->groupStart()
-                          ->like('name', $search)
-                          ->orLike('code', $search)
-                          ->orLike('address', $search)
-                          ->groupEnd();
+                $dataBuilder->groupStart()
+                           ->like('agent.name', $search)
+                           ->orLike('agent.code', $search)
+                           ->orLike('agent.address', $search)
+                           ->groupEnd();
             }
             
-            // Apply ordering and pagination
-            $agents = $dataQuery->orderBy($column_order, $order_dir)
-                                ->findAll($length, $start);
-            
-            // Debug: Query results
-            $debugInfo['queryResults'] = count($agents) . ' agents returned';
+            $agents = $dataBuilder->orderBy('agent.' . $column_order, $order_dir)
+                                 ->limit($length, $start)
+                                 ->get()
+                                 ->getResult();
 
             $data = [];
             $no = ($start ?? 0) + 1;
@@ -848,5 +858,255 @@ class Agent extends BaseController
         }
 
         return $this->response->setJSON($options);
+    }
+
+    public function updateUserPassword()
+    {
+        try {
+            // Check update permissions
+            if (!$this->hasPermissionPrefix('update')) {
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => 'You do not have permission to update user password.'
+                    ]);
+                }
+                return redirect()->to('agent')->with('message', 'You do not have permission to update user password.');
+            }
+
+            $agentId = $this->request->getPost('agent_id');
+            $userId = $this->request->getPost('user_id');
+            $oldPassword = $this->request->getPost('old_password');
+            $newPassword = $this->request->getPost('new_password');
+            $repeatPassword = $this->request->getPost('repeat_password');
+
+            // Validate required fields
+            if (empty($userId)) {
+                $message = 'User ID tidak ditemukan';
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => $message
+                    ]);
+                }
+                return redirect()->back()->with('message', $message);
+            }
+
+            if (empty($oldPassword) || empty($newPassword) || empty($repeatPassword)) {
+                $message = 'Semua field password harus diisi';
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => $message
+                    ]);
+                }
+                return redirect()->back()->with('message', $message);
+            }
+
+            // Validate password match
+            if ($newPassword !== $repeatPassword) {
+                $message = 'Password baru dan ulangi password tidak cocok';
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => $message
+                    ]);
+                }
+                return redirect()->back()->with('message', $message);
+            }
+
+            // Get user data
+            $user = $this->userModel->find($userId);
+            if (!$user) {
+                $message = 'User tidak ditemukan';
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => $message
+                    ]);
+                }
+                return redirect()->back()->with('message', $message);
+            }
+
+            // Verify old password
+            if (!password_verify($oldPassword, $user->password)) {
+                $message = 'Password lama tidak cocok';
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => $message
+                    ]);
+                }
+                return redirect()->back()->with('message', $message);
+            }
+
+            // Validate new password strength (minimum 3 characters as per existing validation)
+            if (strlen($newPassword) < 3) {
+                $message = 'Password baru minimal 3 karakter';
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => $message
+                    ]);
+                }
+                return redirect()->back()->with('message', $message);
+            }
+
+            // Update password
+            $passwordHash = password_hash($newPassword, PASSWORD_DEFAULT);
+            $update = $this->userModel->update($userId, ['password' => $passwordHash]);
+
+            if ($update) {
+                $message = 'Password berhasil diupdate';
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'status' => 'success',
+                        'message' => $message
+                    ]);
+                }
+                return redirect()->back()->with('message', $message);
+            } else {
+                $message = 'Password gagal diupdate';
+                if ($this->request->isAJAX()) {
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => $message
+                    ]);
+                }
+                return redirect()->back()->with('message', $message);
+            }
+
+        } catch (\Exception $e) {
+            log_message('error', 'Agent::updateUserPassword error: ' . $e->getMessage());
+            $message = 'Terjadi kesalahan: ' . $e->getMessage();
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => $message
+                ]);
+            }
+            return redirect()->back()->with('message', $message);
+        }
+    }
+
+    /**
+     * Check active gateway for agent/post integration
+     * POST endpoint: agent/checkActiveGateway
+     * Returns active gateway platforms that agents can use
+     * 
+     * @return ResponseInterface
+     */
+    public function checkActiveGateway()
+    {
+        try {
+            // Get active gateways (status = 1 AND gw_status = 1)
+            $gateways = $this->platformModel->getActiveGateways();
+            
+            if ($this->request->isAJAX() || $this->request->getHeader('X-Requested-With')) {
+                return $this->response->setJSON([
+                    'status' => 'success',
+                    'data' => $gateways,
+                    'count' => count($gateways)
+                ]);
+            }
+            
+            return $this->response->setJSON([
+                'status' => 'success',
+                'data' => $gateways,
+                'count' => count($gateways)
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Agent::checkActiveGateway error: ' . $e->getMessage());
+            
+            if ($this->request->isAJAX() || $this->request->getHeader('X-Requested-With')) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Gagal mengambil data gateway aktif: ' . $e->getMessage()
+                ]);
+            }
+            
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Gagal mengambil data gateway aktif: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Get gateway by code for agent/post integration
+     * POST/GET endpoint: agent/getGatewayByCode
+     * Validates if gateway exists and is active
+     * 
+     * @param string|null $gwCode Gateway code
+     * @return ResponseInterface
+     */
+    public function getGatewayByCode($gwCode = null)
+    {
+        try {
+            if (!$gwCode) {
+                $gwCode = $this->request->getGet('gw_code') ?? $this->request->getPost('gw_code');
+            }
+            
+            if (!$gwCode) {
+                if ($this->request->isAJAX() || $this->request->getHeader('X-Requested-With')) {
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => 'Gateway code tidak ditemukan'
+                    ]);
+                }
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Gateway code tidak ditemukan'
+                ]);
+            }
+            
+            $gateway = $this->platformModel->getByGatewayCode($gwCode);
+            
+            if ($gateway) {
+                // Check if gateway is active (status = 1 AND status_agent = 1 AND gw_status = 1)
+                $isActive = ($gateway['status'] ?? '0') == '1' 
+                         && ($gateway['status_agent'] ?? '0') == '1' 
+                         && ($gateway['gw_status'] ?? '0') == '1';
+                
+                if ($this->request->isAJAX() || $this->request->getHeader('X-Requested-With')) {
+                    return $this->response->setJSON([
+                        'status' => 'success',
+                        'data' => $gateway,
+                        'is_active' => $isActive
+                    ]);
+                }
+                
+                return $this->response->setJSON([
+                    'status' => 'success',
+                    'data' => $gateway,
+                    'is_active' => $isActive
+                ]);
+            } else {
+                if ($this->request->isAJAX() || $this->request->getHeader('X-Requested-With')) {
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => 'Gateway tidak ditemukan atau tidak aktif'
+                    ]);
+                }
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Gateway tidak ditemukan atau tidak aktif'
+                ]);
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Agent::getGatewayByCode error: ' . $e->getMessage());
+            
+            if ($this->request->isAJAX() || $this->request->getHeader('X-Requested-With')) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Gagal mengambil data gateway: ' . $e->getMessage()
+                ]);
+            }
+            
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Gagal mengambil data gateway: ' . $e->getMessage()
+            ]);
+        }
     }
 }

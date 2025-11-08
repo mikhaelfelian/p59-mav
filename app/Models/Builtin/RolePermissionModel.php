@@ -230,69 +230,124 @@ class RolePermissionModel extends \App\Models\BaseModel
     }
     
     public function getListDataPermission() {
-        $columns = $this->request->getPost('columns');
-        $search_all = @$this->request->getPost('search')['value'];
-        $id_role = $this->request->getGet('id');
-        
-        // Get role permissions for JOIN
-        $rolePermissions = $this->builder('role_module_permission')
-                               ->select('id_module_permission, id_role')
-                               ->where('id_role', $id_role)
-                               ->get()
-                               ->getResultArray();
-        
-        $rolePermMap = [];
-        foreach ($rolePermissions as $rp) {
-            $rolePermMap[$rp['id_module_permission']] = $rp['id_role'];
-        }
-        
-        // Build base query
-        $builder = $this->builder('module_permission');
-        $builder->select('module_permission.*, module.nama_module, module.judul_module')
-                ->join('module', 'module.id_module = module_permission.id_module', 'left');
-        
-        // Apply search
-        if ($search_all && !empty($columns)) {
-            $builder->groupStart();
-            $first = true;
-            foreach ($columns as $val) {
-                if (strpos($val['data'] ?? '', 'ignore') !== false) continue;
-                
-                $column = $val['data'] ?? '';
-                if ($first) {
-                    $builder->like($column, $search_all);
-                    $first = false;
-                } else {
-                    $builder->orLike($column, $search_all);
+        try {
+            $columns = $this->request->getPost('columns') ?? $this->request->getGet('columns');
+            $search = $this->request->getPost('search') ?? $this->request->getGet('search');
+            $search_all = is_array($search) && isset($search['value']) ? $search['value'] : '';
+            $id_role = $this->request->getGet('id');
+            
+            // Validate id_role
+            if (empty($id_role)) {
+                return ['data' => [], 'total_filtered' => 0];
+            }
+            
+            // Get role permissions for JOIN
+            $rolePermissions = $this->builder('role_module_permission')
+                                   ->select('id_module_permission, id_role')
+                                   ->where('id_role', $id_role)
+                                   ->get()
+                                   ->getResultArray();
+            
+            $rolePermMap = [];
+            foreach ($rolePermissions as $rp) {
+                $rolePermMap[$rp['id_module_permission']] = $rp['id_role'];
+            }
+            
+            // Map DataTables column names to actual database columns with table prefixes
+            $columnMap = [
+                'judul_module' => 'module.judul_module',
+                'nama_module' => 'module.nama_module',
+                'nama_permission' => 'module_permission.nama_permission',
+                'judul_permission' => 'module_permission.judul_permission',
+                'keterangan' => 'module_permission.keterangan'
+            ];
+            
+            // Build base query for counting (separate builder to avoid issues)
+            $builderCount = $this->builder('module_permission');
+            $builderCount->select('module_permission.*, module.nama_module, module.judul_module')
+                        ->join('module', 'module.id_module = module_permission.id_module', 'left');
+            
+            // Apply search to count query
+            if ($search_all && !empty($columns) && is_array($columns)) {
+                $builderCount->groupStart();
+                $first = true;
+                foreach ($columns as $val) {
+                    if (!is_array($val) || strpos($val['data'] ?? '', 'ignore') !== false) continue;
+                    
+                    $column = $val['data'] ?? '';
+                    // Map column name to actual database column with table prefix
+                    $dbColumn = $columnMap[$column] ?? $column;
+                    
+                    if ($first) {
+                        $builderCount->like($dbColumn, $search_all);
+                        $first = false;
+                    } else {
+                        $builderCount->orLike($dbColumn, $search_all);
+                    }
+                }
+                $builderCount->groupEnd();
+            }
+            
+            // Get total filtered
+            $total_filtered = $builderCount->countAllResults(false);
+            
+            // Build main data query (separate builder)
+            $builder = $this->builder('module_permission');
+            $builder->select('module_permission.*, module.nama_module, module.judul_module')
+                    ->join('module', 'module.id_module = module_permission.id_module', 'left');
+            
+            // Apply search to main query
+            if ($search_all && !empty($columns) && is_array($columns)) {
+                $builder->groupStart();
+                $first = true;
+                foreach ($columns as $val) {
+                    if (!is_array($val) || strpos($val['data'] ?? '', 'ignore') !== false) continue;
+                    
+                    $column = $val['data'] ?? '';
+                    // Map column name to actual database column with table prefix
+                    $dbColumn = $columnMap[$column] ?? $column;
+                    
+                    if ($first) {
+                        $builder->like($dbColumn, $search_all);
+                        $first = false;
+                    } else {
+                        $builder->orLike($dbColumn, $search_all);
+                    }
+                }
+                $builder->groupEnd();
+            }
+            
+            // Apply ordering
+            $order_data = $this->request->getPost('order') ?? $this->request->getGet('order');
+            if ($order_data && is_array($order_data) && isset($order_data[0]) && !empty($columns) && is_array($columns) && isset($columns[$order_data[0]['column']])) {
+                $order_column = $columns[$order_data[0]['column']]['data'] ?? '';
+                if (strpos($order_column, 'ignore') === false) {
+                    // Map column name to actual database column with table prefix
+                    $dbOrderColumn = $columnMap[$order_column] ?? $order_column;
+                    $order_dir = strtoupper($order_data[0]['dir'] ?? 'ASC');
+                    $builder->orderBy($dbOrderColumn, $order_dir);
                 }
             }
-            $builder->groupEnd();
-        }
-        
-        // Get total filtered
-        $total_filtered = $builder->countAllResults(false);
-        
-        // Apply ordering
-        $order_data = $this->request->getPost('order');
-        if ($order_data && isset($order_data[0]) && isset($columns[$order_data[0]['column']])) {
-            $order_column = $columns[$order_data[0]['column']]['data'] ?? '';
-            if (strpos($order_column, 'ignore') === false) {
-                $order_dir = strtoupper($order_data[0]['dir'] ?? 'ASC');
-                $builder->orderBy($order_column, $order_dir);
+            
+            // Apply pagination
+            $start = (int) ($this->request->getPost('start') ?? $this->request->getGet('start') ?? 0);
+            $length = (int) ($this->request->getPost('length') ?? $this->request->getGet('length') ?? 10);
+            $data = $builder->limit($length, $start)->get()->getResultArray();
+            
+            // Add id_role to results
+            foreach ($data as &$row) {
+                $row['id_role'] = $rolePermMap[$row['id_module_permission']] ?? null;
             }
+            
+            return ['data' => $data, 'total_filtered' => $total_filtered];
+            
+        } catch (\Throwable $e) {
+            $errorMsg = $e->getMessage();
+            $errorFile = $e->getFile();
+            $errorLine = $e->getLine();
+            log_message('error', 'RolePermissionModel::getListDataPermission error: ' . $errorMsg . ' | File: ' . $errorFile . ' | Line: ' . $errorLine . ' | Trace: ' . $e->getTraceAsString());
+            return ['data' => [], 'total_filtered' => 0];
         }
-        
-        // Apply pagination
-        $start = $this->request->getPost('start') ?: 0;
-        $length = $this->request->getPost('length') ?: 10;
-        $data = $builder->limit($length, $start)->get()->getResultArray();
-        
-        // Add id_role to results
-        foreach ($data as &$row) {
-            $row['id_role'] = $rolePermMap[$row['id_module_permission']] ?? null;
-        }
-        
-        return ['data' => $data, 'total_filtered' => $total_filtered];
     }
     
     public function countAllData() {
@@ -300,18 +355,19 @@ class RolePermissionModel extends \App\Models\BaseModel
     }
     
     public function getListData() {
-        $columns = $this->request->getPost('columns');
-        $search_all = @$this->request->getPost('search')['value'];
+        $columns = $this->request->getPost('columns') ?? $this->request->getGet('columns');
+        $search = $this->request->getPost('search') ?? $this->request->getGet('search');
+        $search_all = is_array($search) && isset($search['value']) ? $search['value'] : '';
         
         // Build base query for counting
         $builderCount = $this->builder('role');
         
         // Apply search to count query
-        if ($search_all && !empty($columns)) {
+        if ($search_all && !empty($columns) && is_array($columns)) {
             $builderCount->groupStart();
             $first = true;
             foreach ($columns as $val) {
-                if (strpos($val['data'] ?? '', 'ignore') !== false) continue;
+                if (!is_array($val) || strpos($val['data'] ?? '', 'ignore') !== false) continue;
                 
                 $column = $val['data'] ?? '';
                 if ($first) {
@@ -336,11 +392,11 @@ class RolePermissionModel extends \App\Models\BaseModel
                 ->groupBy('role.id_role');
         
         // Apply search to main query
-        if ($search_all && !empty($columns)) {
+        if ($search_all && !empty($columns) && is_array($columns)) {
             $builder->groupStart();
             $first = true;
             foreach ($columns as $val) {
-                if (strpos($val['data'] ?? '', 'ignore') !== false) continue;
+                if (!is_array($val) || strpos($val['data'] ?? '', 'ignore') !== false) continue;
                 
                 $column = $val['data'] ?? '';
                 // Only search on role table columns to avoid group by issues
@@ -357,8 +413,8 @@ class RolePermissionModel extends \App\Models\BaseModel
         }
         
         // Apply ordering
-        $order_data = $this->request->getPost('order');
-        if ($order_data && isset($order_data[0]) && isset($columns[$order_data[0]['column']])) {
+        $order_data = $this->request->getPost('order') ?? $this->request->getGet('order');
+        if ($order_data && is_array($order_data) && isset($order_data[0]) && !empty($columns) && is_array($columns) && isset($columns[$order_data[0]['column']])) {
             $order_column = $columns[$order_data[0]['column']]['data'] ?? '';
             if (strpos($order_column, 'ignore') === false) {
                 $order_dir = strtoupper($order_data[0]['dir'] ?? 'ASC');
@@ -367,8 +423,8 @@ class RolePermissionModel extends \App\Models\BaseModel
         }
         
         // Apply pagination
-        $start = $this->request->getPost('start') ?: 0;
-        $length = $this->request->getPost('length') ?: 10;
+        $start = (int) ($this->request->getPost('start') ?? $this->request->getGet('start') ?? 0);
+        $length = (int) ($this->request->getPost('length') ?? $this->request->getGet('length') ?? 10);
         $data = $builder->limit($length, $start)->get()->getResultArray();
         
         return ['data' => $data, 'total_filtered' => $total_filtered];

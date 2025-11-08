@@ -28,7 +28,11 @@ class PlatformModel extends Model
         'platform',
         'description',
         'status',
-        'status_sys',
+        'status_agent',
+        'status_pos',
+        'gw_code',
+        'gw_status',
+        'logo',
         'created_at',
         'updated_at'
     ];
@@ -46,7 +50,11 @@ class PlatformModel extends Model
         'platform' => 'permit_empty|max_length[160]',
         'description' => 'permit_empty',
         'status' => 'in_list[0,1]',
-        'status_sys' => 'in_list[0,1]',
+        'status_agent' => 'in_list[0,1]',
+        'status_pos' => 'in_list[0,1]',
+        'gw_code' => 'permit_empty|max_length[50]',
+        'gw_status' => 'in_list[0,1]',
+        'logo' => 'permit_empty|max_length[255]',
         'user_id' => 'permit_empty|integer'
     ];
     protected $validationMessages   = [
@@ -58,9 +66,6 @@ class PlatformModel extends Model
         ],
         'status' => [
             'in_list' => 'Status must be either 0 or 1'
-        ],
-        'status_sys' => [
-            'in_list' => 'System status must be either 0 or 1'
         ]
     ];
     protected $skipValidation       = false;
@@ -83,6 +88,31 @@ class PlatformModel extends Model
     public function getActivePlatforms()
     {
         return $this->where('status', '1')->findAll();
+    }
+
+    /**
+     * Get active gateway platforms (for payment gateway)
+     * Must be active (status=1), active for agent (status_agent=1), and gateway active (gw_status=1)
+     */
+    public function getActiveGateways()
+    {
+        return $this->where('status', '1')
+                    ->where('status_agent', '1')
+                    ->where('gw_status', '1')
+                    ->findAll();
+    }
+
+    /**
+     * Get platform by gateway code
+     * Must be active (status=1), active for agent (status_agent=1), and gateway active (gw_status=1)
+     */
+    public function getByGatewayCode($gwCode)
+    {
+        return $this->where('gw_code', $gwCode)
+                    ->where('status', '1')
+                    ->where('status_agent', '1')
+                    ->where('gw_status', '1')
+                    ->first();
     }
 
     /**
