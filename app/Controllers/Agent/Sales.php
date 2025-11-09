@@ -55,6 +55,12 @@ class Sales extends BaseController
     protected const CHANNEL_ONLINE = '2';
     
     /**
+     * Payment Gateway Configuration
+     */
+    protected const GATEWAY_API_KEY = 'P@ssw0rdMav123';
+    protected const GATEWAY_PUBLIC_KEY = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAp4d7Fd9aXgP5zK0YbM3Z2skasRz9i41ZwPjH3KQZlfZ5LcvXbApX8yRHLJc/biMFcXosIuHf6Z0hG9vChgCyOf2V6tYb05Q+bmAlwJ1pDkg4zKHzXv/uhRRjZQxX2ld7rYgXW9BvvkKIRu5ATkKeYzX8o9u8ZBqYkDg0ACZ1X+YP0X1ZlNQy3YBqx4fXKPRdZ6gPSPzN4r4s7vYSmZ7fWQIDAQAB';
+    
+    /**
      * Initialize models
      */
     public function __construct()
@@ -553,12 +559,16 @@ class Sales extends BaseController
                         }
                     }
                     
+                    // Store full gateway response in response field (TEXT), note for manual notes
+                    $gatewayResponseJson = json_encode($gatewayResponse);
+                    
                     $paymentData = [
                         'sale_id' => $saleId,
                         'platform_id' => $platformId,
                         'method' => $paymentMethod,
                         'amount' => $grandTotal,
-                        'note' => json_encode($gatewayResponse)
+                        'note' => '', // Manual notes if needed
+                        'response' => $gatewayResponseJson // Full gateway response JSON
                     ];
                     
                     $this->salesPaymentsModel->skipValidation(true);
@@ -583,6 +593,39 @@ class Sales extends BaseController
                 
                 if ($db->transStatus() === false) {
                     throw new \Exception('Transaksi gagal.');
+                }
+                
+                // Auto-fetch latest payment status from gateway if payment was created with gateway
+                if ($saleId && $platformId && $gatewayResponse) {
+                    try {
+                        $invoiceNo = trim($postData['invoice_no']);
+                        $latestGatewayResponse = $this->getPaymentStatusFromGateway($invoiceNo);
+                        
+                        if ($latestGatewayResponse !== null) {
+                            // Update payment record with latest gateway response
+                            $paymentRecord = $this->salesPaymentsModel
+                                ->where('sale_id', $saleId)
+                                ->where('platform_id', $platformId)
+                                ->first();
+                            
+                            if ($paymentRecord) {
+                                $latestResponseJson = json_encode($latestGatewayResponse);
+                                $this->salesPaymentsModel->skipValidation(true);
+                                $this->salesPaymentsModel->update($paymentRecord['id'], [
+                                    'response' => $latestResponseJson
+                                ]);
+                                $this->salesPaymentsModel->skipValidation(false);
+                                
+                                // Update gateway response variable for response data
+                                $gatewayResponse = $latestGatewayResponse;
+                                
+                                log_message('info', 'Agent\Sales::store - Updated payment response with latest gateway data for invoice: ' . $invoiceNo);
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        // Don't fail the transaction if status fetch fails, just log it
+                        log_message('error', 'Agent\Sales::store - Failed to fetch latest payment status: ' . $e->getMessage());
+                    }
                 }
                 
                 // Clear cart
@@ -621,6 +664,169 @@ class Sales extends BaseController
                 'status' => 'error',
                 'message' => $message
             ]);
+        }
+    }
+    
+    /**
+     * Encrypt API key with RSA public key
+     * 
+     * Uses RSA encryption with PKCS1 padding (equivalent to RSA/ECB/PKCS1Padding in Java/Kotlin)
+     * 
+     * @param string $data Data to encrypt (API key)
+     * @param string $base64PublicKey Base64 encoded public key (DER format)
+     * @return string Base64 encoded encrypted data
+     * @throws \Exception If encryption fails
+     */
+    protected function encryptApiKey(string $data, string $base64PublicKey): string
+    {
+        // The base64PublicKey is in base64 DER format (SubjectPublicKeyInfo)
+        // We need to convert it to PEM format for OpenSSL
+        
+        // Remove any whitespace from the key
+        $base64PublicKey = trim(preg_replace('/\s+/', '', $base64PublicKey));
+        
+        // Verify it's valid base64
+        if (!preg_match('/^[A-Za-z0-9+\/]+=*$/', $base64PublicKey)) {
+            throw new \Exception('Invalid base64 public key format');
+        }
+        
+        // Decode base64 to get DER binary
+        $derKey = base64_decode($base64PublicKey, true);
+        if ($derKey === false) {
+            throw new \Exception('Failed to decode base64 public key');
+        }
+        
+        // Re-encode DER to base64 for PEM format (PEM body is base64-encoded DER)
+        $pemBody = base64_encode($derKey);
+        
+        // Build PEM format with proper line breaks (64 chars per line)
+        $pemKey = "-----BEGIN PUBLIC KEY-----" . PHP_EOL;
+        $pemKey .= chunk_split($pemBody, 64, PHP_EOL);
+        $pemKey = rtrim($pemKey, PHP_EOL) . PHP_EOL; // Remove trailing newline
+        $pemKey .= "-----END PUBLIC KEY-----" . PHP_EOL;
+        
+        // Clear any previous OpenSSL errors
+        while (openssl_error_string() !== false) {
+            // Clear errors
+        }
+        
+        // Try to load the public key
+        $publicKeyResource = openssl_pkey_get_public($pemKey);
+        
+        if ($publicKeyResource === false) {
+            // If that fails, try using the original base64 string directly
+            // (in case it's already in the correct format)
+            $pemKeyAlt = "-----BEGIN PUBLIC KEY-----" . PHP_EOL;
+            $pemKeyAlt .= chunk_split($base64PublicKey, 64, PHP_EOL);
+            $pemKeyAlt = rtrim($pemKeyAlt, PHP_EOL) . PHP_EOL;
+            $pemKeyAlt .= "-----END PUBLIC KEY-----" . PHP_EOL;
+            
+            // Clear errors
+            while (openssl_error_string() !== false) {
+                // Clear errors
+            }
+            
+            $publicKeyResource = openssl_pkey_get_public($pemKeyAlt);
+            
+            if ($publicKeyResource === false) {
+                // Collect all errors
+                $errors = [];
+                while (($error = openssl_error_string()) !== false) {
+                    $errors[] = $error;
+                }
+                $errorMsg = implode('; ', $errors);
+                
+                // Write debug info to file
+                $debugFile = WRITEPATH . 'logs/key-debug-' . date('Y-m-d') . '.txt';
+                $debugInfo = "Key Debug Info:\n";
+                $debugInfo .= "Base64 Key Length: " . strlen($base64PublicKey) . "\n";
+                $debugInfo .= "DER Key Length: " . strlen($derKey) . " bytes\n";
+                $debugInfo .= "PEM Key:\n" . $pemKey . "\n";
+                $debugInfo .= "Errors: " . $errorMsg . "\n";
+                @file_put_contents($debugFile, $debugInfo, FILE_APPEND);
+                
+                throw new \Exception('Failed to load public key: ' . ($errorMsg ?: 'Unknown error') . '. Debug info saved to: ' . $debugFile);
+            }
+        }
+        
+        // Encrypt data with RSA and PKCS1 padding (RSA/ECB/PKCS1Padding equivalent)
+        $encrypted = '';
+        $success = openssl_public_encrypt($data, $encrypted, $publicKeyResource, OPENSSL_PKCS1_PADDING);
+        
+        // Free the key resource
+        openssl_free_key($publicKeyResource);
+        
+        if (!$success || empty($encrypted)) {
+            $errors = [];
+            while (($error = openssl_error_string()) !== false) {
+                $errors[] = $error;
+            }
+            $errorMsg = implode('; ', $errors);
+            throw new \Exception('RSA encryption failed: ' . ($errorMsg ?: 'Unknown encryption error'));
+        }
+        
+        // Return base64-encoded ciphertext
+        return base64_encode($encrypted);
+    }
+    
+    /**
+     * Get payment status from gateway API (GET request)
+     * 
+     * @param string $invoiceNo Invoice number (orderId)
+     * @return array|null Gateway response or null on failure
+     */
+    protected function getPaymentStatusFromGateway(string $invoiceNo): ?array
+    {
+        try {
+            // Encrypt API key for x-api-key header
+            $encryptedApiKey = null;
+            try {
+                $encryptedApiKey = $this->encryptApiKey(self::GATEWAY_API_KEY, self::GATEWAY_PUBLIC_KEY);
+            } catch (\Exception $e) {
+                log_message('error', 'Agent\Sales::getPaymentStatusFromGateway - API key encryption failed: ' . $e->getMessage());
+                return null;
+            }
+            
+            $client = \Config\Services::curlrequest();
+            $apiUrl = 'https://dev.osu.biz.id/mig/esb/v1/api/payments/' . urlencode($invoiceNo);
+            
+            log_message('info', 'Agent\Sales::getPaymentStatusFromGateway - Fetching payment status for: ' . $invoiceNo);
+            
+            $response = $client->request('GET', $apiUrl, [
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                    'x-api-key' => $encryptedApiKey
+                ],
+                'timeout' => 30,
+                'http_errors' => false
+            ]);
+            
+            $statusCode = $response->getStatusCode();
+            $body = $response->getBody();
+            $responseData = json_decode($body, true);
+            
+            log_message('info', 'Agent\Sales::getPaymentStatusFromGateway - Response Status: ' . $statusCode);
+            log_message('info', 'Agent\Sales::getPaymentStatusFromGateway - Response Body: ' . $body);
+            
+            if ($statusCode >= 200 && $statusCode < 300 && $responseData) {
+                // Return full gateway response (includes paymentCode, expiredAt, etc.)
+                return $responseData;
+            } else {
+                $errorMsg = 'Payment gateway returned error';
+                if (isset($responseData['message'])) {
+                    $errorMsg = $responseData['message'];
+                } elseif (!empty($body)) {
+                    $errorMsg = 'Response: ' . $body;
+                }
+                log_message('error', 'Agent\Sales::getPaymentStatusFromGateway - API Error: ' . $errorMsg . ' | Status: ' . $statusCode);
+                return null;
+            }
+            
+        } catch (\Exception $e) {
+            log_message('error', 'Agent\Sales::getPaymentStatusFromGateway error: ' . $e->getMessage());
+            log_message('error', 'Agent\Sales::getPaymentStatusFromGateway trace: ' . $e->getTraceAsString());
+            return null;
         }
     }
 }
