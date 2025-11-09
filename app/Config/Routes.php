@@ -33,6 +33,8 @@ $routes->get('frontend/catalog', 'Frontend_Catalog::index');
 $routes->get('catalog', 'Frontend_Catalog::index'); // Alias for catalog
 $routes->get('location', 'Frontend_Location::index'); // Alias for frontend/location
 $routes->get('check-warranty', 'Frontend_Garansi::index'); // Warranty check page
+$routes->get('cek-garansi', 'Frontend_Garansi::index'); // Warranty check page (alias)
+$routes->post('cek-garansi', 'Frontend_Garansi::check'); // Warranty check process
 
 // Cart and Checkout routes
 $routes->get('cart', 'Checkout::cart'); // Cart page

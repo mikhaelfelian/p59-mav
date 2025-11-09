@@ -56,10 +56,19 @@ class Payment extends BaseController
         $saleData = $this->model->getSalesWithRelations($sale['id']);
 
         $this->data['title'] = 'Pembayaran Berhasil';
-        $this->data['currentModule'] = $this->currentModule;
+        $this->data['current_module'] = $this->currentModule;
+        $this->data['currentModule'] = $this->currentModule; // Keep both for compatibility
         $this->data['config'] = $this->config;
         $this->data['sale'] = $saleData;
         $this->data['orderId'] = $orderId;
+        // Ensure theme_mode is set (from BaseController)
+        if (!isset($this->data['theme_mode'])) {
+            $this->data['theme_mode'] = $this->themeMode ?? 'light';
+        }
+        // Ensure settingAplikasi is set
+        if (!isset($this->data['settingAplikasi'])) {
+            $this->data['settingAplikasi'] = $this->model->getSettingAplikasi();
+        }
 
         helper('angka');
         $this->view('sales/agent/redirect/thankyou', $this->data);
@@ -96,11 +105,20 @@ class Payment extends BaseController
         $saleData = $this->model->getSalesWithRelations($sale['id']);
 
         $this->data['title'] = 'Status Pembayaran';
-        $this->data['currentModule'] = $this->currentModule;
+        $this->data['current_module'] = $this->currentModule;
+        $this->data['currentModule'] = $this->currentModule; // Keep both for compatibility
         $this->data['config'] = $this->config;
         $this->data['sale'] = $saleData;
         $this->data['status'] = ucfirst(strtolower($status));
         $this->data['orderId'] = $orderId;
+        // Ensure theme_mode is set (from BaseController)
+        if (!isset($this->data['theme_mode'])) {
+            $this->data['theme_mode'] = $this->themeMode ?? 'light';
+        }
+        // Ensure settingAplikasi is set
+        if (!isset($this->data['settingAplikasi'])) {
+            $this->data['settingAplikasi'] = $this->model->getSettingAplikasi();
+        }
 
         helper('angka');
         $this->view('sales/agent/redirect/failed', $this->data);
@@ -114,8 +132,17 @@ class Payment extends BaseController
     public function notFound()
     {
         $this->data['title'] = 'Order Tidak Ditemukan';
-        $this->data['currentModule'] = $this->currentModule;
+        $this->data['current_module'] = $this->currentModule;
+        $this->data['currentModule'] = $this->currentModule; // Keep both for compatibility
         $this->data['config'] = $this->config;
+        // Ensure theme_mode is set (from BaseController)
+        if (!isset($this->data['theme_mode'])) {
+            $this->data['theme_mode'] = $this->themeMode ?? 'light';
+        }
+        // Ensure settingAplikasi is set
+        if (!isset($this->data['settingAplikasi'])) {
+            $this->data['settingAplikasi'] = $this->model->getSettingAplikasi();
+        }
 
         $this->view('sales/agent/redirect/not_found', $this->data);
     }

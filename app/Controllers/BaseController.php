@@ -272,6 +272,14 @@ class BaseController extends Controller
 	
 	protected function view($file, $data = false, $file_only = false) 
 	{
+		// Merge with $this->data to ensure all BaseController variables are available
+		if ($data === false) {
+			$data = $this->data;
+		} else {
+			// Merge passed data with $this->data (passed data takes precedence)
+			$data = array_merge($this->data, $data);
+		}
+		
 		if (is_array($file)) {
 			foreach ($file as $file_item) {
 				echo view($file_item, $data);

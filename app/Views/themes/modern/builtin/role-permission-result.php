@@ -51,6 +51,6 @@ helper('html');
 		?>
 		<span id="dataTables-column" style="display:none"><?=json_encode($column_dt)?></span>
 		<span id="dataTables-setting" style="display:none"><?=json_encode($settings)?></span>
-		<span id="dataTables-url" style="display:none"><?=current_url() . '/getDataDT'?></span>
+		<span id="dataTables-url" style="display:none"><?=current_url() . '/getDataDTPermission'?></span>
 	</div>
 </div>

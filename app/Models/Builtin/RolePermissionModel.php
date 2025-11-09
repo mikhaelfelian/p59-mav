@@ -233,7 +233,7 @@ class RolePermissionModel extends \App\Models\BaseModel
         try {
             $columns = $this->request->getPost('columns') ?? $this->request->getGet('columns');
             $search = $this->request->getPost('search') ?? $this->request->getGet('search');
-            $search_all = is_array($search) && isset($search['value']) ? $search['value'] : '';
+            $search_all = is_array($search) && isset($search['value']) ? trim($search['value']) : '';
             $id_role = $this->request->getGet('id');
             
             // Validate id_role
@@ -253,36 +253,41 @@ class RolePermissionModel extends \App\Models\BaseModel
                 $rolePermMap[$rp['id_module_permission']] = $rp['id_role'];
             }
             
-            // Map DataTables column names to actual database columns with table prefixes
-            $columnMap = [
-                'judul_module' => 'module.judul_module',
-                'nama_module' => 'module.nama_module',
-                'nama_permission' => 'module_permission.nama_permission',
-                'judul_permission' => 'module_permission.judul_permission',
-                'keterangan' => 'module_permission.keterangan'
-            ];
-            
             // Build base query for counting (separate builder to avoid issues)
-            $builderCount = $this->builder('module_permission');
-            $builderCount->select('module_permission.*, module.nama_module, module.judul_module')
-                        ->join('module', 'module.id_module = module_permission.id_module', 'left');
+            // Use aliases like PermissionModel: mp for module_permission, m for module
+            $builderCount = $this->builder('module_permission mp')
+                                ->join('module m', 'm.id_module = mp.id_module', 'left');
             
             // Apply search to count query
-            if ($search_all && !empty($columns) && is_array($columns)) {
+            // Map DataTables columns to actual database columns with table aliases
+            // Use where() with raw SQL for LIKE conditions to properly handle table aliases
+            $columnMap = [
+                'judul_module' => 'm.judul_module',
+                'nama_module' => 'm.nama_module',
+                'nama_permission' => 'mp.nama_permission',
+                'judul_permission' => 'mp.judul_permission',
+                'keterangan' => 'mp.keterangan'
+            ];
+            
+            if ($search_all && !empty($search_all) && !empty($columns) && is_array($columns)) {
+                $db = \Config\Database::connect();
+                $escapedSearch = $db->escapeLikeString($search_all);
+                
                 $builderCount->groupStart();
                 $first = true;
                 foreach ($columns as $val) {
                     if (!is_array($val) || strpos($val['data'] ?? '', 'ignore') !== false) continue;
                     
                     $column = $val['data'] ?? '';
-                    // Map column name to actual database column with table prefix
+                    // Map to actual column with table alias if mapping exists
                     $dbColumn = $columnMap[$column] ?? $column;
                     
+                    // Use where() with raw SQL to properly handle table.column format
                     if ($first) {
-                        $builderCount->like($dbColumn, $search_all);
+                        $builderCount->where("{$dbColumn} LIKE", "%{$escapedSearch}%", false);
                         $first = false;
                     } else {
-                        $builderCount->orLike($dbColumn, $search_all);
+                        $builderCount->orWhere("{$dbColumn} LIKE", "%{$escapedSearch}%", false);
                     }
                 }
                 $builderCount->groupEnd();
@@ -292,37 +297,45 @@ class RolePermissionModel extends \App\Models\BaseModel
             $total_filtered = $builderCount->countAllResults(false);
             
             // Build main data query (separate builder)
-            $builder = $this->builder('module_permission');
-            $builder->select('module_permission.*, module.nama_module, module.judul_module')
-                    ->join('module', 'module.id_module = module_permission.id_module', 'left');
+            // Use aliases like PermissionModel: mp for module_permission, m for module
+            $builder = $this->builder('module_permission mp')
+                           ->join('module m', 'm.id_module = mp.id_module', 'left');
             
             // Apply search to main query
-            if ($search_all && !empty($columns) && is_array($columns)) {
+            // Use the same column mapping and approach as the count query
+            if ($search_all && !empty($search_all) && !empty($columns) && is_array($columns)) {
+                $db = \Config\Database::connect();
+                $escapedSearch = $db->escapeLikeString($search_all);
+                
                 $builder->groupStart();
                 $first = true;
                 foreach ($columns as $val) {
                     if (!is_array($val) || strpos($val['data'] ?? '', 'ignore') !== false) continue;
                     
                     $column = $val['data'] ?? '';
-                    // Map column name to actual database column with table prefix
+                    // Map to actual column with table alias if mapping exists
                     $dbColumn = $columnMap[$column] ?? $column;
                     
+                    // Use where() with raw SQL to properly handle table.column format
                     if ($first) {
-                        $builder->like($dbColumn, $search_all);
+                        $builder->where("{$dbColumn} LIKE", "%{$escapedSearch}%", false);
                         $first = false;
                     } else {
-                        $builder->orLike($dbColumn, $search_all);
+                        $builder->orWhere("{$dbColumn} LIKE", "%{$escapedSearch}%", false);
                     }
                 }
                 $builder->groupEnd();
             }
+            
+            // Apply select - this matches PermissionModel which doesn't use select() before search
+            $builder->select('mp.*, m.nama_module, m.judul_module');
             
             // Apply ordering
             $order_data = $this->request->getPost('order') ?? $this->request->getGet('order');
             if ($order_data && is_array($order_data) && isset($order_data[0]) && !empty($columns) && is_array($columns) && isset($columns[$order_data[0]['column']])) {
                 $order_column = $columns[$order_data[0]['column']]['data'] ?? '';
                 if (strpos($order_column, 'ignore') === false) {
-                    // Map column name to actual database column with table prefix
+                    // Map to actual column with table alias if mapping exists
                     $dbOrderColumn = $columnMap[$order_column] ?? $order_column;
                     $order_dir = strtoupper($order_data[0]['dir'] ?? 'ASC');
                     $builder->orderBy($dbOrderColumn, $order_dir);

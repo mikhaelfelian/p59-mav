@@ -6,7 +6,7 @@
   <div class="container warranty">
     <div class="card form-card">
       <h1>Cek Garansi</h1>
-      <p>Masukkan nomor plat Anda untuk memeriksa status garansi produk Anda</p>
+      <p>Masukkan nomor seri produk Anda untuk memeriksa status garansi</p>
       
       <?php if (!empty($msg)): ?>
         <div class="alert alert-info">
@@ -14,22 +14,23 @@
         </div>
       <?php endif; ?>
       
-      <form id="warranty-form" class="form" action="<?= base_url('cek-garansi') ?>" method="POST">
-        <?= csrf_field() ?>
+      <?php 
+        echo form_open('cek-garansi', [
+          'id' => 'warranty-form',
+          'class' => 'form',
+          'method' => 'post'
+        ]); 
+        echo csrf_field(); 
+      ?>
         <input type="hidden" name="ajax" value="1">
         
-        <label class="input" for="plate">
-          <span class="icon">#</span>
-          <input id="plate" name="plate" placeholder="Masukkan nomor plat" required>
-        </label>
-        
-        <label class="input" for="phone">
-          <span class="icon">📞</span>
-          <input id="phone" name="phone" type="tel" placeholder="Masukkan nomor telepon Anda" required>
+        <label class="input" for="serial_number">
+          <span class="icon">🔢</span>
+          <input id="serial_number" name="serial_number" placeholder="Masukkan nomor seri produk" required>
         </label>
         
         <button class="btn btn-amber btn-lg" type="submit">Cek Garansi</button>
-      </form>
+      <?= form_close() ?>
       
       <div class="muted">Kami menghormati privasi Anda. Informasi Anda hanya digunakan untuk memeriksa status garansi.</div>
       
@@ -240,8 +241,12 @@ document.addEventListener('DOMContentLoaded', function() {
     e.preventDefault();
     
     const formData = new FormData(form);
-    const plate = formData.get('plate');
-    const phone = formData.get('phone');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalBtnText = submitBtn.innerHTML;
+    
+    // Disable button and show loading
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = 'Memeriksa...';
     
     try {
       const response = await fetch(form.action, {
@@ -251,19 +256,25 @@ document.addEventListener('DOMContentLoaded', function() {
       
       const result = await response.json();
       
-      // Simulate warranty check result (replace with actual API call)
-      let warrantyData = {
-        status: 'found',
-        plate: plate,
-        phone: phone,
-        warrantyExpiry: '2025-12-31',
-        product: 'Multi Automobile Vision - Premium Package',
-        registeredDate: '2024-01-15'
-      };
+      // Re-enable button
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnText;
       
-      displayWarrantyResult(warrantyData);
+      if (result.status === 'success' && result.data) {
+        displayWarrantyResult(result.data);
+      } else if (result.status === 'not_found') {
+        displayWarrantyResult({
+          status: 'not_found',
+          serial_number: formData.get('serial_number')
+        });
+      } else {
+        modalBody.innerHTML = '<div style="color: #ff6b6b;"><strong>Error:</strong> ' + (result.message || 'Terjadi kesalahan saat memeriksa garansi.') + '</div>';
+        openModal();
+      }
     } catch (error) {
       console.error('Error checking warranty:', error);
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnText;
       modalBody.innerHTML = '<div style="color: #ff6b6b;"><strong>Error:</strong> Terjadi kesalahan saat memeriksa garansi. Silakan coba lagi.</div>';
       openModal();
     }
@@ -292,26 +303,46 @@ document.addEventListener('DOMContentLoaded', function() {
   function displayWarrantyResult(data) {
     let html = '';
     
-    if (data.status === 'found') {
+    if (data.status === 'active') {
+      const activatedDate = data.activated_at ? new Date(data.activated_at).toLocaleDateString('id-ID', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      }) : 'N/A';
+      
+      const expiredDate = data.expired_at ? new Date(data.expired_at).toLocaleDateString('id-ID', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      }) : 'N/A';
+      
       html = `
         <div style="color: #4ade80;">
           <strong>✓ Garansi Aktif</strong>
         </div>
         <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #222327;">
-          <p><strong>Produk:</strong> ${data.product || 'Multi Automobile Vision'}</p>
-          <p><strong>Nomor Plat:</strong> ${data.plate}</p>
-          <p><strong>Tanggal Registrasi:</strong> ${data.registeredDate || 'N/A'}</p>
-          <p><strong>Masa Garansi Berakhir:</strong> <span style="color: #4ade80;">${data.warrantyExpiry || 'N/A'}</span></p>
+          <p><strong>Produk:</strong> ${data.item_name || 'Unknown Product'}</p>
+          ${data.item_sku ? '<p><strong>SKU:</strong> ' + data.item_sku + '</p>' : ''}
+          <p><strong>Nomor Seri:</strong> ${data.serial_number || data.sn || 'N/A'}</p>
+          <p><strong>Tanggal Aktivasi:</strong> ${activatedDate}</p>
+          <p><strong>Masa Garansi Berakhir:</strong> <span style="color: #4ade80;">${expiredDate}</span></p>
         </div>
       `;
     } else if (data.status === 'expired') {
+      const expiredDate = data.expired_at ? new Date(data.expired_at).toLocaleDateString('id-ID', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      }) : 'N/A';
+      
       html = `
         <div style="color: #ffc12e;">
           <strong>⚠ Garansi Kedaluwarsa</strong>
         </div>
         <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #222327;">
-          <p><strong>Nomor Plat:</strong> ${data.plate}</p>
-          <p>Garansi Anda telah berakhir pada: ${data.warrantyExpiry}</p>
+          <p><strong>Produk:</strong> ${data.item_name || 'Unknown Product'}</p>
+          <p><strong>Nomor Seri:</strong> ${data.serial_number || data.sn || 'N/A'}</p>
+          <p>Garansi Anda telah berakhir pada: <strong style="color: #ffc12e;">${expiredDate}</strong></p>
         </div>
       `;
     } else {
@@ -320,8 +351,8 @@ document.addEventListener('DOMContentLoaded', function() {
           <strong>✗ Garansi Tidak Ditemukan</strong>
         </div>
         <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #222327;">
-          <p>Maaf, kami tidak menemukan data garansi untuk nomor plat <strong>${data.plate}</strong>.</p>
-          <p style="margin-top: 1rem;">Pastikan nomor plat dan nomor telepon yang Anda masukkan sudah benar.</p>
+          <p>Maaf, kami tidak menemukan data garansi untuk nomor seri <strong>${data.serial_number || 'tersebut'}</strong>.</p>
+          <p style="margin-top: 1rem;">Pastikan nomor seri yang Anda masukkan sudah benar dan produk telah diaktifkan.</p>
         </div>
       `;
     }
