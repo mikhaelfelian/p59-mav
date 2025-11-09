@@ -425,8 +425,9 @@ $isModal = $isModal ?? false;
 					</div>
 					<div class="card-body">
 						<?= form_open('agent/updateUserPassword', ['id' => 'form-update-password', 'class' => 'needs-validation', 'novalidate' => '']) ?>
+						<?= csrf_field() ?>
 						<?= form_hidden('agent_id', @$agent->id ?? @$id ?? '') ?>
-						<?= form_hidden('user_id', @$agent->user_id ?? '') ?>
+						<input type="hidden" name="user_id" id="password-form-user-id" value="<?= @$agent->user_id ?? '' ?>">
 						
 						<div class="row g-3">
 							<div class="col-md-4">
@@ -438,7 +439,7 @@ $isModal = $isModal ?? false;
 										<i class="fas fa-lock"></i>
 									</span>
 									<input type="password" class="form-control" id="old_password" name="old_password"
-										autocomplete="current-password" placeholder="Masukkan password lama" required>
+										autocomplete="current-password" placeholder="Masukkan password lama" required minlength="1">
 								</div>
 								<div class="invalid-feedback">Password lama harus diisi</div>
 							</div>
@@ -451,9 +452,9 @@ $isModal = $isModal ?? false;
 										<i class="fas fa-key"></i>
 									</span>
 									<input type="password" class="form-control" id="new_password" name="new_password"
-										autocomplete="new-password" placeholder="Masukkan password baru" required>
+										autocomplete="new-password" placeholder="Masukkan password baru" required minlength="3">
 								</div>
-								<div class="invalid-feedback">Password baru harus diisi</div>
+								<div class="invalid-feedback">Password baru harus diisi (minimal 3 karakter)</div>
 								<small class="text-muted">Minimal 3 karakter</small>
 							</div>
 							<div class="col-md-4">
@@ -465,18 +466,18 @@ $isModal = $isModal ?? false;
 										<i class="fas fa-check-double"></i>
 									</span>
 									<input type="password" class="form-control" id="repeat_password" name="repeat_password"
-										autocomplete="new-password" placeholder="Ulangi password baru" required>
+										autocomplete="new-password" placeholder="Ulangi password baru" required minlength="3">
 								</div>
-								<div class="invalid-feedback">Ulangi password baru harus diisi</div>
+								<div class="invalid-feedback">Ulangi password baru harus diisi dan cocok dengan password baru</div>
 							</div>
 						</div>
 						
 						<div class="row mt-4">
 							<div class="col-md-12">
-								<button type="submit" class="btn btn-primary btn-lg">
+								<button type="submit" class="btn btn-primary btn-lg" id="btn-update-password">
 									<i class="fas fa-key me-2"></i>Update Password
 								</button>
-								<button type="reset" class="btn btn-outline-secondary btn-lg ms-2" onclick="$('#form-update-password')[0].reset();">
+								<button type="reset" class="btn btn-outline-secondary btn-lg ms-2" id="btn-reset-password">
 									<i class="fas fa-redo me-2"></i>Reset
 								</button>
 							</div>
@@ -884,6 +885,21 @@ $isModal = $isModal ?? false;
 					return false;
 				}
 				
+				// Validate user_id is set
+				var userId = $('#password-form-user-id').val() || passwordForm.find('input[name="user_id"]').val();
+				if (!userId || userId === '') {
+					if (typeof Swal !== 'undefined') {
+						Swal.fire({
+							icon: 'error',
+							title: 'Error',
+							text: 'User ID tidak ditemukan. Silakan pilih user terlebih dahulu.'
+						});
+					} else {
+						alert('User ID tidak ditemukan. Silakan pilih user terlebih dahulu.');
+					}
+					return false;
+				}
+				
 				// Show loading state
 				var submitBtn = passwordForm.find('button[type="submit"]');
 				var originalBtnText = submitBtn.html();
@@ -972,20 +988,37 @@ $isModal = $isModal ?? false;
 		$('#user_id').on('change', function() {
 			var userId = $(this).val();
 			var passwordForm = $('#form-update-password');
+			var passwordFormUserId = $('#password-form-user-id');
 			var passwordCard = $('#password-update-card');
 			var infoMessage = $('#password-info-message');
 			
-			if (userId) {
+			if (userId && userId !== '') {
 				// Update hidden user_id field in password form
-				passwordForm.find('input[name="user_id"]').val(userId);
+				if (passwordFormUserId.length) {
+					passwordFormUserId.val(userId);
+				} else {
+					// If field doesn't exist, create it
+					passwordForm.append('<input type="hidden" name="user_id" id="password-form-user-id" value="' + userId + '">');
+				}
 				// Show the password form section if it was hidden
-				passwordCard.show();
-				infoMessage.hide();
+				passwordCard.slideDown(300);
+				infoMessage.slideUp(300);
 			} else {
 				// Hide password form if no user selected
-				passwordCard.hide();
-				infoMessage.show();
+				passwordCard.slideUp(300);
+				infoMessage.slideDown(300);
+				// Clear password form
+				passwordForm[0].reset();
+				passwordForm.removeClass('was-validated');
 			}
+		});
+		
+		// Reset button handler
+		$('#btn-reset-password').on('click', function(e) {
+			e.preventDefault();
+			var passwordForm = $('#form-update-password');
+			passwordForm[0].reset();
+			passwordForm.removeClass('was-validated');
 		});
 	});
 </script>

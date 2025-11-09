@@ -92,10 +92,27 @@ $routes->get('agent-rules/form/(:num)', 'AgentRules::form/$1');
 $routes->post('agent-rules/save', 'AgentRules::save');
 $routes->post('agent-rules/delete/(:num)', 'AgentRules::delete/$1');
 
+/* Bagian agen */
+$routes->group('agent', function($routes) {
+	// Agent Item (POS View)
+	$routes->get('item', 'Agent\Item::index');
+	
+	// Agent Sales (Cart & Checkout)
+	$routes->get('sales/cart', 'Agent\Sales::cart');
+	$routes->post('sales/store', 'Agent\Sales::store');
+	$routes->post('sales/addToCart', 'Agent\Sales::addToCart');
+	$routes->post('sales/updateCart', 'Agent\Sales::updateCart');
+	$routes->post('sales/removeFromCart', 'Agent\Sales::removeFromCart');
+	$routes->get('sales/clearCart', 'Agent\Sales::clearCart');
+});
+
 # Agent Gateway Check (for agent/post integration)
 $routes->match(['get', 'post'], 'agent/checkActiveGateway', 'Agent::checkActiveGateway');
 $routes->match(['get', 'post'], 'agent/getGatewayByCode', 'Agent::getGatewayByCode');
 $routes->get('agent/getGatewayByCode/(:any)', 'Agent::getGatewayByCode/$1');
+
+# Agent Password Update
+$routes->post('agent/updateUserPassword', 'Agent::updateUserPassword');
 
 # Product Promo (moved to Item controller)
 $routes->get('item/promoList/(:num)', 'Item::promoList/$1');
@@ -146,9 +163,10 @@ $routes->group('sales',  function($routes){
     $routes->get('(:num)', 'Sales::detail/$1');
     $routes->post('getDataDT', 'Sales::getDataDT');
     $routes->get('getUnusedSNs', 'Sales::getUnusedSNs');
-    // Payment gateway callback endpoint
-    $routes->match(['get', 'post'], 'paymentCallback', 'Sales::paymentCallback');
 });
+
+# Payment Gateway Callback (No authentication required - called by Midtrans)
+$routes->match(['get', 'post'], 'api/sales/callback', 'Api\Sales::callback');
 
 
 

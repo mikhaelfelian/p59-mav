@@ -182,6 +182,20 @@ class ItemModel extends Model
     }
 
     /**
+     * Search method for method chaining
+     * 
+     * @param string $keyword Search keyword
+     * @return $this
+     */
+    public function search($keyword)
+    {
+        if (!empty($keyword)) {
+            $this->like('name', $keyword);
+        }
+        return $this;
+    }
+
+    /**
      * Get items with price range
      */
     public function getItemsByPriceRange($minPrice, $maxPrice)
