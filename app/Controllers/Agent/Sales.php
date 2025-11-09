@@ -20,6 +20,7 @@ use App\Models\SalesModel;
 use App\Models\SalesItemsModel;
 use App\Models\SalesItemSnModel;
 use App\Models\SalesPaymentsModel;
+use App\Models\SalesDetailModel;
 use App\Models\ItemModel;
 use App\Models\ItemSnModel;
 use App\Models\AgentModel;
@@ -34,6 +35,7 @@ class Sales extends BaseController
     protected $salesItemsModel;
     protected $salesItemSnModel;
     protected $salesPaymentsModel;
+    protected $salesDetailModel;
     protected $itemModel;
     protected $itemSnModel;
     protected $agentModel;
@@ -70,6 +72,7 @@ class Sales extends BaseController
         $this->salesItemsModel = new SalesItemsModel();
         $this->salesItemSnModel = new SalesItemSnModel();
         $this->salesPaymentsModel = new SalesPaymentsModel();
+        $this->salesDetailModel = new SalesDetailModel();
         $this->itemModel = new ItemModel();
         $this->itemSnModel = new ItemSnModel();
         $this->agentModel = new AgentModel();
@@ -412,40 +415,21 @@ class Sales extends BaseController
                 ]);
             }
             
-            // Handle customer creation/selection
+            // Prepare plate data for customer lookup
+            $platCode = !empty($postData['plate_code']) ? trim($postData['plate_code']) : null;
+            $platNumber = !empty($postData['plate_number']) ? trim($postData['plate_number']) : null;
+            $platLast = !empty($postData['plate_suffix']) ? trim($postData['plate_suffix']) : null;
+            $customerName = !empty($postData['customer_name']) ? trim($postData['customer_name']) : null;
+
+            // Check if customer exists (read-only, can be outside transaction)
             $customerId = null;
-            if (!empty($postData['customer_name'])) {
-                // Create or find customer
-                $customerName = trim($postData['customer_name']);
-                $plateCode = trim($postData['plate_code'] ?? '');
-                $plateNumber = trim($postData['plate_number'] ?? '');
-                $plateSuffix = trim($postData['plate_suffix'] ?? '');
-                
-                // Check if customer exists
-                $customer = null;
-                if (!empty($plateCode) && !empty($plateNumber)) {
-                    $customer = $this->customerModel
-                        ->where('plat_code', $plateCode)
-                        ->where('plat_number', $plateNumber)
-                        ->first();
+            if ($platCode && $platNumber) {
+                $existingCustomer = $this->customerModel->findByPlate($platCode, $platNumber, $platLast);
+                if ($existingCustomer) {
+                    $customerId = $existingCustomer['id'];
                 }
-                
-                if (!$customer && !empty($customerName)) {
-                    // Create new customer
-                    $customerData = [
-                        'name' => $customerName,
-                        'plat_code' => $plateCode,
-                        'plat_number' => $plateNumber,
-                        'plat_last' => $plateSuffix,
-                        'phone' => $postData['customer_phone'] ?? '',
-                        'email' => $postData['customer_email'] ?? ''
-                    ];
-                    
-                    $this->customerModel->insert($customerData);
-                    $customerId = $this->customerModel->getInsertID();
-                } else {
-                    $customerId = $customer ? $customer->id : null;
-                }
+            } elseif (!empty($postData['customer_id'])) {
+                $customerId = (int)$postData['customer_id'];
             }
             
             // Calculate totals
@@ -543,8 +527,38 @@ class Sales extends BaseController
                 }
             }
             
+            // Start database transaction
+            $db = \Config\Database::connect();
+            $db->transStart();
+
+            try {
+            // Create customer if not found but plate data provided
+            if ($customerId === null && $platCode && $platNumber && $customerName) {
+                $customerData = [
+                    'name' => $customerName,
+                    'plat_code' => $platCode,
+                    'plat_number' => $platNumber,
+                    'plat_last' => $platLast ?: null,
+                    'status' => 'active'
+                ];
+                
+                $this->customerModel->skipValidation(true);
+                $insertResult = $this->customerModel->insert($customerData);
+                if (!$insertResult) {
+                    $errors = $this->customerModel->errors();
+                    $errorMsg = 'Gagal membuat customer: ';
+                    if ($errors && is_array($errors)) {
+                        $errorMsg .= implode(', ', array_map(function($e) {
+                            return is_array($e) ? json_encode($e) : $e;
+                        }, $errors));
+                    }
+                    throw new \Exception($errorMsg);
+                }
+                $customerId = $this->customerModel->getInsertID();
+                $this->customerModel->skipValidation(false);
+            }
             // Determine payment status based on gateway response
-            $paymentStatus = '2'; // Default: paid
+            $paymentStatus = $postData['payment_status'] ?? '0';
             if ($gatewayResponse && isset($gatewayResponse['status'])) {
                 $gatewayStatus = strtoupper($gatewayResponse['status']);
                 if ($gatewayStatus === 'PAID') {
@@ -554,23 +568,18 @@ class Sales extends BaseController
                 }
             }
             
-            // Start database transaction
-            $db = \Config\Database::connect();
-            $db->transStart();
-            
-            try {
-            // Create sale record
+            // Save to sales table
             $saleData = [
-                'invoice_no' => $postData['invoice_no'],
+                'invoice_no' => trim($postData['invoice_no']),
+                'user_id' => $userId,
                 'customer_id' => $customerId,
-                'warehouse_id' => (int)$postData['agent_id'], // warehouse_id stores agent_id
-                'total_amount' => $subtotal,
-                'discount_amount' => $discount,
-                'tax_amount' => $tax,
-                'grand_total' => $grandTotal,
+                'warehouse_id' => !empty($postData['agent_id']) ? (int)$postData['agent_id'] : null,
                 'sale_channel' => self::CHANNEL_OFFLINE,
-                'payment_status' => $paymentStatus,
-                'user_id' => $userId
+                'total_amount' => (float)($postData['subtotal'] ?? $subtotal),
+                'discount_amount' => (float)($postData['discount'] ?? $discount),
+                'tax_amount' => (float)($postData['tax'] ?? $tax),
+                'grand_total' => (float)($postData['grand_total'] ?? $grandTotal),
+                'payment_status' => $paymentStatus
             ];
             
             // Add settlement_time if gateway response has it and status is PAID
@@ -584,85 +593,222 @@ class Sales extends BaseController
                 }
             }
                 
-                $this->model->skipValidation(true);
-                $saleId = $this->model->insert($saleData);
-                $this->model->skipValidation(false);
-                
-                if (!$saleId) {
-                    throw new \Exception('Gagal menyimpan data penjualan.');
+            $this->model->skipValidation(true);
+            $insertResult = $this->model->insert($saleData);
+            if (!$insertResult) {
+                $errors = $this->model->errors();
+                $dbError = $db->error();
+                $errorMsg = 'Gagal insert data penjualan. ';
+                if ($errors && is_array($errors)) {
+                    $errorMsg .= 'Validation: ' . implode(', ', array_map(function($e) {
+                        return is_array($e) ? json_encode($e) : $e;
+                    }, $errors));
+                }
+                if ($dbError) {
+                    if (is_array($dbError)) {
+                        $errorMsg .= ' Database: ' . (isset($dbError['message']) ? $dbError['message'] : json_encode($dbError));
+                    } else {
+                        $errorMsg .= ' Database: ' . $dbError;
+                    }
+                }
+                log_message('error', 'Agent Sales insert failed: ' . $errorMsg);
+                log_message('error', 'Agent Sales insert data: ' . json_encode($saleData));
+                throw new \Exception($errorMsg);
+            }
+            $saleId = $this->model->getInsertID();
+            if (!$saleId || $saleId == 0) {
+                throw new \Exception('Gagal mendapatkan ID penjualan setelah insert.');
+            }
+            $this->model->skipValidation(false);
+
+            // Save to sales_detail table only
+            $itemModel = new \App\Models\ItemModel();
+            foreach ($cart as $item) {
+                // Get item name
+                $itemRecord = $itemModel->find((int)$item['item_id']);
+                $itemName = 'Unknown';
+                if ($itemRecord) {
+                    if (is_array($itemRecord)) {
+                        $itemName = isset($itemRecord['name']) ? (string)$itemRecord['name'] : 'Unknown';
+                    } else {
+                        $itemName = isset($itemRecord->name) ? (string)$itemRecord->name : 'Unknown';
+                    }
+                }
+
+                // Insert to sales_detail - ensure sn is a string
+                $snValue = null;
+                if (!empty($item['sns'])) {
+                    $snValue = is_array($item['sns']) ? json_encode($item['sns']) : (string)$item['sns'];
                 }
                 
-                // Create sale items
-                foreach ($cart as $item) {
-                    $itemData = [
+                $this->salesDetailModel->skipValidation(true);
+                $salesDetailData = [
                         'sale_id' => $saleId,
-                        'item_id' => $item['item_id'],
-                        'variant_id' => null, // No variant selection for agent sales
-                        'quantity' => $item['qty'],
-                        'price' => $item['price'],
-                        'discount' => 0,
-                        'subtotal' => $item['subtotal'],
-                        'note' => ''
-                    ];
-                    
-                    $this->salesItemsModel->skipValidation(true);
-                    $salesItemId = $this->salesItemsModel->insert($itemData);
-                    $this->salesItemsModel->skipValidation(false);
-                    
-                    // Handle serial numbers if needed
-                    // (You can add SN handling here if required)
+                        'item_id' => (int)$item['item_id'],
+                        'variant_id' => !empty($item['variant_id']) ? (int)$item['variant_id'] : null,
+                    'sn' => $snValue,
+                    'item' => $itemName,
+                        'price' => (float)($item['price'] ?? 0),
+                    'qty' => (int)($item['qty'] ?? 1),
+                    'disc' => (float)($item['discount'] ?? 0),
+                    'amount' => (float)($item['subtotal'] ?? 0)
+                ];
+                $detailInsertResult = $this->salesDetailModel->insert($salesDetailData);
+                if (!$detailInsertResult) {
+                    $errors = $this->salesDetailModel->errors();
+                    $errorMsg = 'Gagal insert sales_detail: ';
+                    if ($errors && is_array($errors)) {
+                        $errorMsg .= implode(', ', array_map(function($e) {
+                            return is_array($e) ? json_encode($e) : (string)$e;
+                        }, $errors));
+                    }
+                    throw new \Exception($errorMsg);
                 }
-                
-                // Save payment information if platform is selected (within transaction)
-                if ($platformId && $gatewayResponse) {
-                    // Determine payment method based on gateway code
-                    $paymentMethod = 'qris'; // default
-                    if (!empty($gatewayResponse['code'])) {
-                        $gwCode = strtoupper($gatewayResponse['code']);
-                        if (in_array($gwCode, ['QRIS', 'QR'])) {
-                            $paymentMethod = 'qris';
-                        } elseif (in_array($gwCode, ['BCA', 'MANDIRI', 'BNI', 'BRI'])) {
-                            $paymentMethod = 'transfer';
-                        } else {
-                            $paymentMethod = 'other';
-                        }
+                $salesDetailId = $this->salesDetailModel->getInsertID();
+                $this->salesDetailModel->skipValidation(false);
+
+                // Save serial numbers to SalesItemSnModel and update ItemSnModel
+                if (!empty($item['sns'])) {
+                    // Check if sns is already an array or needs to be decoded
+                    if (is_array($item['sns'])) {
+                        $sns = $item['sns'];
+                    } else {
+                        $sns = json_decode($item['sns'], true);
                     }
                     
-                    // Store full gateway response in response field (TEXT), note for manual notes
-                    $gatewayResponseJson = json_encode($gatewayResponse);
-                    
-                    $paymentData = [
-                        'sale_id' => $saleId,
-                        'platform_id' => $platformId,
-                        'method' => $paymentMethod,
-                        'amount' => $grandTotal,
-                        'note' => '', // Manual notes if needed
-                        'response' => $gatewayResponseJson // Full gateway response JSON
-                    ];
-                    
-                    $this->salesPaymentsModel->skipValidation(true);
-                    $this->salesPaymentsModel->insert($paymentData);
-                    $this->salesPaymentsModel->skipValidation(false);
-                } elseif ($platformId) {
-                    // Platform selected but no gateway response (cash payment via platform)
-                    $paymentData = [
-                        'sale_id' => $saleId,
-                        'platform_id' => $platformId,
-                        'method' => 'cash',
-                        'amount' => $grandTotal,
-                        'note' => ''
-                    ];
-                    
-                    $this->salesPaymentsModel->skipValidation(true);
-                    $this->salesPaymentsModel->insert($paymentData);
-                    $this->salesPaymentsModel->skipValidation(false);
+                    if (is_array($sns) && $salesDetailId) {
+                        // Get item warranty from item record
+                        $itemWarranty = 0;
+                        if ($itemRecord) {
+                            if (is_array($itemRecord)) {
+                                $itemWarranty = isset($itemRecord['warranty']) ? (int)$itemRecord['warranty'] : 0;
+                            } else {
+                                $itemWarranty = isset($itemRecord->warranty) ? (int)$itemRecord->warranty : 0;
+                            }
+                        }
+                        
+                        $itemSnModel = new \App\Models\ItemSnModel();
+                        $activatedAt = date('Y-m-d H:i:s');
+                        
+                        // Calculate expired_at if warranty exists
+                        $expiredAt = null;
+                        if ($itemWarranty > 0) {
+                            $expiredAt = (new \DateTime($activatedAt))
+                                ->modify('+' . $itemWarranty . ' months')
+                                ->format('Y-m-d H:i:s');
+                        }
+                        
+                        foreach ($sns as $sn) {
+                                if (!empty($sn['item_sn_id']) && !empty($sn['sn'])) {
+                                $itemSnId = (int)$sn['item_sn_id'];
+                                $snValue = (string)$sn['sn'];
+                                
+                                // Save to SalesItemSnModel
+                                $this->salesItemSnModel->skipValidation(true);
+                                $salesItemSnData = [
+                                    'sales_item_id' => $salesDetailId,
+                                    'item_sn_id' => $itemSnId,
+                                    'sn' => $snValue
+                                ];
+                                $this->salesItemSnModel->insert($salesItemSnData);
+                                $this->salesItemSnModel->skipValidation(false);
+                                
+                                // Update ItemSnModel with warranty expiration
+                                $updateData = [
+                                    'is_sell'      => '1',
+                                    'is_activated' => '1',
+                                    'activated_at' => $activatedAt,
+                                ];
+                                
+                                // Add expired_at if warranty is set
+                                if ($expiredAt) {
+                                    $updateData['expired_at'] = $expiredAt;
+                                }
+                                
+                                $itemSnModel->skipValidation(true);
+                                $itemSnModel->update($itemSnId, $updateData);
+                                $itemSnModel->skipValidation(false);
+                            }
+                        }
+                    }
+                }
+            }
+                
+            // Save payment information if platform is selected
+            // Only save if sale was created successfully
+            if ($saleId && $platformId && $gatewayResponse) {
+                // Determine payment method based on gateway code
+                $paymentMethod = 'qris'; // default
+                if (!empty($gatewayResponse['code'])) {
+                    $gwCode = strtoupper($gatewayResponse['code']);
+                    if (in_array($gwCode, ['QRIS', 'QR'])) {
+                        $paymentMethod = 'qris';
+                    } elseif (in_array($gwCode, ['BCA', 'MANDIRI', 'BNI', 'BRI'])) {
+                        $paymentMethod = 'transfer';
+                    } else {
+                        $paymentMethod = 'other';
+                    }
                 }
                 
-                $db->transComplete();
+                // Store full gateway response in response field (TEXT), note for manual notes
+                $gatewayResponseJson = json_encode($gatewayResponse);
                 
-                if ($db->transStatus() === false) {
-                    throw new \Exception('Transaksi gagal.');
+                $paymentData = [
+                    'sale_id' => $saleId,
+                    'platform_id' => $platformId,
+                    'method' => $paymentMethod,
+                    'amount' => (float)($postData['grand_total'] ?? $grandTotal),
+                    'note' => '', // Manual notes if needed
+                    'response' => $gatewayResponseJson // Full gateway response JSON
+                ];
+                
+                $this->salesPaymentsModel->skipValidation(true);
+                $paymentInsertResult = $this->salesPaymentsModel->insert($paymentData);
+                $this->salesPaymentsModel->skipValidation(false);
+                
+                if (!$paymentInsertResult) {
+                    $errors = $this->salesPaymentsModel->errors();
+                    $errorMsg = 'Gagal menyimpan data pembayaran: ';
+                    if ($errors && is_array($errors)) {
+                        $errorMsg .= implode(', ', $errors);
+                    }
+                    throw new \Exception($errorMsg);
                 }
+            } elseif ($saleId && $platformId) {
+                // Platform selected but no gateway response (cash payment via platform like "Tunai")
+                $paymentData = [
+                    'sale_id' => $saleId,
+                    'platform_id' => $platformId,
+                    'method' => 'cash',
+                    'amount' => (float)($postData['grand_total'] ?? $grandTotal),
+                    'note' => ''
+                ];
+                
+                $this->salesPaymentsModel->skipValidation(true);
+                $paymentInsertResult = $this->salesPaymentsModel->insert($paymentData);
+                $this->salesPaymentsModel->skipValidation(false);
+                
+                if (!$paymentInsertResult) {
+                    $errors = $this->salesPaymentsModel->errors();
+                    $errorMsg = 'Gagal menyimpan data pembayaran: ';
+                    if ($errors && is_array($errors)) {
+                        $errorMsg .= implode(', ', $errors);
+                    } else {
+                        $dbError = $db->error();
+                        if ($dbError) {
+                            $errorMsg .= 'Database error: ' . (is_array($dbError) ? json_encode($dbError) : $dbError);
+                        }
+                    }
+                    throw new \Exception($errorMsg);
+                }
+            }
+
+            // Complete transaction
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                throw new \Exception('Transaksi gagal.');
+            }
                 
                 // Auto-fetch latest payment status from gateway if payment was created with gateway
                 if ($saleId && $platformId && $gatewayResponse) {
@@ -703,11 +849,22 @@ class Sales extends BaseController
                 log_message('info', "Agent Sales transaction created: ID {$saleId}, Invoice: {$postData['invoice_no']}");
                 
                 $message = 'Penjualan berhasil disimpan. Invoice: ' . $postData['invoice_no'];
+                $responseData = ['id' => $saleId];
+                
+                // Include gateway response data (QR code URL) if available
+                if ($gatewayResponse && !empty($gatewayResponse['url'])) {
+                    $responseData['gateway'] = [
+                        'url' => $gatewayResponse['url'],
+                        'status' => $gatewayResponse['status'] ?? 'PENDING',
+                        'paymentGatewayAdminFee' => $gatewayResponse['paymentGatewayAdminFee'] ?? 0
+                    ];
+                }
+                
                 if ($isAjax) {
                     return $this->response->setJSON([
                         'status' => 'success',
                         'message' => $message,
-                        'data' => ['id' => $saleId]
+                        'data' => $responseData
                     ]);
                 }
                 

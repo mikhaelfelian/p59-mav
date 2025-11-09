@@ -19,6 +19,7 @@ namespace App\Controllers\Api;
 use CodeIgniter\Controller;
 use App\Models\SalesModel;
 use CodeIgniter\HTTP\ResponseInterface;
+use CodeIgniter\HTTP\IncomingRequest;
 
 class Sales extends Controller
 {
@@ -26,6 +27,16 @@ class Sales extends Controller
      * Model instance
      */
     protected $model;
+
+    /**
+     * Request instance
+     */
+    protected $request;
+
+    /**
+     * Response instance
+     */
+    protected $response;
 
     /**
      * Initialize models
@@ -53,25 +64,55 @@ class Sales extends Controller
     public function callback(): ResponseInterface
     {
         try {
-            // Get JSON data from request body or POST data
+            // Get JSON data from request body
+            // CodeIgniter 4's getJSON() automatically handles Content-Type: application/json
             $jsonData = null;
-            $rawInput = $this->request->getBody();
             
-            if (!empty($rawInput)) {
-                $jsonData = json_decode($rawInput, true);
+            // Get request instance (IncomingRequest)
+            $request = service('request');
+            
+            // Check Content-Type header for JSON
+            $contentType = $request->getHeaderLine('Content-Type');
+            $isJson = strpos($contentType, 'application/json') !== false;
+            
+            if ($isJson) {
+                // Use getJSON() for proper JSON parsing
+                // getJSON(true) returns associative array
+                $jsonData = $request->getJSON(true);
+            } else {
+                // Try to get JSON from raw body if Content-Type is not set correctly
+                $rawInput = $request->getBody();
+                if (!empty($rawInput)) {
+                    $jsonData = json_decode($rawInput, true);
+                    // Check if JSON decode was successful
+                    if (json_last_error() !== JSON_ERROR_NONE) {
+                        $jsonData = null;
+                    }
+                }
             }
             
             // Fallback to POST data if JSON body is empty
             if (empty($jsonData)) {
-                $jsonData = $this->request->getPost();
+                $jsonData = $request->getPost();
             }
             
             // Fallback to GET data if POST is empty
             if (empty($jsonData)) {
-                $jsonData = $this->request->getGet();
+                $jsonData = $request->getGet();
             }
             
+            // Log received data for debugging
+            log_message('info', 'Api\Sales::callback - Content-Type: ' . $contentType);
+            log_message('info', 'Api\Sales::callback - Received data: ' . json_encode($jsonData));
+            
             // Validate required fields
+            if (empty($jsonData) || !is_array($jsonData)) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Invalid request data. Expected JSON body with orderId and status.'
+                ])->setStatusCode(400);
+            }
+            
             if (empty($jsonData['orderId'])) {
                 return $this->response->setJSON([
                     'status' => 'error',
