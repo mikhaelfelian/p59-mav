@@ -94,16 +94,21 @@ $routes->post('agent-rules/delete/(:num)', 'AgentRules::delete/$1');
 
 /* Bagian agen */
 $routes->group('agent', function($routes) {
-	// Agent Item (POS View)
-	$routes->get('item', 'Agent\Item::index');
-	
-	// Agent Sales (Cart & Checkout)
-	$routes->get('sales/cart', 'Agent\Sales::cart');
-	$routes->post('sales/store', 'Agent\Sales::store');
-	$routes->post('sales/addToCart', 'Agent\Sales::addToCart');
-	$routes->post('sales/updateCart', 'Agent\Sales::updateCart');
-	$routes->post('sales/removeFromCart', 'Agent\Sales::removeFromCart');
-	$routes->get('sales/clearCart', 'Agent\Sales::clearCart');
+    // Agent Item (POS View)
+    $routes->get('item', 'Agent\Item::index');
+
+    // Agent Sales (Cart & Checkout)
+    $routes->get('sales/cart', 'Agent\Sales::cart');
+    $routes->post('sales/store', 'Agent\Sales::store');
+    $routes->post('sales/addToCart', 'Agent\Sales::addToCart');
+    $routes->post('sales/updateCart', 'Agent\Sales::updateCart');
+    $routes->post('sales/removeFromCart', 'Agent\Sales::removeFromCart');
+    $routes->get('sales/clearCart', 'Agent\Sales::clearCart');
+    
+    // Agent Payment Result Pages
+    $routes->get('payment/thankyou', 'Agent\Payment::thankyou');
+    $routes->get('payment/status', 'Agent\Payment::status');
+    $routes->get('payment/not-found', 'Agent\Payment::notFound');
 });
 
 # Agent Gateway Check (for agent/post integration)
