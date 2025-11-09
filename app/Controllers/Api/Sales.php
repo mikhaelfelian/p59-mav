@@ -73,16 +73,12 @@ class Sales extends Controller
             $request = service('request');
             $response = service('response');
             
-            // Get raw body first for logging
+            // Get raw body first (was logged)
             $rawInput = $request->getBody();
             
             // Check Content-Type header for JSON
             $contentType = $request->getHeaderLine('Content-Type');
             $isJson = strpos($contentType, 'application/json') !== false;
-            
-            // Log raw input for debugging
-            log_message('info', 'Api\Sales::callback - Content-Type: ' . ($contentType ?: 'not set'));
-            log_message('info', 'Api\Sales::callback - Raw body: ' . substr($rawInput, 0, 500));
             
             if ($isJson || !empty($rawInput)) {
                 // Try to parse JSON from body
@@ -114,7 +110,6 @@ class Sales extends Controller
             
             // If JSON parsing failed, return specific error
             if ($jsonError !== null) {
-                log_message('error', 'Api\Sales::callback - JSON parse error: ' . $jsonError);
                 return $response->setJSON([
                     'status' => 'error',
                     'message' => 'Invalid JSON format: ' . $jsonError . '. Please check your JSON syntax (e.g., remove trailing commas).',
@@ -131,9 +126,6 @@ class Sales extends Controller
             if (empty($jsonData)) {
                 $jsonData = $request->getGet();
             }
-            
-            // Log received data for debugging
-            log_message('info', 'Api\Sales::callback - Parsed data: ' . json_encode($jsonData));
             
             // Validate required fields
             if (empty($jsonData) || !is_array($jsonData)) {
@@ -177,9 +169,24 @@ class Sales extends Controller
             $sale = $this->model->where('invoice_no', $orderId)->first();
             
             if (!$sale) {
+                // Get base URL for redirect
+                $config = config('App');
+                $baseURL = $config->baseURL;
+                $notFoundUrl = $baseURL . 'agent/payment/not-found';
+                
+                // Check if this is a browser request
+                $acceptHeader = $request->getHeaderLine('Accept');
+                $isBrowserRequest = strpos($acceptHeader, 'text/html') !== false;
+                
+                // If browser request, redirect to not-found page
+                if ($isBrowserRequest) {
+                    return redirect()->to($notFoundUrl);
+                }
+                
                 return $response->setJSON([
                     'status' => 'error',
-                    'message' => 'Sale not found for orderId: ' . $orderId
+                    'message' => 'Sale not found for orderId: ' . $orderId,
+                    'redirect_url' => $notFoundUrl
                 ])->setStatusCode(404);
             }
             
@@ -228,6 +235,34 @@ class Sales extends Controller
                 ])->setStatusCode(500);
             }
             
+            // Get base URL for redirect
+            $config = config('App');
+            $baseURL = $config->baseURL;
+            
+            // Determine redirect URL based on payment status
+            $redirectUrl = null;
+            if ($status === 'PAID') {
+                // Success - redirect to thankyou page
+                $redirectUrl = $baseURL . 'agent/payment/thankyou?orderId=' . urlencode($orderId);
+            } elseif (in_array($status, ['FAILED', 'CANCELED', 'EXPIRED'])) {
+                // Failed/Canceled/Expired - redirect to status page
+                $statusLower = strtolower($status);
+                $redirectUrl = $baseURL . 'agent/payment/status?orderId=' . urlencode($orderId) . '&status=' . urlencode($statusLower);
+            } elseif ($status === 'PENDING') {
+                // Pending - redirect to status page with pending status
+                $redirectUrl = $baseURL . 'agent/payment/status?orderId=' . urlencode($orderId) . '&status=pending';
+            }
+            
+            // Check if this is a browser request (has Accept: text/html header)
+            $acceptHeader = $request->getHeaderLine('Accept');
+            $isBrowserRequest = strpos($acceptHeader, 'text/html') !== false;
+            
+            // If browser request and redirect URL exists, perform actual redirect
+            if ($isBrowserRequest && $redirectUrl) {
+                return redirect()->to($redirectUrl);
+            }
+            
+            // Return JSON response with redirect URL
             return $response->setJSON([
                 'status'  => 'success',
                 'message' => 'Payment status updated successfully',
@@ -236,13 +271,11 @@ class Sales extends Controller
                     'status'         => $status,
                     'payment_status' => $paymentStatus,
                     'settlement_time'=> $updateData['settlement_time'] ?? null,
+                    'redirect_url'   => $redirectUrl
                 ],
             ]);
             
         } catch (\Exception $e) {
-            log_message('error', 'Api\Sales::callback exception: ' . $e->getMessage());
-            log_message('error', 'Api\Sales::callback trace: ' . $e->getTraceAsString());
-            
             $response = service('response');
             return $response->setJSON([
                 'status' => 'error',
