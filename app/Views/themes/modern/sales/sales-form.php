@@ -922,183 +922,76 @@ $(document).ready(function() {
 		$('#discount-input').val($('#discount-input').val() || '0');
 		$('#tax-input').val($('#tax-input').val() || '0');
 		
-		// Check if platform is selected and has status_pos=1 and gw_status=1
-		let platformId = $('#platform_id').val();
-		let selectedPlatform = null;
-		if (platformId && platformsData) {
-			selectedPlatform = platformsData.find(function(p) {
-				return p.id == platformId;
-			});
-		}
-		
-		// If platform has status_pos=1 and gw_status=1, call external API
-		if (selectedPlatform && selectedPlatform.status_pos == '1' && selectedPlatform.gw_status == '1') {
-			// Prepare API request data
-			let invoiceNo = $('#invoice_no').val();
-			let grandTotalInput = $('#grand-total-input').val() || '0';
-			let grandTotal = parseFloat(String(grandTotalInput).replace(/[^\d.-]/g, '')) || 0;
-			let customerName = $('#customer_name').val() || '';
-			
-			// Get customer data - customer will be created automatically
-			// Use empty values as customer is new
-			let customerPhone = '';
-			let customerEmail = '';
-			
-			// Split customer name into firstName and lastName
-			let nameParts = customerName.trim().split(/\s+/);
-			let firstName = nameParts[0] || '';
-			let lastName = nameParts.slice(1).join(' ') || '';
-			
-			// If no lastName, use firstName as lastName
-			if (!lastName) {
-				lastName = firstName;
-			}
-			
-			let apiData = {
-				code: selectedPlatform.gw_code || 'QRIS',
-				orderId: invoiceNo,
-				amount: Math.round(grandTotal),
-				customer: {
-					firstName: firstName,
-					lastName: lastName,
-					email: customerEmail || 'customer@example.com',
-					phone: customerPhone || ''
-				}
-			};
-			
-			// Call external API
-			$submitBtn.html('<span class="loading-spinner"></span> Mengirim ke gateway...');
-			$.ajax({
-				url: 'https://dev.osu.biz.id/mig/esb/v1/api/payments',
-				type: 'POST',
-				contentType: 'application/json',
-				data: JSON.stringify(apiData),
-				dataType: 'json',
-				success: function(apiResponse) {
-					// Store gateway response data
-					let gatewayResponse = {
-						code: apiResponse.code || '',
-						orderId: apiResponse.orderId || invoiceNo,
-						status: apiResponse.status || 'PENDING',
-						url: apiResponse.url || '',
-						settlementTime: apiResponse.settlementTime || null,
-						paymentGatewayAdminFee: apiResponse.paymentGatewayAdminFee || 0,
-						chargeFee: apiResponse.chargeFee || 0,
-						originalAmount: apiResponse.originalAmount || grandTotal
-					};
+		// Submit form - API call is handled in PHP
+		let formData = $('#form-sales').serialize();
+		$.ajax({
+			url: $('#form-sales').attr('action'),
+			type: 'POST',
+			data: formData,
+			dataType: 'json',
+			success: function(response) {
+				if (response.status === 'success') {
+					// Get redirect URL (to detail page) or construct from sale ID
+					let redirectUrl = response.redirect || (response.data && response.data.id ? '<?= $config->baseURL ?>sales/' + response.data.id : '<?= $config->baseURL ?>sales');
 					
-					// Store in hidden field for form submission
-					$('#gateway_response').remove();
-					$('form').append('<input type="hidden" id="gateway_response" name="gateway_response" value="' + 
-						encodeURIComponent(JSON.stringify(gatewayResponse)) + '">');
-					
-					// If QR code URL exists, show it to user
-					if (gatewayResponse.url) {
+					// Check if gateway response contains QR code URL
+					if (response.data && response.data.gateway && response.data.gateway.url) {
+						let gateway = response.data.gateway;
 						Swal.fire({
 							title: 'QR Code Pembayaran',
 							html: `
 								<div class="text-center">
 									<p class="mb-3">Silakan scan QR code berikut untuk melakukan pembayaran:</p>
-									<img src="${gatewayResponse.url}" alt="QR Code" class="img-fluid mb-3" style="max-width: 300px;">
-									<p class="text-muted small mb-2">Status: <strong>${gatewayResponse.status}</strong></p>
-									${gatewayResponse.paymentGatewayAdminFee > 0 ? 
-										'<p class="text-muted small">Biaya Admin: Rp ' + gatewayResponse.paymentGatewayAdminFee.toLocaleString('id-ID') + '</p>' : ''}
-									<a href="${gatewayResponse.url}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+									<img src="${gateway.url}" alt="QR Code" class="img-fluid mb-3" style="max-width: 300px;">
+									<p class="text-muted small mb-2">Status: <strong>${gateway.status}</strong></p>
+									${gateway.paymentGatewayAdminFee > 0 ? 
+										'<p class="text-muted small">Biaya Admin: Rp ' + gateway.paymentGatewayAdminFee.toLocaleString('id-ID') + '</p>' : ''}
+									<a href="${gateway.url}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
 										<i class="fas fa-external-link-alt"></i> Buka QR Code
 									</a>
 								</div>
 							`,
 							icon: 'info',
-							showCancelButton: true,
-							confirmButtonText: 'Lanjutkan Simpan',
-							cancelButtonText: 'Batal',
+							confirmButtonText: 'OK',
 							confirmButtonColor: '#4e73df',
 							width: '500px'
-						}).then((result) => {
-							if (result.isConfirmed) {
-								// Proceed with form submission
-								submitForm();
-							} else {
-								// User cancelled, reset button
-								isSubmitting = false;
-								$submitBtn.prop('disabled', false).html(originalText);
-							}
+						}).then(() => {
+							showToast(response.message || 'Penjualan berhasil disimpan.', 'success');
+							setTimeout(function() {
+								window.location.href = redirectUrl;
+							}, 1500);
 						});
 					} else {
-						// No QR code URL, proceed directly
-						submitForm();
-					}
-				},
-				error: function(xhr) {
-					let errorMsg = 'Gagal mengirim ke payment gateway.';
-					if (xhr.responseJSON && xhr.responseJSON.message) {
-						errorMsg = xhr.responseJSON.message;
-					} else if (xhr.responseText) {
-						try {
-							let error = JSON.parse(xhr.responseText);
-							if (error.message) {
-								errorMsg = error.message;
-							}
-						} catch(e) {
-							// Use default error message
-						}
-					}
-					Swal.fire({
-						icon: 'error',
-						title: 'Error',
-						text: errorMsg,
-						confirmButtonColor: '#dc3545'
-					});
-					isSubmitting = false;
-					$submitBtn.prop('disabled', false).html(originalText);
-				}
-			});
-		} else {
-			// No platform or platform doesn't meet criteria, proceed with normal submission
-			submitForm();
-		}
-		
-		// Function to submit the form
-		function submitForm() {
-			$submitBtn.html('<span class="loading-spinner"></span> Menyimpan...');
-			let formData = $('#form-sales').serialize();
-			$.ajax({
-				url: $('#form-sales').attr('action'),
-				type: 'POST',
-				data: formData,
-				dataType: 'json',
-				success: function(response) {
-					if (response.status === 'success') {
 						showToast(response.message || 'Penjualan berhasil disimpan.', 'success');
 						setTimeout(function() {
-							window.location.href = '<?= $config->baseURL ?>sales';
+							window.location.href = redirectUrl;
 						}, 1500);
-					} else {
-						showToast(response.message || 'Gagal menyimpan penjualan.', 'error');
-						isSubmitting = false;
-						$submitBtn.prop('disabled', false).html(originalText);
 					}
-				},
-				error: function(xhr) {
-					let errorMsg = 'Gagal menyimpan penjualan.';
-					if (xhr.responseJSON && xhr.responseJSON.message) {
-						errorMsg = xhr.responseJSON.message;
-					} else if (xhr.responseText) {
-						try {
-							let error = JSON.parse(xhr.responseText);
-							if (error.message) {
-								errorMsg = error.message;
-							}
-						} catch(e) {
-							// Use default error message
-						}
-					}
-					showToast(errorMsg, 'error');
+				} else {
+					showToast(response.message || 'Gagal menyimpan penjualan.', 'error');
 					isSubmitting = false;
 					$submitBtn.prop('disabled', false).html(originalText);
 				}
-			});
-		}
+			},
+			error: function(xhr) {
+				let errorMsg = 'Gagal menyimpan penjualan.';
+				if (xhr.responseJSON && xhr.responseJSON.message) {
+					errorMsg = xhr.responseJSON.message;
+				} else if (xhr.responseText) {
+					try {
+						let error = JSON.parse(xhr.responseText);
+						if (error.message) {
+							errorMsg = error.message;
+						}
+					} catch(e) {
+						// Use default error message
+					}
+				}
+				showToast(errorMsg, 'error');
+				isSubmitting = false;
+				$submitBtn.prop('disabled', false).html(originalText);
+			}
+		});
 	});
 
 	updateItemsTable();

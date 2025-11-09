@@ -27,7 +27,8 @@ class SalesPaymentsModel extends Model
         'platform_id',
         'method',
         'amount',
-        'note'
+        'note',
+        'response'
     ];
 
     // Dates

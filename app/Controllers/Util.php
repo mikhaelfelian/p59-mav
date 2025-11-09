@@ -117,20 +117,19 @@ class Util extends Controller
     protected function injectModules()
     {
         $modules = [
-
             [
-                'nama_module'      => 'cart',
-                'judul_module'     => 'Cart',
-                'deskripsi'        => 'Shopping Cart & Checkout',
+                'nama_module'      => 'agent-item',
+                'judul_module'     => 'Agent Item',
+                'deskripsi'        => 'POS View - Display products for agents in grid layout',
                 'id_module_status' => 1,
-                'login'            => 'N'
+                'login'            => 'Y'
             ],
             [
-                'nama_module'      => 'checkout',
-                'judul_module'     => 'Checkout',
-                'deskripsi'        => 'Order Checkout & Payment',
+                'nama_module'      => 'agent-sales',
+                'judul_module'     => 'Agent Sales',
+                'deskripsi'        => 'Cart & Checkout - Agent transaction system with cart functionality',
                 'id_module_status' => 1,
-                'login'            => 'N'
+                'login'            => 'Y'
             ]
         ];
         
@@ -264,7 +263,8 @@ class Util extends Controller
                     $permissionData = [
                         'id_module' => $moduleId,
                         'nama_permission' => $permissionType,
-                        'aktif' => 'Y'
+                        'judul_permission' => ucwords(str_replace('_', ' ', $permissionType)) . ' Data',
+                        'keterangan' => 'Hak akses untuk ' . str_replace('_', ' ', $permissionType)
                     ];
                     
                     $this->db->table('module_permission')->insert($permissionData);

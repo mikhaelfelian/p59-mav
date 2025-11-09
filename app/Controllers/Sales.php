@@ -61,6 +61,12 @@ class Sales extends BaseController
     protected const CHANNEL_ONLINE = '2';
 
     /**
+     * Payment Gateway Configuration
+     */
+    protected const GATEWAY_API_KEY = 'P@ssw0rdMav123';
+    protected const GATEWAY_PUBLIC_KEY = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAp4d7Fd9aXgP5zK0YbM3Z2skasRz9i41ZwPjH3KQZlfZ5LcvXbApX8yRHLJc/biMFcXosIuHf6Z0hG9vChgCyOf2V6tYb05Q+bmAlwJ1pDkg4zKHzXv/uhRRjZQxX2ld7rYgXW9BvvkKIRu5ATkKeYzX8o9u8ZBqYkDg0ACZ1X+YP0X1ZlNQy3YBqx4fXKPRdZ6gPSPzN4r4s7vYSmZ7fWQIDAQAB';
+
+    /**
      * Initialize models and dependencies
      */
     public function __construct()
@@ -213,29 +219,42 @@ class Sales extends BaseController
     public function store()
     {
         $isAjax = $this->request->isAJAX();
-        
+
         // Validate user session
         $userSession = session('user');
         if (!is_array($userSession) || !isset($userSession['id_user'])) {
             $message = 'User session tidak ditemukan, silakan login ulang.';
             if ($isAjax) {
-                return $this->response->setJSON(['status' => 'error', 'message' => $message]);
+                return $this->response->setJSON([
+                    'status'  => 'error',
+                    'message' => $message
+                ]);
             }
-            return redirect()->to('login')->with('message', ['status' => 'error', 'message' => $message]);
+            return redirect()->to('login')
+                ->with('message', [
+                    'status'  => 'error',
+                    'message' => $message
+                ]);
         }
         $userId = $userSession['id_user'];
 
         $postData = $this->request->getPost();
         $id = $postData['id'] ?? null;
-        
+
         // Parse items from POST
         $items = $this->parseSaleItems($postData);
         if (empty($items)) {
             $message = 'Minimal harus ada satu item dalam transaksi.';
             if ($isAjax) {
-                return $this->response->setJSON(['status' => 'error', 'message' => $message]);
+                return $this->response->setJSON([
+                    'status'  => 'error',
+                    'message' => $message
+                ]);
             }
-            return redirect()->back()->withInput()->with('message', ['status' => 'error', 'message' => $message]);
+            return redirect()->back()->withInput()->with('message', [
+                'status'  => 'error',
+                'message' => $message
+            ]);
         }
 
         // Validate invoice number
@@ -284,38 +303,109 @@ class Sales extends BaseController
             // Get platform details
             $platform = $this->platformModel->find($platformId);
             
-            // Check if platform has status_pos=1 and gw_status=1
-            if ($platform && isset($platform['status_pos']) && $platform['status_pos'] == '1' && 
-                isset($platform['gw_status']) && $platform['gw_status'] == '1') {
+            // Only send to gateway if platform.gw_status = '1'
+            // Platforms like "Tunai" (Cash) with gw_status = '0' should NOT go through gateway
+            $gwStatus = $platform['gw_status'] ?? '0';
+            // Handle both string and integer values
+            $gwStatus = (string)$gwStatus;
+            if ($platform && $gwStatus === '1') {
                 
                 // Prepare API request data
                 $invoiceNo = trim($postData['invoice_no']);
                 $grandTotal = (float)($postData['grand_total'] ?? 0);
+                
+                // Get customer email and phone from existing customer or form data
+                $customerEmail = !empty($postData['customer_email']) ? trim($postData['customer_email']) : '';
+                $customerPhone = !empty($postData['customer_phone']) ? trim($postData['customer_phone']) : '';
+                
+                // If customer exists, try to get email/phone from customer record
+                if ($customerId) {
+                    $customerRecord = $this->customerModel->find($customerId);
+                    if ($customerRecord) {
+                        if (empty($customerEmail) && !empty($customerRecord['email'])) {
+                            $customerEmail = $customerRecord['email'];
+                        }
+                        if (empty($customerPhone) && !empty($customerRecord['phone'])) {
+                            $customerPhone = $customerRecord['phone'];
+                        }
+                    }
+                }
+                
+                // Use defaults if still empty
+                if (empty($customerEmail)) {
+                    $customerEmail = 'customer@example.com';
+                }
+                if (empty($customerPhone)) {
+                    $customerPhone = '';
+                }
                 
                 // Split customer name into firstName and lastName
                 $nameParts = !empty($customerName) ? explode(' ', $customerName, 2) : ['Customer', 'Customer'];
                 $firstName = $nameParts[0] ?? 'Customer';
                 $lastName = $nameParts[1] ?? $firstName;
                 
+                // Prepare API payload matching Midtrans custom middleware format
                 $apiData = [
-                    'code' => $platform['gw_code'] ?? 'QRIS',
-                    'orderId' => $invoiceNo,
-                    'amount' => (int)round($grandTotal),
+                    'code'     => $platform['gw_code'] ?? 'QRIS',
+                    'orderId'  => $invoiceNo,
+                    'amount'   => (int) round($grandTotal),
                     'customer' => [
                         'firstName' => $firstName,
-                        'lastName' => $lastName,
-                        'email' => 'customer@example.com',
-                        'phone' => ''
-                    ]
+                        'lastName'  => $lastName,
+                        'email'     => $customerEmail,
+                        'phone'     => $customerPhone,
+                    ],
                 ];
+                
+                // Log the payload being sent (for debugging)
+                log_message('error', 'Sales::store - Gateway API Payload: ' . json_encode($apiData, JSON_PRETTY_PRINT));
                 
                 // Call payment gateway API
                 $gatewayResponse = $this->callPaymentGateway($apiData);
                 
                 if ($gatewayResponse === null) {
-                    $message = 'Gagal mengirim ke payment gateway.';
+                    // Get debug file content if it exists
+                    $debugFile = WRITEPATH . 'logs/gateway-debug-' . date('Y-m-d') . '.txt';
+                    $debugContent = '';
+                    if (file_exists($debugFile)) {
+                        $debugContent = file_get_contents($debugFile);
+                    }
+                    
+                    $logFile = WRITEPATH . 'logs/log-' . date('Y-m-d') . '.log';
+                    $errorDetails = 'Gagal mengirim ke payment gateway.';
+                    
+                    // Try to get more details from the last log entry
+                    if (file_exists($logFile)) {
+                        $logContent = file_get_contents($logFile);
+                        $lines = explode("\n", $logContent);
+                        $lastError = '';
+                        for ($i = count($lines) - 1; $i >= 0; $i--) {
+                            if (stripos($lines[$i], 'callPaymentGateway') !== false) {
+                                $lastError = trim($lines[$i]);
+                                break;
+                            }
+                        }
+                        if ($lastError) {
+                            $errorDetails .= ' Detail: ' . substr($lastError, 0, 200);
+                        }
+                    }
+                    
+                    $message = $errorDetails . ' Silakan cek log di: ' . $logFile;
                     if ($isAjax) {
-                        return $this->response->setJSON(['status' => 'error', 'message' => $message]);
+                        return $this->response->setJSON([
+                            'status' => 'error', 
+                            'message' => $message,
+                            'debug' => [
+                                'log_file' => $logFile,
+                                'log_exists' => file_exists($logFile),
+                                'debug_file' => $debugFile,
+                                'debug_exists' => file_exists($debugFile),
+                                'debug_content' => substr($debugContent, -500), // Last 500 chars
+                                'api_data' => $apiData,
+                                'platform_id' => $platformId,
+                                'gw_status' => $platform['gw_status'] ?? 'N/A'
+                            ]
+                        ]);
                     }
                     return redirect()->back()->withInput()->with('message', ['status' => 'error', 'message' => $message]);
                 }
@@ -352,6 +442,17 @@ class Sales extends BaseController
                 $customerId = $this->customerModel->getInsertID();
                 $this->customerModel->skipValidation(false);
             }
+            // Determine payment status based on gateway response
+            $paymentStatus = $postData['payment_status'] ?? '0';
+            if ($gatewayResponse && isset($gatewayResponse['status'])) {
+                $gatewayStatus = strtoupper($gatewayResponse['status']);
+                if ($gatewayStatus === 'PAID') {
+                    $paymentStatus = '2'; // paid
+                } elseif (in_array($gatewayStatus, ['PENDING', 'FAILED', 'CANCELED', 'EXPIRED'])) {
+                    $paymentStatus = '0'; // unpaid
+                }
+            }
+            
             // Save to sales table
             $saleData = [
                 'invoice_no' => trim($postData['invoice_no']),
@@ -363,8 +464,19 @@ class Sales extends BaseController
                 'discount_amount' => (float)($postData['discount'] ?? 0),
                 'tax_amount' => (float)($postData['tax'] ?? 0),
                 'grand_total' => (float)($postData['grand_total'] ?? 0),
-                'payment_status' => $postData['payment_status'] ?? '0'
+                'payment_status' => $paymentStatus
             ];
+            
+            // Add settlement_time if gateway response has it and status is PAID
+            if ($gatewayResponse && isset($gatewayResponse['settlementTime']) && 
+                isset($gatewayResponse['status']) && strtoupper($gatewayResponse['status']) === 'PAID') {
+                try {
+                    $settlementDateTime = new \DateTime($gatewayResponse['settlementTime']);
+                    $saleData['settlement_time'] = $settlementDateTime->format('Y-m-d H:i:s');
+                } catch (\Exception $e) {
+                    log_message('error', 'Sales::store - Invalid settlementTime format: ' . ($gatewayResponse['settlementTime'] ?? ''));
+                }
+            }
 
             $this->model->skipValidation(true);
             if ($id) {
@@ -507,9 +619,9 @@ class Sales extends BaseController
                                 
                                 // Update ItemSnModel with warranty expiration
                                 $updateData = [
-                                    'is_sell' => 1,
-                                    'is_activated' => 1,
-                                    'activated_at' => $activatedAt
+                                    'is_sell'      => '1',
+                                    'is_activated' => '1',
+                                    'activated_at' => $activatedAt,
                                 ];
                                 
                                 // Add expired_at if warranty is set
@@ -526,6 +638,75 @@ class Sales extends BaseController
                 }
             }
 
+            // Save payment information if platform is selected
+            // Only save if sale was created successfully
+            if ($saleId && $platformId && $gatewayResponse) {
+                // Determine payment method based on gateway code
+                $paymentMethod = 'qris'; // default
+                if (!empty($gatewayResponse['code'])) {
+                    $gwCode = strtoupper($gatewayResponse['code']);
+                    if (in_array($gwCode, ['QRIS', 'QR'])) {
+                        $paymentMethod = 'qris';
+                    } elseif (in_array($gwCode, ['BCA', 'MANDIRI', 'BNI', 'BRI'])) {
+                        $paymentMethod = 'transfer';
+                    } else {
+                        $paymentMethod = 'other';
+                    }
+                }
+                
+                // Store full gateway response in response field (TEXT), note for manual notes
+                $gatewayResponseJson = json_encode($gatewayResponse);
+                
+                $paymentData = [
+                    'sale_id' => $saleId,
+                    'platform_id' => $platformId,
+                    'method' => $paymentMethod,
+                    'amount' => (float)($postData['grand_total'] ?? 0),
+                    'note' => '', // Manual notes if needed
+                    'response' => $gatewayResponseJson // Full gateway response JSON
+                ];
+                
+                $this->salesPaymentsModel->skipValidation(true);
+                $paymentInsertResult = $this->salesPaymentsModel->insert($paymentData);
+                $this->salesPaymentsModel->skipValidation(false);
+                
+                if (!$paymentInsertResult) {
+                    $errors = $this->salesPaymentsModel->errors();
+                    $errorMsg = 'Gagal menyimpan data pembayaran: ';
+                    if ($errors && is_array($errors)) {
+                        $errorMsg .= implode(', ', $errors);
+                    }
+                    throw new \Exception($errorMsg);
+                }
+            } elseif ($saleId && $platformId) {
+                // Platform selected but no gateway response (cash payment via platform like "Tunai")
+                $paymentData = [
+                    'sale_id' => $saleId,
+                    'platform_id' => $platformId,
+                    'method' => 'cash',
+                    'amount' => (float)($postData['grand_total'] ?? 0),
+                    'note' => ''
+                ];
+                
+                $this->salesPaymentsModel->skipValidation(true);
+                $paymentInsertResult = $this->salesPaymentsModel->insert($paymentData);
+                $this->salesPaymentsModel->skipValidation(false);
+                
+                if (!$paymentInsertResult) {
+                    $errors = $this->salesPaymentsModel->errors();
+                    $errorMsg = 'Gagal menyimpan data pembayaran: ';
+                    if ($errors && is_array($errors)) {
+                        $errorMsg .= implode(', ', $errors);
+                    } else {
+                        $dbError = $db->error();
+                        if ($dbError) {
+                            $errorMsg .= 'Database error: ' . (is_array($dbError) ? json_encode($dbError) : $dbError);
+                        }
+                    }
+                    throw new \Exception($errorMsg);
+                }
+            }
+
             // Complete transaction
             $db->transComplete();
 
@@ -533,16 +714,61 @@ class Sales extends BaseController
                 throw new \Exception('Transaksi gagal.');
             }
 
+            // Auto-fetch latest payment status from gateway if payment was created with gateway
+            if ($saleId && $platformId && $gatewayResponse) {
+                try {
+                    $invoiceNo = trim($postData['invoice_no']);
+                    $latestGatewayResponse = $this->getPaymentStatusFromGateway($invoiceNo);
+                    
+                    if ($latestGatewayResponse !== null) {
+                        // Update payment record with latest gateway response
+                        $paymentRecord = $this->salesPaymentsModel
+                            ->where('sale_id', $saleId)
+                            ->where('platform_id', $platformId)
+                            ->first();
+                        
+                        if ($paymentRecord) {
+                            $latestResponseJson = json_encode($latestGatewayResponse);
+                            $this->salesPaymentsModel->skipValidation(true);
+                            $this->salesPaymentsModel->update($paymentRecord['id'], [
+                                'response' => $latestResponseJson
+                            ]);
+                            $this->salesPaymentsModel->skipValidation(false);
+                            
+                            // Update gateway response variable for response data
+                            $gatewayResponse = $latestGatewayResponse;
+                            
+                            log_message('info', 'Sales::store - Updated payment response with latest gateway data for invoice: ' . $invoiceNo);
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // Don't fail the transaction if status fetch fails, just log it
+                    log_message('error', 'Sales::store - Failed to fetch latest payment status: ' . $e->getMessage());
+                }
+            }
+
             $message = $id ? 'Penjualan berhasil diupdate.' : 'Penjualan berhasil disimpan.';
+            $responseData = ['id' => $saleId];
+            
+            // Include gateway response data (QR code URL) if available
+            if ($gatewayResponse && !empty($gatewayResponse['url'])) {
+                $responseData['gateway'] = [
+                    'url' => $gatewayResponse['url'],
+                    'status' => $gatewayResponse['status'] ?? 'PENDING',
+                    'paymentGatewayAdminFee' => $gatewayResponse['paymentGatewayAdminFee'] ?? 0
+                ];
+            }
+            
             if ($isAjax) {
                 return $this->response->setJSON([
                     'status' => 'success',
                     'message' => $message,
-                    'data' => ['id' => $saleId]
+                    'data' => $responseData,
+                    'redirect' => $this->config->baseURL . 'sales/' . $saleId
                 ]);
             }
 
-            return redirect()->to('sales')->with('message', ['status' => 'success', 'message' => $message]);
+            return redirect()->to('sales/' . $saleId)->with('message', ['status' => 'success', 'message' => $message]);
 
         } catch (\Exception $e) {
             $db->transRollback();
@@ -656,11 +882,31 @@ class Sales extends BaseController
                 }
         }
 
+            // Get payment information
+            $payments = $this->salesPaymentsModel->getPaymentsBySale($id);
+            $paymentInfo = null;
+            $gatewayResponse = null;
+            
+            if (!empty($payments)) {
+                $payment = $payments[0]; // Get first payment (usually only one)
+                $paymentInfo = $payment;
+                
+                // Decode gateway response if exists
+                if (!empty($payment['response'])) {
+                    $gatewayResponse = json_decode($payment['response'], true);
+                    if (json_last_error() !== JSON_ERROR_NONE) {
+                        $gatewayResponse = null;
+                    }
+                }
+            }
+
         $this->data['title'] = 'Detail Penjualan';
         $this->data['currentModule'] = $this->currentModule;
         $this->data['config'] = $this->config;
         $this->data['sale'] = $sale;
         $this->data['items'] = $items;
+        $this->data['payment'] = $paymentInfo;
+        $this->data['gatewayResponse'] = $gatewayResponse;
 
             $this->view('sales/sales-detail', $this->data);
         } catch (\Exception $e) {
@@ -960,6 +1206,284 @@ class Sales extends BaseController
         }
     }
 
+    /**
+     * Encrypt API key with RSA public key
+     * 
+     * Uses RSA encryption with PKCS1 padding (equivalent to RSA/ECB/PKCS1Padding in Java/Kotlin)
+     * 
+     * @param string $data Data to encrypt (API key)
+     * @param string $base64PublicKey Base64 encoded public key (DER format)
+     * @return string Base64 encoded encrypted data
+     * @throws \Exception If encryption fails
+     */
+    protected function encryptApiKey(string $data, string $base64PublicKey): string
+    {
+        // The base64PublicKey is in base64 DER format (SubjectPublicKeyInfo)
+        // We need to convert it to PEM format for OpenSSL
+        
+        // Remove any whitespace from the key
+        $base64PublicKey = trim(preg_replace('/\s+/', '', $base64PublicKey));
+        
+        // Verify it's valid base64
+        if (!preg_match('/^[A-Za-z0-9+\/]+=*$/', $base64PublicKey)) {
+            throw new \Exception('Invalid base64 public key format');
+        }
+        
+        // Decode base64 to get DER binary
+        $derKey = base64_decode($base64PublicKey, true);
+        if ($derKey === false) {
+            throw new \Exception('Failed to decode base64 public key');
+        }
+        
+        // Re-encode DER to base64 for PEM format (PEM body is base64-encoded DER)
+        $pemBody = base64_encode($derKey);
+        
+        // Build PEM format with proper line breaks (64 chars per line)
+        $pemKey = "-----BEGIN PUBLIC KEY-----" . PHP_EOL;
+        $pemKey .= chunk_split($pemBody, 64, PHP_EOL);
+        $pemKey = rtrim($pemKey, PHP_EOL) . PHP_EOL; // Remove trailing newline
+        $pemKey .= "-----END PUBLIC KEY-----" . PHP_EOL;
+        
+        // Clear any previous OpenSSL errors
+        while (openssl_error_string() !== false) {
+            // Clear errors
+        }
+        
+        // Try to load the public key
+        $publicKeyResource = openssl_pkey_get_public($pemKey);
+        
+        if ($publicKeyResource === false) {
+            // If that fails, try using the original base64 string directly
+            // (in case it's already in the correct format)
+            $pemKeyAlt = "-----BEGIN PUBLIC KEY-----" . PHP_EOL;
+            $pemKeyAlt .= chunk_split($base64PublicKey, 64, PHP_EOL);
+            $pemKeyAlt = rtrim($pemKeyAlt, PHP_EOL) . PHP_EOL;
+            $pemKeyAlt .= "-----END PUBLIC KEY-----" . PHP_EOL;
+            
+            // Clear errors
+            while (openssl_error_string() !== false) {
+                // Clear errors
+            }
+            
+            $publicKeyResource = openssl_pkey_get_public($pemKeyAlt);
+            
+            if ($publicKeyResource === false) {
+                // Collect all errors
+                $errors = [];
+                while (($error = openssl_error_string()) !== false) {
+                    $errors[] = $error;
+                }
+                $errorMsg = implode('; ', $errors);
+                
+                // Write debug info to file
+                $debugFile = WRITEPATH . 'logs/key-debug-' . date('Y-m-d') . '.txt';
+                $debugInfo = "Key Debug Info:\n";
+                $debugInfo .= "Base64 Key Length: " . strlen($base64PublicKey) . "\n";
+                $debugInfo .= "DER Key Length: " . strlen($derKey) . " bytes\n";
+                $debugInfo .= "PEM Key:\n" . $pemKey . "\n";
+                $debugInfo .= "Errors: " . $errorMsg . "\n";
+                @file_put_contents($debugFile, $debugInfo, FILE_APPEND);
+                
+                throw new \Exception('Failed to load public key: ' . ($errorMsg ?: 'Unknown error') . '. Debug info saved to: ' . $debugFile);
+            }
+        }
+        
+        // Encrypt data with RSA and PKCS1 padding (RSA/ECB/PKCS1Padding equivalent)
+        $encrypted = '';
+        $success = openssl_public_encrypt($data, $encrypted, $publicKeyResource, OPENSSL_PKCS1_PADDING);
+        
+        // Free the key resource
+        openssl_free_key($publicKeyResource);
+        
+        if (!$success || empty($encrypted)) {
+            $errors = [];
+            while (($error = openssl_error_string()) !== false) {
+                $errors[] = $error;
+            }
+            $errorMsg = implode('; ', $errors);
+            throw new \Exception('RSA encryption failed: ' . ($errorMsg ?: 'Unknown encryption error'));
+        }
+        
+        // Return base64-encoded ciphertext
+        return base64_encode($encrypted);
+    }
+
+    /**
+     * Call payment gateway API
+     * 
+     * @param array $apiData API request data
+     * @return array|null Gateway response or null on failure
+     */
+    protected function callPaymentGateway(array $apiData): ?array
+    {
+        $errorDetails = [];
+        
+        try {
+            // Encrypt API key for x-api-key header
+            // $encryptedApiKey = null;
+            // try {
+            //     $encryptedApiKey = $this->encryptApiKey(self::GATEWAY_API_KEY, self::GATEWAY_PUBLIC_KEY);
+            //     $errorDetails['encryption'] = 'success';
+            //     log_message('error', 'Sales::callPaymentGateway - API key encrypted successfully');
+            // } catch (\Exception $e) {
+            //     $errorDetails['encryption'] = 'failed: ' . $e->getMessage();
+            //     log_message('error', 'Sales::callPaymentGateway - API key encryption failed: ' . $e->getMessage());
+                
+            //     // Write to debug file immediately
+            //     $debugFile = WRITEPATH . 'logs/gateway-debug-' . date('Y-m-d') . '.txt';
+            //     @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Encryption failed: " . $e->getMessage() . "\n", FILE_APPEND);
+                
+            //     return null;
+            // }
+            
+            $client = \Config\Services::curlrequest();
+            $apiUrl = 'https://dev.osu.biz.id/mig/esb/v1/api/payments';
+            
+            // // Write debug info immediately
+            // $debugFile = WRITEPATH . 'logs/gateway-debug-' . date('Y-m-d') . '.txt';
+            // $debugContent = date('Y-m-d H:i:s') . " - Starting gateway call\n";
+            // $debugContent .= "URL: " . $apiUrl . "\n";
+            // $debugContent .= "Payload: " . json_encode($apiData, JSON_PRETTY_PRINT) . "\n";
+            // @file_put_contents($debugFile, $debugContent, FILE_APPEND);
+            
+            // // Log the request details (without sensitive data)
+            // log_message('error', 'Sales::callPaymentGateway - Request URL: ' . $apiUrl);
+            // log_message('error', 'Sales::callPaymentGateway - Request Payload: ' . json_encode($apiData, JSON_PRETTY_PRINT));
+            // log_message('error', 'Sales::callPaymentGateway - x-api-key header: ' . substr($encryptedApiKey, 0, 20) . '...');
+            
+            try {
+                $response = $client->request(
+                    'POST',
+                    $apiUrl,
+                    [
+                        'headers' => [
+                            'Content-Type'  => 'application/json',
+                            'Accept'        => 'application/json',
+                            'x-api-key'     => 'Lmp1xKoggDE4FH2SKk/d/hqRiF+uxyAZOtO/piLOdox1F0OPr/RyLbhH0JyzNJY2zTI9uEEG4P2Hgeh/i8fiD7ZjsMTEWJXgx8Zgdp74nAOLtel/zi9Z611c+GG4Ra0nMx5K2UjOeZvWFyfXDOuILmu4zYL+MyyW8uSGYO8ug9a17HS6tlmzg7PkdEEb2XzNQ84ahKTRxFTTrxJiFGa34FO0rzLjeNGTV5KihVwUkZjL67DrfiSZweUsKX8NNHgxHy242KPcRWcJ5/sLH/Klus9LRfx9pC3F4gzNr3k1VvoAP5Kv9DTP6IGOZshgDu8WnUAcsvDJG4wtpkZgvYBoUg=='
+                        ],
+                        'json'        => $apiData,
+                        'timeout'     => 30,
+                        'http_errors' => false,
+                    ]
+                );
+                $errorDetails['request'] = 'sent';
+            } catch (\Exception $e) {
+                $errorDetails['request'] = 'failed: ' . $e->getMessage();
+                // @file_put_contents(
+                //     $debugFile,
+                //     date('Y-m-d H:i:s') . " - Request exception: " . $e->getMessage() . "\n",
+                //     FILE_APPEND
+                // );
+                throw $e;
+            }
+            
+            $statusCode = $response->getStatusCode();
+            $body = $response->getBody();
+            $responseData = json_decode($body, true);
+            
+            // Log response details
+            log_message('error', 'Sales::callPaymentGateway - Response Status: ' . $statusCode);
+            log_message('error', 'Sales::callPaymentGateway - Response Body: ' . $body);
+            
+            if ($statusCode >= 200 && $statusCode < 300 && $responseData) {
+                // Return full response data (includes paymentCode, expiredAt, etc.)
+                // Don't format it - keep all fields from gateway
+                log_message('error', 'Sales::callPaymentGateway - Gateway response received successfully');
+                return $responseData;
+            } else {
+                $errorMsg = 'Payment gateway returned error';
+                if (isset($responseData['message'])) {
+                    $errorMsg = $responseData['message'];
+                } elseif (!empty($body)) {
+                    $errorMsg = 'Response: ' . $body;
+                }
+                
+                // Log detailed error information
+                $logMsg = 'Sales::callPaymentGateway - API Error: ' . $errorMsg . ' | Status: ' . $statusCode . ' | Body: ' . $body;
+                log_message('error', $logMsg);
+                
+                // Also write to a separate debug file to ensure we capture it
+                $debugFile = WRITEPATH . 'logs/gateway-debug-' . date('Y-m-d') . '.txt';
+                file_put_contents($debugFile, date('Y-m-d H:i:s') . " - " . $logMsg . "\n", FILE_APPEND);
+                
+                return null;
+            }
+            
+        } catch (\Exception $e) {
+            $errorMsg = 'Sales::callPaymentGateway error: ' . $e->getMessage();
+            $traceMsg = 'Sales::callPaymentGateway trace: ' . $e->getTraceAsString();
+            
+            log_message('error', $errorMsg);
+            log_message('error', $traceMsg);
+            
+            // Also write to debug file
+            $debugFile = WRITEPATH . 'logs/gateway-debug-' . date('Y-m-d') . '.txt';
+            file_put_contents($debugFile, date('Y-m-d H:i:s') . " - " . $errorMsg . "\n" . $traceMsg . "\n", FILE_APPEND);
+            
+            return null;
+        }
+    }
+
+    /**
+     * Get payment status from gateway API (GET request)
+     * 
+     * @param string $invoiceNo Invoice number (orderId)
+     * @return array|null Gateway response or null on failure
+     */
+    protected function getPaymentStatusFromGateway(string $invoiceNo): ?array
+    {
+        try {
+            // Encrypt API key for x-api-key header
+            $encryptedApiKey = null;
+            try {
+                $encryptedApiKey = $this->encryptApiKey(self::GATEWAY_API_KEY, self::GATEWAY_PUBLIC_KEY);
+            } catch (\Exception $e) {
+                log_message('error', 'Sales::getPaymentStatusFromGateway - API key encryption failed: ' . $e->getMessage());
+                return null;
+            }
+            
+            $client = \Config\Services::curlrequest();
+            $apiUrl = 'https://dev.osu.biz.id/mig/esb/v1/api/payments/' . urlencode($invoiceNo);
+            
+            log_message('info', 'Sales::getPaymentStatusFromGateway - Fetching payment status for: ' . $invoiceNo);
+            
+            $response = $client->request('GET', $apiUrl, [
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                    'x-api-key' => $encryptedApiKey
+                ],
+                'timeout' => 30,
+                'http_errors' => false
+            ]);
+            
+            $statusCode = $response->getStatusCode();
+            $body = $response->getBody();
+            $responseData = json_decode($body, true);
+            
+            log_message('info', 'Sales::getPaymentStatusFromGateway - Response Status: ' . $statusCode);
+            log_message('info', 'Sales::getPaymentStatusFromGateway - Response Body: ' . $body);
+            
+            if ($statusCode >= 200 && $statusCode < 300 && $responseData) {
+                // Return full gateway response (includes paymentCode, expiredAt, etc.)
+                return $responseData;
+            } else {
+                $errorMsg = 'Payment gateway returned error';
+                if (isset($responseData['message'])) {
+                    $errorMsg = $responseData['message'];
+                } elseif (!empty($body)) {
+                    $errorMsg = 'Response: ' . $body;
+                }
+                log_message('error', 'Sales::getPaymentStatusFromGateway - API Error: ' . $errorMsg . ' | Status: ' . $statusCode);
+                return null;
+            }
+            
+        } catch (\Exception $e) {
+            log_message('error', 'Sales::getPaymentStatusFromGateway error: ' . $e->getMessage());
+            log_message('error', 'Sales::getPaymentStatusFromGateway trace: ' . $e->getTraceAsString());
+            return null;
+        }
+    }
 
     /**
      * Handle error and return appropriate response

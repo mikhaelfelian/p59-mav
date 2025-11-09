@@ -328,6 +328,101 @@
 			</div>
 		</div>
 
+		<?php if (!empty($payment)): ?>
+			<div class="items-section mb-4">
+				<h6><i class="fas fa-credit-card me-2"></i> Informasi Pembayaran</h6>
+				<div class="row">
+					<div class="col-md-6">
+						<dl class="row mb-0">
+							<dt class="col-sm-5 mb-3">Metode Pembayaran:</dt>
+							<dd class="col-sm-7 mb-3">
+								<?php
+								$methodLabels = [
+									'cash' => 'Tunai',
+									'transfer' => 'Transfer',
+									'qris' => 'QRIS',
+									'credit' => 'Kredit',
+									'other' => 'Lainnya'
+								];
+								$methodLabel = $methodLabels[$payment['method'] ?? 'other'] ?? 'Lainnya';
+								?>
+								<span class="badge bg-primary"><?= esc($methodLabel) ?></span>
+							</dd>
+							
+							<dt class="col-sm-5 mb-3">Platform:</dt>
+							<dd class="col-sm-7 mb-3">
+								<strong><?= esc($payment['platform_name'] ?? '-') ?></strong>
+							</dd>
+							
+							<dt class="col-sm-5 mb-3">Jumlah:</dt>
+							<dd class="col-sm-7 mb-3">
+								<span class="currency">Rp <?= number_format($payment['amount'] ?? 0, 0, ',', '.') ?></span>
+							</dd>
+						</dl>
+					</div>
+					
+					<?php if (!empty($gatewayResponse)): ?>
+						<div class="col-md-6">
+							<dl class="row mb-0">
+								<dt class="col-sm-5 mb-3">Status Gateway:</dt>
+								<dd class="col-sm-7 mb-3">
+									<?php
+									$status = strtoupper($gatewayResponse['status'] ?? 'UNKNOWN');
+									$statusClass = 'secondary';
+									if ($status === 'PAID') $statusClass = 'success';
+									elseif ($status === 'PENDING') $statusClass = 'warning';
+									elseif (in_array($status, ['FAILED', 'CANCELED', 'EXPIRED'])) $statusClass = 'danger';
+									?>
+									<span class="badge bg-<?= $statusClass ?>"><?= esc($status) ?></span>
+								</dd>
+								
+								<?php if (!empty($gatewayResponse['paymentCode'])): ?>
+									<dt class="col-sm-5 mb-3">Kode Pembayaran:</dt>
+									<dd class="col-sm-7 mb-3">
+										<code class="bg-light p-2 rounded d-inline-block" style="font-size: 0.9rem;">
+											<?= esc($gatewayResponse['paymentCode']) ?>
+										</code>
+										<button type="button" class="btn btn-sm btn-outline-secondary ms-2" onclick="copyToClipboard('<?= addslashes(esc($gatewayResponse['paymentCode'])) ?>')">
+											<i class="fas fa-copy"></i> Salin
+										</button>
+									</dd>
+								<?php endif; ?>
+								
+								<?php if (!empty($gatewayResponse['code'])): ?>
+									<dt class="col-sm-5 mb-3">Kode Gateway:</dt>
+									<dd class="col-sm-7 mb-3">
+										<span class="badge bg-info"><?= esc($gatewayResponse['code']) ?></span>
+									</dd>
+								<?php endif; ?>
+								
+								<?php if (!empty($gatewayResponse['paymentGatewayAdminFee']) && $gatewayResponse['paymentGatewayAdminFee'] > 0): ?>
+									<dt class="col-sm-5 mb-3">Biaya Admin:</dt>
+									<dd class="col-sm-7 mb-3">
+										<span class="currency">Rp <?= number_format($gatewayResponse['paymentGatewayAdminFee'], 0, ',', '.') ?></span>
+									</dd>
+								<?php endif; ?>
+								
+								<?php if (!empty($gatewayResponse['expiredAt'])): ?>
+									<dt class="col-sm-5 mb-3">Kedaluwarsa:</dt>
+									<dd class="col-sm-7 mb-3">
+										<i class="fas fa-clock me-1 text-muted"></i>
+										<?php
+										try {
+											$expiredDate = new \DateTime($gatewayResponse['expiredAt']);
+											echo esc($expiredDate->format('d/m/Y H:i'));
+										} catch (\Exception $e) {
+											echo esc($gatewayResponse['expiredAt']);
+										}
+										?>
+									</dd>
+								<?php endif; ?>
+							</dl>
+						</div>
+					<?php endif; ?>
+				</div>
+			</div>
+		<?php endif; ?>
+
 		<div class="row mt-4">
 			<div class="col-md-12 d-flex gap-2">
 				<a href="<?= $config->baseURL ?>sales" class="btn btn-back text-white">
@@ -338,5 +433,42 @@
 				</button>
 			</div>
 		</div>
+		
+		<script>
+		function copyToClipboard(text) {
+			navigator.clipboard.writeText(text).then(function() {
+				// Show success message
+				if (typeof Swal !== 'undefined') {
+					Swal.fire({
+						icon: 'success',
+						title: 'Berhasil',
+						text: 'Kode pembayaran berhasil disalin!',
+						timer: 2000,
+						showConfirmButton: false,
+						toast: true,
+						position: 'top-end'
+					});
+				} else {
+					alert('Kode pembayaran berhasil disalin!');
+				}
+			}, function(err) {
+				// Fallback for older browsers
+				var textArea = document.createElement("textarea");
+				textArea.value = text;
+				textArea.style.position = "fixed";
+				textArea.style.left = "-999999px";
+				document.body.appendChild(textArea);
+				textArea.focus();
+				textArea.select();
+				try {
+					document.execCommand('copy');
+					alert('Kode pembayaran berhasil disalin!');
+				} catch (err) {
+					alert('Gagal menyalin kode pembayaran.');
+				}
+				document.body.removeChild(textArea);
+			});
+		}
+		</script>
 	</div>
 </div>

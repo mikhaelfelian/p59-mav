@@ -88,6 +88,7 @@ class Logger extends BaseConfig
                 'critical',
                 'alert',
                 'emergency',
+                'info',  // Added to log gateway API calls
             ],
 
             /*
