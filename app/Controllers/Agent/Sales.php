@@ -460,17 +460,86 @@ class Sales extends BaseController
             $tax = (float)($postData['tax'] ?? 0);
             $grandTotal = $subtotal - $discount + $tax;
             
-            // Handle gateway response if provided
+            // Handle payment gateway API call if platform is selected
             $gatewayResponse = null;
             $platformId = !empty($postData['platform_id']) ? (int)$postData['platform_id'] : null;
             
-            if (!empty($postData['gateway_response'])) {
-                $gatewayResponseJson = urldecode($postData['gateway_response']);
-                $gatewayResponse = json_decode($gatewayResponseJson, true);
+            if ($platformId) {
+                // Get platform details
+                $platform = $this->platformModel->find($platformId);
                 
-                if (json_last_error() !== JSON_ERROR_NONE) {
-                    log_message('error', 'Agent\Sales::store - Invalid gateway_response JSON: ' . json_last_error_msg());
-                    $gatewayResponse = null;
+                // Only send to gateway if platform.gw_status = '1'
+                // Platforms like "Tunai" (Cash) with gw_status = '0' should NOT go through gateway
+                $gwStatus = $platform['gw_status'] ?? '0';
+                // Handle both string and integer values
+                $gwStatus = (string)$gwStatus;
+                if ($platform && $gwStatus === '1') {
+                    
+                    // Prepare API request data
+                    $invoiceNo = trim($postData['invoice_no']);
+                    $grandTotal = (float)($postData['grand_total'] ?? 0);
+                    
+                    // Get customer email and phone from form data
+                    $customerEmail = !empty($postData['customer_email']) ? trim($postData['customer_email']) : '';
+                    $customerPhone = !empty($postData['customer_phone']) ? trim($postData['customer_phone']) : '';
+                    
+                    // If customer exists, try to get email/phone from customer record
+                    if ($customerId) {
+                        $customerRecord = $this->customerModel->find($customerId);
+                        if ($customerRecord) {
+                            if (empty($customerEmail) && !empty($customerRecord['email'])) {
+                                $customerEmail = $customerRecord['email'];
+                            }
+                            if (empty($customerPhone) && !empty($customerRecord['phone'])) {
+                                $customerPhone = $customerRecord['phone'];
+                            }
+                        }
+                    }
+                    
+                    // Use defaults if still empty
+                    if (empty($customerEmail)) {
+                        $customerEmail = 'customer@example.com';
+                    }
+                    if (empty($customerPhone)) {
+                        $customerPhone = '';
+                    }
+                    
+                    // Split customer name into firstName and lastName
+                    $customerName = !empty($postData['customer_name']) ? trim($postData['customer_name']) : '';
+                    $nameParts = !empty($customerName) ? explode(' ', $customerName, 2) : ['Customer', 'Customer'];
+                    $firstName = $nameParts[0] ?? 'Customer';
+                    $lastName = $nameParts[1] ?? $firstName;
+                    
+                    // Prepare API payload matching Midtrans custom middleware format
+                    $apiData = [
+                        'code'     => $platform['gw_code'] ?? 'QRIS',
+                        'orderId'  => $invoiceNo,
+                        'amount'   => (int) round($grandTotal),
+                        'customer' => [
+                            'firstName' => $firstName,
+                            'lastName'  => $lastName,
+                            'email'     => $customerEmail,
+                            'phone'     => $customerPhone,
+                        ],
+                    ];
+                    
+                    // Log the payload being sent (for debugging)
+                    log_message('error', 'Agent\Sales::store - Gateway API Payload: ' . json_encode($apiData, JSON_PRETTY_PRINT));
+                    
+                    // Call payment gateway API
+                    $gatewayResponse = $this->callPaymentGateway($apiData);
+                    
+                    if ($gatewayResponse === null) {
+                        $logFile = WRITEPATH . 'logs/log-' . date('Y-m-d') . '.log';
+                        $message = 'Gagal mengirim ke payment gateway. Silakan cek log di: ' . $logFile;
+                        if ($isAjax) {
+                            return $this->response->setJSON([
+                                'status' => 'error', 
+                                'message' => $message
+                            ]);
+                        }
+                        return redirect()->back()->withInput()->with('message', ['status' => 'error', 'message' => $message]);
+                    }
                 }
             }
             
@@ -767,6 +836,122 @@ class Sales extends BaseController
         
         // Return base64-encoded ciphertext
         return base64_encode($encrypted);
+    }
+    
+    /**
+     * Call payment gateway API
+     * 
+     * @param array $apiData API request data
+     * @return array|null Gateway response or null on failure
+     */
+    protected function callPaymentGateway(array $apiData): ?array
+    {
+        $errorDetails = [];
+        
+        try {
+            // Encrypt API key for x-api-key header
+            // $encryptedApiKey = null;
+            // try {
+            //     $encryptedApiKey = $this->encryptApiKey(self::GATEWAY_API_KEY, self::GATEWAY_PUBLIC_KEY);
+            //     $errorDetails['encryption'] = 'success';
+            //     log_message('error', 'Sales::callPaymentGateway - API key encrypted successfully');
+            // } catch (\Exception $e) {
+            //     $errorDetails['encryption'] = 'failed: ' . $e->getMessage();
+            //     log_message('error', 'Sales::callPaymentGateway - API key encryption failed: ' . $e->getMessage());
+                    
+            //     // Write to debug file immediately
+            //     $debugFile = WRITEPATH . 'logs/gateway-debug-' . date('Y-m-d') . '.txt';
+            //     @file_put_contents($debugFile, date('Y-m-d H:i:s') . " - Encryption failed: " . $e->getMessage() . "\n", FILE_APPEND);
+                    
+            //     return null;
+            // }
+            
+            $client = \Config\Services::curlrequest();
+            $apiUrl = 'https://dev.osu.biz.id/mig/esb/v1/api/payments';
+            
+            // // Write debug info immediately
+            // $debugFile = WRITEPATH . 'logs/gateway-debug-' . date('Y-m-d') . '.txt';
+            // $debugContent = date('Y-m-d H:i:s') . " - Starting gateway call\n";
+            // $debugContent .= "URL: " . $apiUrl . "\n";
+            // $debugContent .= "Payload: " . json_encode($apiData, JSON_PRETTY_PRINT) . "\n";
+            // @file_put_contents($debugFile, $debugContent, FILE_APPEND);
+            
+            // // Log the request details (without sensitive data)
+            // log_message('error', 'Sales::callPaymentGateway - Request URL: ' . $apiUrl);
+            // log_message('error', 'Sales::callPaymentGateway - Request Payload: ' . json_encode($apiData, JSON_PRETTY_PRINT));
+            // log_message('error', 'Sales::callPaymentGateway - x-api-key header: ' . substr($encryptedApiKey, 0, 20) . '...');
+            
+            try {
+                $response = $client->request(
+                    'POST',
+                    $apiUrl,
+                    [
+                        'headers' => [
+                            'Content-Type'  => 'application/json',
+                            'Accept'        => 'application/json',
+                            'x-api-key'     => 'Lmp1xKoggDE4FH2SKk/d/hqRiF+uxyAZOtO/piLOdox1F0OPr/RyLbhH0JyzNJY2zTI9uEEG4P2Hgeh/i8fiD7ZjsMTEWJXgx8Zgdp74nAOLtel/zi9Z611c+GG4Ra0nMx5K2UjOeZvWFyfXDOuILmu4zYL+MyyW8uSGYO8ug9a17HS6tlmzg7PkdEEb2XzNQ84ahKTRxFTTrxJiFGa34FO0rzLjeNGTV5KihVwUkZjL67DrfiSZweUsKX8NNHgxHy242KPcRWcJ5/sLH/Klus9LRfx9pC3F4gzNr3k1VvoAP5Kv9DTP6IGOZshgDu8WnUAcsvDJG4wtpkZgvYBoUg=='
+                        ],
+                        'json'        => $apiData,
+                        'timeout'     => 30,
+                        'http_errors' => false,
+                    ]
+                );
+                $errorDetails['request'] = 'sent';
+            } catch (\Exception $e) {
+                $errorDetails['request'] = 'failed: ' . $e->getMessage();
+                // @file_put_contents(
+                //     $debugFile,
+                //     date('Y-m-d H:i:s') . " - Request exception: " . $e->getMessage() . "\n",
+                //     FILE_APPEND
+                // );
+                throw $e;
+            }
+            
+            $statusCode = $response->getStatusCode();
+            $body = $response->getBody();
+            $responseData = json_decode($body, true);
+            
+            // Log response details
+            log_message('error', 'Sales::callPaymentGateway - Response Status: ' . $statusCode);
+            log_message('error', 'Sales::callPaymentGateway - Response Body: ' . $body);
+            
+            if ($statusCode >= 200 && $statusCode < 300 && $responseData) {
+                // Return full response data (includes paymentCode, expiredAt, etc.)
+                // Don't format it - keep all fields from gateway
+                log_message('error', 'Sales::callPaymentGateway - Gateway response received successfully');
+                return $responseData;
+            } else {
+                $errorMsg = 'Payment gateway returned error';
+                if (isset($responseData['message'])) {
+                    $errorMsg = $responseData['message'];
+                } elseif (!empty($body)) {
+                    $errorMsg = 'Response: ' . $body;
+                }
+                
+                // Log detailed error information
+                $logMsg = 'Sales::callPaymentGateway - API Error: ' . $errorMsg . ' | Status: ' . $statusCode . ' | Body: ' . $body;
+                log_message('error', $logMsg);
+                
+                // Also write to a separate debug file to ensure we capture it
+                $debugFile = WRITEPATH . 'logs/gateway-debug-' . date('Y-m-d') . '.txt';
+                file_put_contents($debugFile, date('Y-m-d H:i:s') . " - " . $logMsg . "\n", FILE_APPEND);
+                
+                return null;
+            }
+            
+        } catch (\Exception $e) {
+            $errorMsg = 'Sales::callPaymentGateway error: ' . $e->getMessage();
+            $traceMsg = 'Sales::callPaymentGateway trace: ' . $e->getTraceAsString();
+            
+            log_message('error', $errorMsg);
+            log_message('error', $traceMsg);
+            
+            // Also write to debug file
+            $debugFile = WRITEPATH . 'logs/gateway-debug-' . date('Y-m-d') . '.txt';
+            file_put_contents($debugFile, date('Y-m-d H:i:s') . " - " . $errorMsg . "\n" . $traceMsg . "\n", FILE_APPEND);
+            
+            return null;
+        }
     }
     
     /**
