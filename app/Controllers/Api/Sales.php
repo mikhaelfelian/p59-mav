@@ -73,7 +73,6 @@ class Sales extends Controller
             
             // Validate required fields
             if (empty($jsonData['orderId'])) {
-                log_message('error', 'Api\Sales::callback - Missing orderId');
                 return $this->response->setJSON([
                     'status' => 'error',
                     'message' => 'orderId is required'
@@ -81,7 +80,6 @@ class Sales extends Controller
             }
             
             if (empty($jsonData['status'])) {
-                log_message('error', 'Api\Sales::callback - Missing status');
                 return $this->response->setJSON([
                     'status' => 'error',
                     'message' => 'status is required'
@@ -95,7 +93,6 @@ class Sales extends Controller
             // Validate status value
             $validStatuses = ['PAID', 'PENDING', 'FAILED', 'CANCELED', 'EXPIRED'];
             if (!in_array($status, $validStatuses)) {
-                log_message('error', 'Api\Sales::callback - Invalid status: ' . $status);
                 return $this->response->setJSON([
                     'status' => 'error',
                     'message' => 'Invalid status. Must be one of: ' . implode(', ', $validStatuses)
@@ -106,7 +103,6 @@ class Sales extends Controller
             $sale = $this->model->where('invoice_no', $orderId)->first();
             
             if (!$sale) {
-                log_message('error', 'Api\Sales::callback - Sale not found for orderId: ' . $orderId);
                 return $this->response->setJSON([
                     'status' => 'error',
                     'message' => 'Sale not found for orderId: ' . $orderId
@@ -137,7 +133,6 @@ class Sales extends Controller
                     $settlementDateTime = new \DateTime($settlementTime);
                     $updateData['settlement_time'] = $settlementDateTime->format('Y-m-d H:i:s');
                 } catch (\Exception $e) {
-                    log_message('error', 'Api\Sales::callback - Invalid settlementTime format: ' . $settlementTime);
                     // Continue without settlement_time if parsing fails
                 }
             }
@@ -153,30 +148,24 @@ class Sales extends Controller
                 if ($errors && is_array($errors)) {
                     $errorMsg .= implode(', ', $errors);
                 }
-                log_message('error', 'Api\Sales::callback - ' . $errorMsg);
                 return $this->response->setJSON([
                     'status' => 'error',
                     'message' => $errorMsg
                 ])->setStatusCode(500);
             }
             
-            log_message('info', 'Api\Sales::callback - Successfully updated sale ' . $sale['id'] . ' with status: ' . $status);
-            
             return $this->response->setJSON([
-                'status' => 'success',
+                'status'  => 'success',
                 'message' => 'Payment status updated successfully',
-                'data' => [
-                    'orderId' => $orderId,
-                    'status' => $status,
+                'data'    => [
+                    'orderId'        => $orderId,
+                    'status'         => $status,
                     'payment_status' => $paymentStatus,
-                    'settlement_time' => $updateData['settlement_time'] ?? null
-                ]
+                    'settlement_time'=> $updateData['settlement_time'] ?? null,
+                ],
             ]);
             
         } catch (\Exception $e) {
-            log_message('error', 'Api\Sales::callback error: ' . $e->getMessage());
-            log_message('error', 'Api\Sales::callback trace: ' . $e->getTraceAsString());
-            
             return $this->response->setJSON([
                 'status' => 'error',
                 'message' => 'Internal server error: ' . $e->getMessage()

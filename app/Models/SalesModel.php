@@ -79,6 +79,8 @@ class SalesModel extends Model
      */
     public function generateInvoiceNo($prefix = 'INV')
     {
+        $prefix = strval(rand(100, 999));
+
         $date = date('Ymd');
         $lastInvoice = $this->select('invoice_no')
             ->like('invoice_no', $prefix . $date)
@@ -92,7 +94,7 @@ class SalesModel extends Model
             $newNumber = 1;
         }
 
-        return $prefix . $date . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
+        return str_pad($newNumber, 3, '0', STR_PAD_LEFT).$prefix . $date;
     }
 
     /**
