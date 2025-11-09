@@ -67,32 +67,63 @@ class Sales extends Controller
             // Get JSON data from request body
             // CodeIgniter 4's getJSON() automatically handles Content-Type: application/json
             $jsonData = null;
+            $jsonError = null;
             
             // Get request instance (IncomingRequest)
             $request = service('request');
+            $response = service('response');
+            
+            // Get raw body first for logging
+            $rawInput = $request->getBody();
             
             // Check Content-Type header for JSON
             $contentType = $request->getHeaderLine('Content-Type');
             $isJson = strpos($contentType, 'application/json') !== false;
             
-            if ($isJson) {
-                // Use getJSON() for proper JSON parsing
-                // getJSON(true) returns associative array
-                $jsonData = $request->getJSON(true);
-            } else {
-                // Try to get JSON from raw body if Content-Type is not set correctly
-                $rawInput = $request->getBody();
-                if (!empty($rawInput)) {
-                    $jsonData = json_decode($rawInput, true);
-                    // Check if JSON decode was successful
-                    if (json_last_error() !== JSON_ERROR_NONE) {
-                        $jsonData = null;
+            // Log raw input for debugging
+            log_message('info', 'Api\Sales::callback - Content-Type: ' . ($contentType ?: 'not set'));
+            log_message('info', 'Api\Sales::callback - Raw body: ' . substr($rawInput, 0, 500));
+            
+            if ($isJson || !empty($rawInput)) {
+                // Try to parse JSON from body
+                if ($isJson) {
+                    // Use getJSON() for proper JSON parsing
+                    // getJSON(true) returns associative array
+                    $jsonData = $request->getJSON(true);
+                    
+                    // If getJSON returns null, try manual decode to get error details
+                    if ($jsonData === null && !empty($rawInput)) {
+                        $jsonData = json_decode($rawInput, true);
+                        if (json_last_error() !== JSON_ERROR_NONE) {
+                            $jsonError = json_last_error_msg();
+                            $jsonData = null;
+                        }
+                    }
+                } else {
+                    // Try to get JSON from raw body if Content-Type is not set correctly
+                    if (!empty($rawInput)) {
+                        $jsonData = json_decode($rawInput, true);
+                        // Check if JSON decode was successful
+                        if (json_last_error() !== JSON_ERROR_NONE) {
+                            $jsonError = json_last_error_msg();
+                            $jsonData = null;
+                        }
                     }
                 }
             }
             
-            // Fallback to POST data if JSON body is empty
-            if (empty($jsonData)) {
+            // If JSON parsing failed, return specific error
+            if ($jsonError !== null) {
+                log_message('error', 'Api\Sales::callback - JSON parse error: ' . $jsonError);
+                return $response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Invalid JSON format: ' . $jsonError . '. Please check your JSON syntax (e.g., remove trailing commas).',
+                    'raw_body' => substr($rawInput, 0, 200) // Show first 200 chars for debugging
+                ])->setStatusCode(400);
+            }
+            
+            // Fallback to POST data if JSON body is empty (but not if we tried to parse JSON)
+            if (empty($jsonData) && empty($rawInput)) {
                 $jsonData = $request->getPost();
             }
             
@@ -102,28 +133,30 @@ class Sales extends Controller
             }
             
             // Log received data for debugging
-            log_message('info', 'Api\Sales::callback - Content-Type: ' . $contentType);
-            log_message('info', 'Api\Sales::callback - Received data: ' . json_encode($jsonData));
+            log_message('info', 'Api\Sales::callback - Parsed data: ' . json_encode($jsonData));
             
             // Validate required fields
             if (empty($jsonData) || !is_array($jsonData)) {
-                return $this->response->setJSON([
+                return $response->setJSON([
                     'status' => 'error',
-                    'message' => 'Invalid request data. Expected JSON body with orderId and status.'
+                    'message' => 'Invalid request data. Expected JSON body with orderId and status. ' . 
+                                ($rawInput ? 'Received: ' . substr($rawInput, 0, 100) : 'No data received.')
                 ])->setStatusCode(400);
             }
             
             if (empty($jsonData['orderId'])) {
-                return $this->response->setJSON([
+                return $response->setJSON([
                     'status' => 'error',
-                    'message' => 'orderId is required'
+                    'message' => 'orderId is required',
+                    'received_data' => $jsonData
                 ])->setStatusCode(400);
             }
             
             if (empty($jsonData['status'])) {
-                return $this->response->setJSON([
+                return $response->setJSON([
                     'status' => 'error',
-                    'message' => 'status is required'
+                    'message' => 'status is required',
+                    'received_data' => $jsonData
                 ])->setStatusCode(400);
             }
             
@@ -134,7 +167,7 @@ class Sales extends Controller
             // Validate status value
             $validStatuses = ['PAID', 'PENDING', 'FAILED', 'CANCELED', 'EXPIRED'];
             if (!in_array($status, $validStatuses)) {
-                return $this->response->setJSON([
+                return $response->setJSON([
                     'status' => 'error',
                     'message' => 'Invalid status. Must be one of: ' . implode(', ', $validStatuses)
                 ])->setStatusCode(400);
@@ -144,7 +177,7 @@ class Sales extends Controller
             $sale = $this->model->where('invoice_no', $orderId)->first();
             
             if (!$sale) {
-                return $this->response->setJSON([
+                return $response->setJSON([
                     'status' => 'error',
                     'message' => 'Sale not found for orderId: ' . $orderId
                 ])->setStatusCode(404);
@@ -189,13 +222,13 @@ class Sales extends Controller
                 if ($errors && is_array($errors)) {
                     $errorMsg .= implode(', ', $errors);
                 }
-                return $this->response->setJSON([
+                return $response->setJSON([
                     'status' => 'error',
                     'message' => $errorMsg
                 ])->setStatusCode(500);
             }
             
-            return $this->response->setJSON([
+            return $response->setJSON([
                 'status'  => 'success',
                 'message' => 'Payment status updated successfully',
                 'data'    => [
@@ -207,7 +240,11 @@ class Sales extends Controller
             ]);
             
         } catch (\Exception $e) {
-            return $this->response->setJSON([
+            log_message('error', 'Api\Sales::callback exception: ' . $e->getMessage());
+            log_message('error', 'Api\Sales::callback trace: ' . $e->getTraceAsString());
+            
+            $response = service('response');
+            return $response->setJSON([
                 'status' => 'error',
                 'message' => 'Internal server error: ' . $e->getMessage()
             ])->setStatusCode(500);
