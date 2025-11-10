@@ -229,137 +229,103 @@ class RolePermissionModel extends \App\Models\BaseModel
         return $this->builder('module_permission')->countAllResults();
     }
     
-    public function getListDataPermission() {
+	public function getListDataPermission()
+    {
         try {
-            $columns = $this->request->getPost('columns') ?? $this->request->getGet('columns');
-            $search = $this->request->getPost('search') ?? $this->request->getGet('search');
-            $search_all = is_array($search) && isset($search['value']) ? trim($search['value']) : '';
+            $columns = $this->request->getPost('columns');
+            if (!is_array($columns)) {
+                $columns = [];
+            }
+
+            // Search
+            $search = $this->request->getPost('search');
+            $search_all = '';
+            if (is_array($search) && isset($search['value'])) {
+                $search_all = trim($search['value']);
+            }
+
             $id_role = $this->request->getGet('id');
-            
-            // Validate id_role
-            if (empty($id_role)) {
-                return ['data' => [], 'total_filtered' => 0];
-            }
-            
-            // Get role permissions for JOIN
-            $rolePermissions = $this->builder('role_module_permission')
-                                   ->select('id_module_permission, id_role')
-                                   ->where('id_role', $id_role)
-                                   ->get()
-                                   ->getResultArray();
-            
-            $rolePermMap = [];
-            foreach ($rolePermissions as $rp) {
-                $rolePermMap[$rp['id_module_permission']] = $rp['id_role'];
-            }
-            
-            // Build base query for counting (separate builder to avoid issues)
-            // Use aliases like PermissionModel: mp for module_permission, m for module
-            $builderCount = $this->builder('module_permission mp')
-                                ->join('module m', 'm.id_module = mp.id_module', 'left');
-            
-            // Apply search to count query
-            // Map DataTables columns to actual database columns with table aliases
-            // Use where() with raw SQL for LIKE conditions to properly handle table aliases
-            $columnMap = [
-                'judul_module' => 'm.judul_module',
-                'nama_module' => 'm.nama_module',
-                'nama_permission' => 'mp.nama_permission',
-                'judul_permission' => 'mp.judul_permission',
-                'keterangan' => 'mp.keterangan'
-            ];
-            
-            if ($search_all && !empty($search_all) && !empty($columns) && is_array($columns)) {
-                $db = \Config\Database::connect();
-                $escapedSearch = $db->escapeLikeString($search_all);
-                
+            $id_role = $id_role !== null ? (int)$id_role : 0;
+
+            $builderCount = $this->db->table('module_permission')
+                ->select('module_permission.id_module_permission')
+                ->join('module', 'module.id_module = module_permission.id_module', 'left')
+                ->join("(SELECT * FROM role_module_permission WHERE id_role = $id_role) AS tabel", 'tabel.id_module_permission = module_permission.id_module_permission', 'left');
+
+            if ($search_all && !empty($columns)) {
                 $builderCount->groupStart();
-                $first = true;
                 foreach ($columns as $val) {
-                    if (!is_array($val) || strpos($val['data'] ?? '', 'ignore') !== false) continue;
-                    
-                    $column = $val['data'] ?? '';
-                    // Map to actual column with table alias if mapping exists
-                    $dbColumn = $columnMap[$column] ?? $column;
-                    
-                    // Use where() with raw SQL to properly handle table.column format
-                    if ($first) {
-                        $builderCount->where("{$dbColumn} LIKE", "%{$escapedSearch}%", false);
-                        $first = false;
-                    } else {
-                        $builderCount->orWhere("{$dbColumn} LIKE", "%{$escapedSearch}%", false);
+                    if (!is_array($val) || !isset($val['data'])) {
+                        continue;
                     }
+                    if (strpos($val['data'], 'ignore_search') !== false) {
+                        continue;
+                    }
+                    if (strpos($val['data'], 'ignore') !== false) {
+                        continue;
+                    }
+                    $builderCount->orLike($val['data'], $search_all);
                 }
                 $builderCount->groupEnd();
             }
-            
-            // Get total filtered
-            $total_filtered = $builderCount->countAllResults(false);
-            
-            // Build main data query (separate builder)
-            // Use aliases like PermissionModel: mp for module_permission, m for module
-            $builder = $this->builder('module_permission mp')
-                           ->join('module m', 'm.id_module = mp.id_module', 'left');
-            
-            // Apply search to main query
-            // Use the same column mapping and approach as the count query
-            if ($search_all && !empty($search_all) && !empty($columns) && is_array($columns)) {
-                $db = \Config\Database::connect();
-                $escapedSearch = $db->escapeLikeString($search_all);
-                
+
+            $total_filtered = $builderCount->countAllResults();
+
+            // Main data query
+            $builder = $this->db->table('module_permission')
+                ->select('module_permission.*, module.nama_module, module.judul_module, tabel.id_role as id_role')
+                ->join('module', 'module.id_module = module_permission.id_module', 'left')
+                ->join("(SELECT * FROM role_module_permission WHERE id_role = $id_role) AS tabel", 'tabel.id_module_permission = module_permission.id_module_permission', 'left');
+
+            if ($search_all && !empty($columns)) {
                 $builder->groupStart();
-                $first = true;
                 foreach ($columns as $val) {
-                    if (!is_array($val) || strpos($val['data'] ?? '', 'ignore') !== false) continue;
-                    
-                    $column = $val['data'] ?? '';
-                    // Map to actual column with table alias if mapping exists
-                    $dbColumn = $columnMap[$column] ?? $column;
-                    
-                    // Use where() with raw SQL to properly handle table.column format
-                    if ($first) {
-                        $builder->where("{$dbColumn} LIKE", "%{$escapedSearch}%", false);
-                        $first = false;
-                    } else {
-                        $builder->orWhere("{$dbColumn} LIKE", "%{$escapedSearch}%", false);
+                    if (!is_array($val) || !isset($val['data'])) {
+                        continue;
                     }
+                    if (strpos($val['data'], 'ignore_search') !== false) {
+                        continue;
+                    }
+                    if (strpos($val['data'], 'ignore') !== false) {
+                        continue;
+                    }
+                    $builder->orLike($val['data'], $search_all);
                 }
                 $builder->groupEnd();
             }
-            
-            // Apply select - this matches PermissionModel which doesn't use select() before search
-            $builder->select('mp.*, m.nama_module, m.judul_module');
-            
-            // Apply ordering
-            $order_data = $this->request->getPost('order') ?? $this->request->getGet('order');
-            if ($order_data && is_array($order_data) && isset($order_data[0]) && !empty($columns) && is_array($columns) && isset($columns[$order_data[0]['column']])) {
-                $order_column = $columns[$order_data[0]['column']]['data'] ?? '';
-                if (strpos($order_column, 'ignore') === false) {
-                    // Map to actual column with table alias if mapping exists
-                    $dbOrderColumn = $columnMap[$order_column] ?? $order_column;
-                    $order_dir = strtoupper($order_data[0]['dir'] ?? 'ASC');
-                    $builder->orderBy($dbOrderColumn, $order_dir);
-                }
+
+            // Order
+            $order_data = $this->request->getPost('order');
+            if (
+                $order_data
+                && is_array($order_data)
+                && isset($order_data[0])
+                && isset($order_data[0]['column'])
+                && isset($columns[$order_data[0]['column']])
+                && isset($columns[$order_data[0]['column']]['data'])
+                && strpos($columns[$order_data[0]['column']]['data'], 'ignore') === false
+            ) {
+                $order_column = $columns[$order_data[0]['column']]['data'];
+                $order_dir = strtoupper($order_data[0]['dir'] ?? 'ASC');
+                $builder->orderBy($order_column, $order_dir);
             }
-            
-            // Apply pagination
-            $start = (int) ($this->request->getPost('start') ?? $this->request->getGet('start') ?? 0);
-            $length = (int) ($this->request->getPost('length') ?? $this->request->getGet('length') ?? 10);
+
+            $start = $this->request->getPost('start');
+            $length = $this->request->getPost('length');
+            $start = (is_numeric($start) ? (int)$start : 0);
+            $length = (is_numeric($length) ? (int)$length : 10);
+
             $data = $builder->limit($length, $start)->get()->getResultArray();
-            
-            // Add id_role to results
-            foreach ($data as &$row) {
-                $row['id_role'] = $rolePermMap[$row['id_module_permission']] ?? null;
-            }
-            
-            return ['data' => $data, 'total_filtered' => $total_filtered];
-            
+
+            return [
+                'data' => $data,
+                'total_filtered' => $total_filtered
+            ];
         } catch (\Throwable $e) {
-            $errorMsg = $e->getMessage();
-            $errorFile = $e->getFile();
-            $errorLine = $e->getLine();
-            log_message('error', 'RolePermissionModel::getListDataPermission error: ' . $errorMsg . ' | File: ' . $errorFile . ' | Line: ' . $errorLine . ' | Trace: ' . $e->getTraceAsString());
-            return ['data' => [], 'total_filtered' => 0];
+            return [
+                'data' => [],
+                'total_filtered' => 0
+            ];
         }
     }
     

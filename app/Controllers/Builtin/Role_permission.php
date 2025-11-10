@@ -238,80 +238,31 @@ class Role_permission extends \App\Controllers\BaseController
 	
 	public function getDataDTPermission() {
 		
-		try {
-			// Check permission with proper error handling
-			if (!is_array($this->userPermission) || !in_array('read_all', $this->userPermission)) {
-				$result = [
-					'draw' => (int) ($this->request->getPost('draw') ?? $this->request->getGet('draw') ?? 1),
-					'recordsTotal' => 0,
-					'recordsFiltered' => 0,
-					'data' => [],
-					'error' => 'Anda tidak memiliki permission read_all'
-				];
-				echo json_encode($result); exit();
-			}
-			
-			// Get id from GET parameter (required for this function)
-			$id_role = $this->request->getGet('id');
-			if (!$id_role) {
-				$result = [
-					'draw' => (int) ($this->request->getPost('draw') ?? $this->request->getGet('draw') ?? 1),
-					'recordsTotal' => 0,
-					'recordsFiltered' => 0,
-					'data' => [],
-					'error' => 'Parameter id tidak ditemukan'
-				];
-				echo json_encode($result); exit();
-			}
-			
-			$num_data = $this->model->countAllDataPermission();
-			$result['draw'] = (int) ($this->request->getPost('draw') ?? $this->request->getGet('draw') ?? 1);
-			$result['recordsTotal'] = $num_data;
-			
-			$query = $this->model->getListDataPermission();
-			
-			// Validate query result
-			if (!is_array($query) || !isset($query['data']) || !isset($query['total_filtered'])) {
-				throw new \Exception('Invalid query result structure');
-			}
-			
-			$result['recordsFiltered'] = $query['total_filtered'];
-			
-			// Ensure data is an array
-			if (!is_array($query['data'])) {
-				$query['data'] = [];
-			}
-					
-			$start = (int) ($this->request->getPost('start') ?? $this->request->getGet('start') ?? 0);
-			$no = $start + 1;
+		$this->hasPermission('read_all');
+		
+		$num_data = $this->model->countAllDataPermission();
+		$result['draw'] = (int) ($this->request->getPost('draw') ?? $this->request->getGet('draw') ?? 1);
+		$result['recordsTotal'] = $num_data;
+		
+		$query = $this->model->getListDataPermission();
+		$result['recordsFiltered'] = $query['total_filtered'] ?? 0;
+				
+		helper('html');
+		
+		$start = (int) ($this->request->getPost('start') ?? $this->request->getGet('start') ?? 0);
+		$no = $start + 1;
+		if (is_array($query['data'] ?? [])) {
 			foreach ($query['data'] as $key => &$val) 
 			{
 				$val['ignore_search_urut'] = $no;
-				$checked = $val['id_role'] ? 'checked' : '';
-				$val['id_role'] = '<div class="form-check-input-xs form-switch text-center"><input name="aktif" type="checkbox" class="form-check-input assign" data-id-module-permission="' . $val['id_module_permission'] . '" value="1" ' . $checked . '></div>';
+				$checked = isset($val['id_role']) && $val['id_role'] ? 'checked' : '';
+				$id_module_permission = $val['id_module_permission'] ?? '';
+				$val['id_role'] = '<div class="form-check-input-xs form-switch text-center"><input name="aktif" type="checkbox" class="form-check-input assign" data-id-module-permission="' . $id_module_permission . '" value="1" ' . $checked . '></div>';
 				$no++;
 			}
-						
-			$result['data'] = $query['data'];
-			echo json_encode($result); exit();
-			
-		} catch (\Throwable $e) {
-			// Log detailed error information
-			$errorMsg = $e->getMessage();
-			$errorFile = $e->getFile();
-			$errorLine = $e->getLine();
-			$errorTrace = $e->getTraceAsString();
-			
-			log_message('error', 'Role_permission::getDataDTPermission error: ' . $errorMsg . ' | File: ' . $errorFile . ' | Line: ' . $errorLine . ' | Trace: ' . $errorTrace);
-			
-			$result = [
-				'draw' => (int) ($this->request->getPost('draw') ?? $this->request->getGet('draw') ?? 1),
-				'recordsTotal' => 0,
-				'recordsFiltered' => 0,
-				'data' => [],
-				'error' => 'Gagal memuat data: ' . $errorMsg
-			];
-			echo json_encode($result); exit();
 		}
+					
+		$result['data'] = $query['data'] ?? [];
+		echo json_encode($result); exit();
 	}
 }

@@ -5,6 +5,11 @@
 Options +FollowSymlinks -Indexes
 RewriteEngine On
 
+# Allow Origin header for CORS
+<IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "*"
+</IfModule>
+
 # Jika project ada di subfolder, sesuaikan base-nya:
 # RewriteBase /p59-mav/
 
