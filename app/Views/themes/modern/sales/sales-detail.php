@@ -364,7 +364,7 @@
 					<?php if (!empty($gatewayResponse)): ?>
 						<div class="col-md-6">
 							<dl class="row mb-0">
-								<dt class="col-sm-5 mb-3">Status Gateway:</dt>
+								<dt class="col-sm-5 mb-3">Status Pembayaran:</dt>
 								<dd class="col-sm-7 mb-3">
 									<?php
 									$status = strtoupper($gatewayResponse['status'] ?? 'UNKNOWN');
@@ -385,13 +385,6 @@
 										<button type="button" class="btn btn-sm btn-outline-secondary ms-2" onclick="copyToClipboard('<?= addslashes(esc($gatewayResponse['paymentCode'])) ?>')">
 											<i class="fas fa-copy"></i> Salin
 										</button>
-									</dd>
-								<?php endif; ?>
-								
-								<?php if (!empty($gatewayResponse['code'])): ?>
-									<dt class="col-sm-5 mb-3">Kode Gateway:</dt>
-									<dd class="col-sm-7 mb-3">
-										<span class="badge bg-info"><?= esc($gatewayResponse['code']) ?></span>
 									</dd>
 								<?php endif; ?>
 								
