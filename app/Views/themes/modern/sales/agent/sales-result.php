@@ -8,7 +8,7 @@
 ?>
 <div class="card">
 	<div class="card-header">
-		<h5 class="card-title"><?= $title ?? 'Data Penjualan Agent (Online)' ?></h5>
+		<h5 class="card-title">Data Penjualan (Online)</h5>
 	</div>
 
 	<div class="card-body">
@@ -25,13 +25,12 @@
 		// Define columns for DataTables
 		$column = [
 			'ignore_search_urut'    => 'No',
-			'invoice_no'            => 'Invoice No',
-			'customer_name'         => 'Customer',
-			'agent_name'            => 'Agent',
+			'invoice_no'            => 'No Nota',
+			'customer_name'         => 'Pelanggan',
 			'grand_total'           => 'Total',
-			'payment_status'        => 'Payment Status',
-			'created_at'            => 'Created At',
-			'ignore_search_action'  => 'Actions'
+			'payment_status'        => 'Status',
+			'created_at'            => 'Tanggal',
+			'ignore_search_action'  => '#'
 		];
 
 		$settings['order'] = [6, 'desc']; // Order by created_at descending

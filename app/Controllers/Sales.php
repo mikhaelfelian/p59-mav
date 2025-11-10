@@ -959,10 +959,15 @@ class Sales extends BaseController
             }
 
             $db           = \Config\Database::connect();
-            $totalRecords = $db->table('sales')->countAllResults();
+            // Filter total records by offline channel
+            $totalRecords = $db->table('sales')
+                               ->where('sale_channel', self::CHANNEL_OFFLINE)
+                               ->countAllResults();
 
             // Main query builder with joins
             $query = $this->buildSalesQuery();
+            // Filter by offline channel
+            $query->where('sales.sale_channel', self::CHANNEL_OFFLINE);
 
             // Apply filtering if search term present
             $totalFiltered = $totalRecords;
@@ -977,6 +982,8 @@ class Sales extends BaseController
 
                 // Clone join for the count (mimics actual filter)
                 $countQuery = $this->buildSalesQuery();
+                // Filter by offline channel
+                $countQuery->where('sales.sale_channel', self::CHANNEL_OFFLINE);
                 $countQuery->groupStart()
                            ->like('sales.invoice_no', $searchValue)
                            ->orLike('customer.name', $searchValue)
