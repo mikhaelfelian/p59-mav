@@ -421,9 +421,9 @@
 				<a href="<?= $config->baseURL ?>sales" class="btn btn-back text-white">
 					<i class="fas fa-arrow-left me-2"></i>Kembali
 				</a>
-				<button type="button" class="btn btn-primary text-white" onclick="window.print();">
+				<a href="<?= $config->baseURL ?>sales/print_dm/<?= $sale['id'] ?? '' ?>" target="_blank" class="btn btn-primary text-white">
 					<i class="fas fa-print me-2"></i>Print
-				</button>
+				</a>
 			</div>
 		</div>
 		

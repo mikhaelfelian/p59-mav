@@ -581,57 +581,72 @@ class Sales extends BaseController
                     }
                     
                     if (is_array($sns) && $salesDetailId) {
-                        // Get item warranty from item record
-                        $itemWarranty = 0;
-                        if ($itemRecord) {
-                            if (is_array($itemRecord)) {
-                                $itemWarranty = isset($itemRecord['warranty']) ? (int)$itemRecord['warranty'] : 0;
-                            } else {
-                                $itemWarranty = isset($itemRecord->warranty) ? (int)$itemRecord->warranty : 0;
+                        // Only activate serial numbers if platform.gw_status = '0' (cash/offline payment)
+                        $shouldActivateSN = false;
+                        if ($platformId && isset($platform)) {
+                            $gwStatus = $platform['gw_status'] ?? '0';
+                            $gwStatus = (string)$gwStatus;
+                            if ($gwStatus === '0') {
+                                $shouldActivateSN = true;
                             }
+                        } elseif (!$platformId) {
+                            // No platform selected, treat as cash payment
+                            $shouldActivateSN = true;
                         }
                         
-                        $itemSnModel = new \App\Models\ItemSnModel();
-                        $activatedAt = date('Y-m-d H:i:s');
-                        
-                        // Calculate expired_at if warranty exists
-                        $expiredAt = null;
-                        if ($itemWarranty > 0) {
-                            $expiredAt = (new \DateTime($activatedAt))
-                                ->modify('+' . $itemWarranty . ' months')
-                                ->format('Y-m-d H:i:s');
-                        }
-                        
-                        foreach ($sns as $sn) {
-                                if (!empty($sn['item_sn_id']) && !empty($sn['sn'])) {
-                                $itemSnId = (int)$sn['item_sn_id'];
-                                $snValue = (string)$sn['sn'];
-                                
-                                // Save to SalesItemSnModel
-                                $this->salesItemSnModel->skipValidation(true);
-                                $salesItemSnData = [
-                                    'sales_item_id' => $salesDetailId,
-                                    'item_sn_id' => $itemSnId,
-                                    'sn' => $snValue
-                                ];
-                                $this->salesItemSnModel->insert($salesItemSnData);
-                                $this->salesItemSnModel->skipValidation(false);
-                                
-                                // Update ItemSnModel with warranty expiration
-                                $updateData = [
-                                    'is_sell'      => '1',
-                                    'is_activated' => '1',
-                                    'activated_at' => $activatedAt,
-                                ];
-                                
-                                // Add expired_at if warranty is set
-                                if ($expiredAt) {
-                                    $updateData['expired_at'] = $expiredAt;
+                        if ($shouldActivateSN) {
+                            // Get item warranty from item record
+                            $itemWarranty = 0;
+                            if ($itemRecord) {
+                                if (is_array($itemRecord)) {
+                                    $itemWarranty = isset($itemRecord['warranty']) ? (int)$itemRecord['warranty'] : 0;
+                                } else {
+                                    $itemWarranty = isset($itemRecord->warranty) ? (int)$itemRecord->warranty : 0;
                                 }
-                                
-                                $itemSnModel->skipValidation(true);
-                                $itemSnModel->update($itemSnId, $updateData);
-                                $itemSnModel->skipValidation(false);
+                            }
+                            
+                            $itemSnModel = new \App\Models\ItemSnModel();
+                            $activatedAt = date('Y-m-d H:i:s');
+                            
+                            // Calculate expired_at if warranty exists
+                            $expiredAt = null;
+                            if ($itemWarranty > 0) {
+                                $expiredAt = (new \DateTime($activatedAt))
+                                    ->modify('+' . $itemWarranty . ' months')
+                                    ->format('Y-m-d H:i:s');
+                            }
+                            
+                            foreach ($sns as $sn) {
+                                if (!empty($sn['item_sn_id']) && !empty($sn['sn'])) {
+                                    $itemSnId = (int)$sn['item_sn_id'];
+                                    $snValue = (string)$sn['sn'];
+                                    
+                                    // Save to SalesItemSnModel
+                                    $this->salesItemSnModel->skipValidation(true);
+                                    $salesItemSnData = [
+                                        'sales_item_id' => $salesDetailId,
+                                        'item_sn_id' => $itemSnId,
+                                        'sn' => $snValue
+                                    ];
+                                    $this->salesItemSnModel->insert($salesItemSnData);
+                                    $this->salesItemSnModel->skipValidation(false);
+                                    
+                                    // Update ItemSnModel with warranty expiration
+                                    $updateData = [
+                                        'is_sell'      => '1',
+                                        'is_activated' => '1',
+                                        'activated_at' => $activatedAt,
+                                    ];
+                                    
+                                    // Add expired_at if warranty is set
+                                    if ($expiredAt) {
+                                        $updateData['expired_at'] = $expiredAt;
+                                    }
+                                    
+                                    $itemSnModel->skipValidation(true);
+                                    $itemSnModel->update($itemSnId, $updateData);
+                                    $itemSnModel->skipValidation(false);
+                                }
                             }
                         }
                     }
@@ -914,6 +929,80 @@ class Sales extends BaseController
             return redirect()->to('sales')->with('message', [
                 'status' => 'error',
                 'message' => 'Gagal memuat detail penjualan.'
+            ]);
+        }
+    }
+
+    /**
+     * Print sales detail in dot matrix format
+     * 
+     * @param int $id Sale ID
+     * @return \CodeIgniter\HTTP\RedirectResponse|void
+     */
+    public function print_dm(int $id)
+    {
+        if ($id <= 0) {
+            return redirect()->to('sales')->with('message', [
+                'status' => 'error',
+                'message' => 'ID penjualan tidak valid.'
+            ]);
+        }
+
+        try {
+            $sale = $this->model->getSalesWithRelations($id);
+            
+            if (!$sale) {
+                return redirect()->to('sales')->with('message', [
+                    'status' => 'error',
+                    'message' => 'Data penjualan tidak ditemukan.'
+                ]);
+            }
+
+            // Get items from sales_detail table
+            $items = $this->salesDetailModel->getDetailsBySale($id);
+
+            // Parse serial numbers from sn field (stored as JSON string)
+            foreach ($items as &$item) {
+                if (!empty($item['sn'])) {
+                    $sns = json_decode($item['sn'], true);
+                    $item['sns'] = is_array($sns) ? $sns : [];
+                } else {
+                    $item['sns'] = [];
+                }
+            }
+
+            // Get payment information
+            $payments = $this->salesPaymentsModel->getPaymentsBySale($id);
+            $paymentInfo = null;
+            $gatewayResponse = null;
+            
+            if (!empty($payments)) {
+                $payment = $payments[0]; // Get first payment (usually only one)
+                $paymentInfo = $payment;
+                
+                // Decode gateway response if exists
+                if (!empty($payment['response'])) {
+                    $gatewayResponse = json_decode($payment['response'], true);
+                    if (json_last_error() !== JSON_ERROR_NONE) {
+                        $gatewayResponse = null;
+                    }
+                }
+            }
+
+            $this->data['title'] = 'Cetak Nota';
+            $this->data['currentModule'] = $this->currentModule;
+            $this->data['config'] = $this->config;
+            $this->data['sale'] = $sale;
+            $this->data['items'] = $items;
+            $this->data['payment'] = $paymentInfo;
+            $this->data['gatewayResponse'] = $gatewayResponse;
+
+            return view('themes/modern/sales/sales-print', $this->data);
+        } catch (\Exception $e) {
+            log_message('error', 'Sales::print_dm error: ' . $e->getMessage());
+            return redirect()->to('sales')->with('message', [
+                'status' => 'error',
+                'message' => 'Gagal memuat data untuk cetak.'
             ]);
         }
     }

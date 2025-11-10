@@ -417,13 +417,13 @@
 		<?php endif; ?>
 
 		<div class="row mt-4">
-			<div class="col-md-12 d-flex gap-2">
+			<div class="col-md-12 d-flex gap-3">
 				<a href="<?= $config->baseURL ?>agent/sales" class="btn btn-back text-white">
-					<i class="fas fa-arrow-left me-2"></i>Kembali
+					<i class="fas fa-arrow-left"></i>Kembali
 				</a>
-				<button type="button" class="btn btn-primary text-white" onclick="window.print();">
-					<i class="fas fa-print me-2"></i>Print
-				</button>
+				<a href="<?= $config->baseURL ?>sales/print_dm/<?= $sale['id'] ?? '' ?>" target="_blank" class="btn btn-primary text-white">
+					<i class="fas fa-print"></i>Print
+				</a>
 			</div>
 		</div>
 		
