@@ -873,14 +873,14 @@ class Sales extends BaseController
             $items = $this->salesDetailModel->getDetailsBySale($id);
 
             // Parse serial numbers from sn field (stored as JSON string)
-        foreach ($items as &$item) {
-                if (!empty($item['sn'])) {
-                    $sns = json_decode($item['sn'], true);
-                    $item['sns'] = is_array($sns) ? $sns : [];
-                } else {
-                    $item['sns'] = [];
-                }
-        }
+            foreach ($items as &$item) {
+                    if (!empty($item['sn'])) {
+                        $sns = json_decode($item['sn'], true);
+                        $item['sns'] = is_array($sns) ? $sns : [];
+                    } else {
+                        $item['sns'] = [];
+                    }
+            }
 
             // Get payment information
             $payments = $this->salesPaymentsModel->getPaymentsBySale($id);
@@ -900,13 +900,13 @@ class Sales extends BaseController
                 }
             }
 
-        $this->data['title'] = 'Detail Penjualan';
-        $this->data['currentModule'] = $this->currentModule;
-        $this->data['config'] = $this->config;
-        $this->data['sale'] = $sale;
-        $this->data['items'] = $items;
-        $this->data['payment'] = $paymentInfo;
-        $this->data['gatewayResponse'] = $gatewayResponse;
+            $this->data['title'] = 'Detail Penjualan';
+            $this->data['currentModule'] = $this->currentModule;
+            $this->data['config'] = $this->config;
+            $this->data['sale'] = $sale;
+            $this->data['items'] = $items;
+            $this->data['payment'] = $paymentInfo;
+            $this->data['gatewayResponse'] = $gatewayResponse;
 
             $this->view('sales/sales-detail', $this->data);
         } catch (\Exception $e) {

@@ -100,12 +100,15 @@ $routes->group('agent', function($routes) {
     $routes->get('item', 'Agent\Item::index');
 
     // Agent Sales (Cart & Checkout)
+    $routes->get('sales', 'Agent\Sales::index');
+    $routes->get('sales/(:num)', 'Agent\Sales::detail/$1');
     $routes->get('sales/cart', 'Agent\Sales::cart');
     $routes->post('sales/store', 'Agent\Sales::store');
     $routes->post('sales/addToCart', 'Agent\Sales::addToCart');
     $routes->post('sales/updateCart', 'Agent\Sales::updateCart');
     $routes->post('sales/removeFromCart', 'Agent\Sales::removeFromCart');
     $routes->get('sales/clearCart', 'Agent\Sales::clearCart');
+    $routes->post('sales/getDataDT', 'Agent\Sales::getDataDT');
     
     // Agent Payment Result Pages
     $routes->get('payment/thankyou', 'Agent\Payment::thankyou');

@@ -570,16 +570,16 @@ class Sales extends BaseController
             
             // Save to sales table
             $saleData = [
-                'invoice_no' => trim($postData['invoice_no']),
-                'user_id' => $userId,
-                'customer_id' => $customerId,
-                'warehouse_id' => !empty($postData['agent_id']) ? (int)$postData['agent_id'] : null,
-                'sale_channel' => self::CHANNEL_OFFLINE,
-                'total_amount' => (float)($postData['subtotal'] ?? $subtotal),
-                'discount_amount' => (float)($postData['discount'] ?? $discount),
-                'tax_amount' => (float)($postData['tax'] ?? $tax),
-                'grand_total' => (float)($postData['grand_total'] ?? $grandTotal),
-                'payment_status' => $paymentStatus
+                'invoice_no' 		=> trim($postData['invoice_no']),
+                'user_id' 			=> $userId,
+                'customer_id' 		=> $customerId,
+                'warehouse_id' 		=> !empty($postData['agent_id']) ? (int)$postData['agent_id'] : null,
+                'sale_channel' 		=> self::CHANNEL_ONLINE,
+                'total_amount' 		=> (float)($postData['subtotal'] ?? $subtotal),
+                'discount_amount' 	=> (float)($postData['discount'] ?? $discount),
+                'tax_amount' 		=> (float)($postData['tax'] ?? $tax),
+                'grand_total' 		=> (float)($postData['grand_total'] ?? $grandTotal),
+                'payment_status' 	=> $paymentStatus
             ];
             
             // Add settlement_time if gateway response has it and status is PAID
@@ -1170,6 +1170,269 @@ class Sales extends BaseController
             log_message('error', 'Agent\Sales::getPaymentStatusFromGateway trace: ' . $e->getTraceAsString());
             return null;
         }
+    }
+    
+    /**
+     * Display agent sales list page
+     * 
+     * @return void
+     */
+    public function index(): void
+    {
+        $this->data['title'] = 'Data Penjualan Agent (Online)';
+        $this->data['currentModule'] = $this->currentModule;
+        $this->data['config'] = $this->config;
+        $this->data['msg'] = $this->session->getFlashdata('message');
+        
+        $this->view('sales/agent/sales-result', $this->data);
+    }
+
+    /**
+     * Show sale detail
+     * 
+     * @param int $id Sale ID
+     * @return \CodeIgniter\HTTP\RedirectResponse|void
+     */
+    public function detail(int $id)
+    {
+        if ($id <= 0) {
+            return redirect()->to('sales')->with('message', [
+                'status' => 'error',
+                'message' => 'ID penjualan tidak valid.'
+            ]);
+        }
+
+        try {
+            $sale = $this->model->getSalesWithRelations($id);
+            
+            if (!$sale) {
+                return redirect()->to('sales')->with('message', [
+                    'status' => 'error',
+                    'message' => 'Data penjualan tidak ditemukan.'
+                ]);
+            }
+
+            // Get items from sales_detail table
+            $items = $this->salesDetailModel->getDetailsBySale($id);
+
+            // Parse serial numbers from sn field (stored as JSON string)
+            foreach ($items as &$item) {
+                    if (!empty($item['sn'])) {
+                        $sns = json_decode($item['sn'], true);
+                        $item['sns'] = is_array($sns) ? $sns : [];
+                    } else {
+                        $item['sns'] = [];
+                    }
+            }
+
+            // Get payment information
+            $payments = $this->salesPaymentsModel->getPaymentsBySale($id);
+            $paymentInfo = null;
+            $gatewayResponse = null;
+            
+            if (!empty($payments)) {
+                $payment = $payments[0]; // Get first payment (usually only one)
+                $paymentInfo = $payment;
+                
+                // Decode gateway response if exists
+                if (!empty($payment['response'])) {
+                    $gatewayResponse = json_decode($payment['response'], true);
+                    if (json_last_error() !== JSON_ERROR_NONE) {
+                        $gatewayResponse = null;
+                    }
+                }
+            }
+
+            $this->data['title'] = 'Detail Penjualan';
+            $this->data['currentModule'] = $this->currentModule;
+            $this->data['config'] = $this->config;
+            $this->data['sale'] = $sale;
+            $this->data['items'] = $items;
+            $this->data['payment'] = $paymentInfo;
+            $this->data['gatewayResponse'] = $gatewayResponse;
+
+            $this->view('sales/agent/sales-detail', $this->data);
+        } catch (\Exception $e) {
+            log_message('error', 'Sales::detail error: ' . $e->getMessage());
+            return redirect()->to('sales')->with('message', [
+                'status' => 'error',
+                'message' => 'Gagal memuat detail penjualan.'
+            ]);
+        }
+    }
+    
+    /**
+     * Get DataTables data for agent sales list (online sales only)
+     * Filters by sale_channel = '2' (CHANNEL_ONLINE)
+     * 
+     * @return ResponseInterface
+     */
+    public function getDataDT(): ResponseInterface
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status'  => 'error',
+                'message' => 'Request tidak valid.',
+            ]);
+        }
+
+        try {
+            $draw   = (int) ($this->request->getPost('draw') ?? $this->request->getGet('draw') ?? 0);
+            $start  = (int) ($this->request->getPost('start') ?? $this->request->getGet('start') ?? 0);
+            $length = (int) ($this->request->getPost('length') ?? $this->request->getGet('length') ?? 10);
+
+            // Defensive bounds for pagination
+            if ($start < 0) {
+                $start = 0;
+            }
+            if ($length < 1 || $length > 100) {
+                $length = 10;
+            }
+
+            // Retrieve search value from DataTables POST/GET
+            $search = $this->request->getPost('search');
+            if ($search === null) {
+                $search = $this->request->getGet('search');
+            }
+
+            $searchValue = '';
+            if (is_array($search) && isset($search['value'])) {
+                $searchValue = trim($search['value']);
+            } elseif (is_string($search)) {
+                $searchValue = trim($search);
+            }
+
+            $db = \Config\Database::connect();
+            
+            // Count total records with channel filter
+            $totalRecords = $db->table('sales')
+                ->where('sale_channel', self::CHANNEL_ONLINE)
+                ->countAllResults();
+
+            // Main query builder with joins and channel filter
+            $query = $this->buildSalesQuery();
+
+            // Apply filtering if search term present
+            $totalFiltered = $totalRecords;
+
+            if (!empty($searchValue)) {
+                $query->groupStart()
+                      ->like('sales.invoice_no', $searchValue)
+                      ->orLike('customer.name', $searchValue)
+                      ->orLike('user.nama', $searchValue)
+                      ->orLike('agent.name', $searchValue)
+                      ->groupEnd();
+
+                // Clone query for the count (mimics actual filter)
+                $countQuery = $this->buildSalesQuery();
+                $countQuery->groupStart()
+                           ->like('sales.invoice_no', $searchValue)
+                           ->orLike('customer.name', $searchValue)
+                           ->orLike('user.nama', $searchValue)
+                           ->orLike('agent.name', $searchValue)
+                           ->groupEnd();
+
+                $totalFiltered = $countQuery->countAllResults();
+            }
+
+            $data = $query->orderBy('sales.created_at', 'DESC')
+                          ->limit($length, $start)
+                          ->get()
+                          ->getResultArray();
+
+            // Format for DataTables
+            $result = $this->formatDataTablesData($data, $start);
+
+            return $this->response->setJSON([
+                'draw'            => $draw,
+                'recordsTotal'    => $totalRecords,
+                'recordsFiltered' => $totalFiltered,
+                'data'            => $result,
+            ]);
+        } catch (\Throwable $e) {
+            log_message(
+                'error',
+                'Agent\Sales::getDataDT error: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString()
+            );
+
+            return $this->response->setJSON([
+                'draw'            => (int) ($this->request->getPost('draw') ?? $this->request->getGet('draw') ?? 0),
+                'recordsTotal'    => 0,
+                'recordsFiltered' => 0,
+                'data'            => [],
+                'error'           => 'Gagal memuat data: ' . $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Build base sales query with joins and channel filter
+     * Filters by sale_channel = '2' (CHANNEL_ONLINE)
+     * 
+     * @return \CodeIgniter\Database\BaseBuilder
+     */
+    protected function buildSalesQuery()
+    {
+        $db = \Config\Database::connect();
+        $builder = $db->table('sales');
+        
+        return $builder->select('sales.*, 
+            customer.name as customer_name,
+            user.nama as user_name,
+            agent.name as agent_name')
+            ->join('customer', 'customer.id = sales.customer_id', 'left')
+            ->join('user', 'user.id_user = sales.user_id', 'left')
+            ->join('agent', 'agent.id = sales.warehouse_id', 'left')
+            ->where('sales.sale_channel', self::CHANNEL_ONLINE);
+    }
+
+    /**
+     * Format data for DataTables
+     * 
+     * @param array $data
+     * @param int $start
+     * @return array
+     */
+    protected function formatDataTablesData(array $data, int $start): array
+    {
+        $result = [];
+        $no = $start + 1;
+
+        // Payment status badges
+        $paymentStatusBadge = [
+            '0' => '<span class="badge bg-warning">Unpaid</span>',
+            '1' => '<span class="badge bg-info">Partial</span>',
+            '2' => '<span class="badge bg-success">Paid</span>'
+        ];
+
+        foreach ($data as $row) {
+            $paymentStatus = $row['payment_status'] ?? '0';
+            $statusDisplay = $paymentStatusBadge[$paymentStatus] ?? '<span class="badge bg-secondary">Unknown</span>';
+
+            $actionButtons = '<div class="btn-group" role="group">';
+            $actionButtons .= '<a href="' . $this->config->baseURL . 'agent/sales/' . $row['id'] . '" ';
+            $actionButtons .= 'class="btn btn-sm btn-info" title="Detail">';
+            $actionButtons .= '<i class="fas fa-eye"></i></a>';
+            $actionButtons .= '</div>';
+
+            $result[] = [
+                'ignore_search_urut'    => $no,
+                'id'                    => $row['id'] ?? 0,
+                'invoice_no'            => esc($row['invoice_no'] ?? ''),
+                'customer_name'         => esc($row['customer_name'] ?? '-'),
+                'agent_name'            => esc($row['agent_name'] ?? '-'),
+                'grand_total'           => format_angka((float) ($row['grand_total'] ?? 0), 2),
+                'payment_status'        => $statusDisplay,
+                'created_at'            => !empty($row['created_at'])
+                                            ? date('d/m/Y H:i', strtotime($row['created_at']))
+                                            : '-',
+                'ignore_search_action'  => $actionButtons,
+            ];
+
+            $no++;
+        }
+
+        return $result;
     }
 }
 
