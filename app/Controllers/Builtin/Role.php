@@ -222,4 +222,19 @@ class Role extends \App\Controllers\BaseController
 		echo json_encode($result); exit();
 	}
 	
+	/**
+	 * Redirect to role-permission controller
+	 * Handles URL: builtin/role/permission
+	 * 
+	 * @return \CodeIgniter\HTTP\RedirectResponse
+	 */
+	public function permission()
+	{
+		$id = $this->request->getGet('id');
+		if ($id) {
+			return redirect()->to('builtin/role-permission/edit?id=' . $id);
+		}
+		return redirect()->to('builtin/role-permission');
+	}
+	
 }

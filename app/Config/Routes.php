@@ -108,12 +108,18 @@ $routes->group('agent', function($routes) {
     $routes->post('sales/updateCart', 'Agent\Sales::updateCart');
     $routes->post('sales/removeFromCart', 'Agent\Sales::removeFromCart');
     $routes->get('sales/clearCart', 'Agent\Sales::clearCart');
-    $routes->post('sales/getDataDT', 'Agent\Sales::getDataDT');
+    $routes->post('sales/getDataDT', 'Agent\Sales::getDataDT');    
     
     // Agent Payment Result Pages
     $routes->get('payment/thankyou', 'Agent\Payment::thankyou');
     $routes->get('payment/status', 'Agent\Payment::status');
     $routes->get('payment/not-found', 'Agent\Payment::notFound');
+
+    // Agent Sales Confirm (Admin verification of agent orders)
+    $routes->get('sales/confirm', 'Agent\SalesConfirm::index');
+    $routes->get('sales/confirm/(:num)', 'Agent\SalesConfirm::detail/$1');
+    $routes->post('sales/confirm/getDataDT', 'Agent\SalesConfirm::getDataDT');
+    $routes->post('sales/confirm/verify/(:num)', 'Agent\SalesConfirm::verify/$1');
 });
 
 # Agent Gateway Check (for agent/post integration)
@@ -173,6 +179,7 @@ $routes->group('sales',  function($routes){
     $routes->get('(:num)', 'Sales::detail/$1');
     $routes->post('getDataDT', 'Sales::getDataDT');
     $routes->get('getUnusedSNs', 'Sales::getUnusedSNs');
+    $routes->get('print_dm/(:num)', 'Sales::print_dm/$1');
 });
 
 # Payment Gateway Callback (No authentication required - called by Midtrans)

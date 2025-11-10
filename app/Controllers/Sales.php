@@ -212,10 +212,9 @@ class Sales extends BaseController
 
     /**
      * Handle form submission for saving sales
-     * 
+     *
      * @return \CodeIgniter\HTTP\RedirectResponse|\CodeIgniter\HTTP\ResponseInterface
      */
-
     public function store()
     {
         $isAjax = $this->request->isAJAX();
@@ -227,13 +226,13 @@ class Sales extends BaseController
             if ($isAjax) {
                 return $this->response->setJSON([
                     'status'  => 'error',
-                    'message' => $message
+                    'message' => $message,
                 ]);
             }
             return redirect()->to('login')
                 ->with('message', [
                     'status'  => 'error',
-                    'message' => $message
+                    'message' => $message,
                 ]);
         }
         $userId = $userSession['id_user'];
@@ -248,12 +247,12 @@ class Sales extends BaseController
             if ($isAjax) {
                 return $this->response->setJSON([
                     'status'  => 'error',
-                    'message' => $message
+                    'message' => $message,
                 ]);
             }
             return redirect()->back()->withInput()->with('message', [
                 'status'  => 'error',
-                'message' => $message
+                'message' => $message,
             ]);
         }
 
@@ -261,9 +260,15 @@ class Sales extends BaseController
         if (empty($postData['invoice_no'])) {
             $message = 'Nomor invoice wajib diisi.';
             if ($isAjax) {
-                return $this->response->setJSON(['status' => 'error', 'message' => $message]);
+                return $this->response->setJSON([
+                    'status'  => 'error',
+                    'message' => $message,
+                ]);
             }
-            return redirect()->back()->withInput()->with('message', ['status' => 'error', 'message' => $message]);
+            return redirect()->back()->withInput()->with('message', [
+                'status'  => 'error',
+                'message' => $message,
+            ]);
         }
 
         // Check invoice uniqueness (only for new records)
@@ -272,16 +277,22 @@ class Sales extends BaseController
             if ($existingSale) {
                 $message = 'Nomor invoice sudah digunakan.';
                 if ($isAjax) {
-                    return $this->response->setJSON(['status' => 'error', 'message' => $message]);
+                    return $this->response->setJSON([
+                        'status'  => 'error',
+                        'message' => $message,
+                    ]);
                 }
-                return redirect()->back()->withInput()->with('message', ['status' => 'error', 'message' => $message]);
+                return redirect()->back()->withInput()->with('message', [
+                    'status'  => 'error',
+                    'message' => $message,
+                ]);
             }
         }
 
         // Prepare plate data for customer lookup
-        $platCode = !empty($postData['plate_code']) ? trim($postData['plate_code']) : null;
-        $platNumber = !empty($postData['plate_number']) ? trim($postData['plate_number']) : null;
-        $platLast = !empty($postData['plate_suffix']) ? trim($postData['plate_suffix']) : null;
+        $platCode     = !empty($postData['plate_code'])   ? trim($postData['plate_code'])   : null;
+        $platNumber   = !empty($postData['plate_number']) ? trim($postData['plate_number']) : null;
+        $platLast     = !empty($postData['plate_suffix']) ? trim($postData['plate_suffix']) : null;
         $customerName = !empty($postData['customer_name']) ? trim($postData['customer_name']) : null;
 
         // Check if customer exists (read-only, can be outside transaction)
@@ -292,32 +303,30 @@ class Sales extends BaseController
                 $customerId = $existingCustomer['id'];
             }
         } elseif (!empty($postData['customer_id'])) {
-            $customerId = (int)$postData['customer_id'];
+            $customerId = (int) $postData['customer_id'];
         }
 
         // Handle payment gateway API call if platform is selected
         $gatewayResponse = null;
-        $platformId = !empty($postData['platform_id']) ? (int)$postData['platform_id'] : null;
-        
+        $platformId = !empty($postData['platform_id']) ? (int) $postData['platform_id'] : null;
+
         if ($platformId) {
             // Get platform details
             $platform = $this->platformModel->find($platformId);
-            
+
             // Only send to gateway if platform.gw_status = '1'
             // Platforms like "Tunai" (Cash) with gw_status = '0' should NOT go through gateway
             $gwStatus = $platform['gw_status'] ?? '0';
-            // Handle both string and integer values
-            $gwStatus = (string)$gwStatus;
+            $gwStatus = (string) $gwStatus;
             if ($platform && $gwStatus === '1') {
-                
                 // Prepare API request data
-                $invoiceNo = trim($postData['invoice_no']);
-                $grandTotal = (float)($postData['grand_total'] ?? 0);
-                
+                $invoiceNo  = trim($postData['invoice_no']);
+                $grandTotal = (float) ($postData['grand_total'] ?? 0);
+
                 // Get customer email and phone from existing customer or form data
                 $customerEmail = !empty($postData['customer_email']) ? trim($postData['customer_email']) : '';
                 $customerPhone = !empty($postData['customer_phone']) ? trim($postData['customer_phone']) : '';
-                
+
                 // If customer exists, try to get email/phone from customer record
                 if ($customerId) {
                     $customerRecord = $this->customerModel->find($customerId);
@@ -330,7 +339,7 @@ class Sales extends BaseController
                         }
                     }
                 }
-                
+
                 // Use defaults if still empty
                 if (empty($customerEmail)) {
                     $customerEmail = 'customer@example.com';
@@ -338,12 +347,12 @@ class Sales extends BaseController
                 if (empty($customerPhone)) {
                     $customerPhone = '';
                 }
-                
+
                 // Split customer name into firstName and lastName
                 $nameParts = !empty($customerName) ? explode(' ', $customerName, 2) : ['Customer', 'Customer'];
                 $firstName = $nameParts[0] ?? 'Customer';
-                $lastName = $nameParts[1] ?? $firstName;
-                
+                $lastName  = $nameParts[1] ?? $firstName;
+
                 // Prepare API payload matching Midtrans custom middleware format
                 $apiData = [
                     'code'     => $platform['gw_code'] ?? 'QRIS',
@@ -356,24 +365,24 @@ class Sales extends BaseController
                         'phone'     => $customerPhone,
                     ],
                 ];
-                
+
                 // Log the payload being sent (for debugging)
                 log_message('error', 'Sales::store - Gateway API Payload: ' . json_encode($apiData, JSON_PRETTY_PRINT));
-                
+
                 // Call payment gateway API
                 $gatewayResponse = $this->callPaymentGateway($apiData);
-                
+
                 if ($gatewayResponse === null) {
                     // Get debug file content if it exists
-                    $debugFile = WRITEPATH . 'logs/gateway-debug-' . date('Y-m-d') . '.txt';
+                    $debugFile    = WRITEPATH . 'logs/gateway-debug-' . date('Y-m-d') . '.txt';
                     $debugContent = '';
                     if (file_exists($debugFile)) {
                         $debugContent = file_get_contents($debugFile);
                     }
-                    
-                    $logFile = WRITEPATH . 'logs/log-' . date('Y-m-d') . '.log';
+
+                    $logFile      = WRITEPATH . 'logs/log-' . date('Y-m-d') . '.log';
                     $errorDetails = 'Gagal mengirim ke payment gateway.';
-                    
+
                     // Try to get more details from the last log entry
                     if (file_exists($logFile)) {
                         $logContent = file_get_contents($logFile);
@@ -389,25 +398,28 @@ class Sales extends BaseController
                             $errorDetails .= ' Detail: ' . substr($lastError, 0, 200);
                         }
                     }
-                    
+
                     $message = $errorDetails . ' Silakan cek log di: ' . $logFile;
                     if ($isAjax) {
                         return $this->response->setJSON([
-                            'status' => 'error', 
-                            'message' => $message,
-                            'debug' => [
-                                'log_file' => $logFile,
-                                'log_exists' => file_exists($logFile),
-                                'debug_file' => $debugFile,
-                                'debug_exists' => file_exists($debugFile),
+                            'status'    => 'error',
+                            'message'   => $message,
+                            'debug'     => [
+                                'log_file'      => $logFile,
+                                'log_exists'    => file_exists($logFile),
+                                'debug_file'    => $debugFile,
+                                'debug_exists'  => file_exists($debugFile),
                                 'debug_content' => substr($debugContent, -500), // Last 500 chars
-                                'api_data' => $apiData,
-                                'platform_id' => $platformId,
-                                'gw_status' => $platform['gw_status'] ?? 'N/A'
-                            ]
+                                'api_data'      => $apiData,
+                                'platform_id'   => $platformId,
+                                'gw_status'     => $platform['gw_status'] ?? 'N/A',
+                            ],
                         ]);
                     }
-                    return redirect()->back()->withInput()->with('message', ['status' => 'error', 'message' => $message]);
+                    return redirect()->back()->withInput()->with('message', [
+                        'status'  => 'error',
+                        'message' => $message,
+                    ]);
                 }
             }
         }
@@ -420,20 +432,20 @@ class Sales extends BaseController
             // Create customer if not found but plate data provided
             if ($customerId === null && $platCode && $platNumber && $customerName) {
                 $customerData = [
-                    'name' => $customerName,
-                    'plat_code' => $platCode,
+                    'name'       => $customerName,
+                    'plat_code'  => $platCode,
                     'plat_number' => $platNumber,
-                    'plat_last' => $platLast ?: null,
-                    'status' => 'active'
+                    'plat_last'  => $platLast ?: null,
+                    'status'     => 'active',
                 ];
-                
+
                 $this->customerModel->skipValidation(true);
                 $insertResult = $this->customerModel->insert($customerData);
                 if (!$insertResult) {
                     $errors = $this->customerModel->errors();
                     $errorMsg = 'Gagal membuat customer: ';
                     if ($errors && is_array($errors)) {
-                        $errorMsg .= implode(', ', array_map(function($e) {
+                        $errorMsg .= implode(', ', array_map(function ($e) {
                             return is_array($e) ? json_encode($e) : $e;
                         }, $errors));
                     }
@@ -442,6 +454,7 @@ class Sales extends BaseController
                 $customerId = $this->customerModel->getInsertID();
                 $this->customerModel->skipValidation(false);
             }
+
             // Determine payment status based on gateway response
             $paymentStatus = $postData['payment_status'] ?? '0';
             if ($gatewayResponse && isset($gatewayResponse['status'])) {
@@ -452,24 +465,28 @@ class Sales extends BaseController
                     $paymentStatus = '0'; // unpaid
                 }
             }
-            
+
             // Save to sales table
             $saleData = [
-                'invoice_no' => trim($postData['invoice_no']),
-                'user_id' => $userId,
-                'customer_id' => $customerId,
-                'warehouse_id' => !empty($postData['agent_id']) ? (int)$postData['agent_id'] : null,
-                'sale_channel' => $postData['sales_channel'] ?? self::CHANNEL_OFFLINE,
-                'total_amount' => (float)($postData['subtotal'] ?? 0),
+                'invoice_no'     => trim($postData['invoice_no']),
+                'user_id'        => $userId,
+                'customer_id'    => $customerId,
+                'warehouse_id'   => !empty($postData['agent_id']) ? (int)$postData['agent_id'] : null,
+                'sale_channel'   => $postData['sales_channel'] ?? self::CHANNEL_OFFLINE,
+                'total_amount'   => (float)($postData['subtotal'] ?? 0),
                 'discount_amount' => (float)($postData['discount'] ?? 0),
-                'tax_amount' => (float)($postData['tax'] ?? 0),
-                'grand_total' => (float)($postData['grand_total'] ?? 0),
-                'payment_status' => $paymentStatus
+                'tax_amount'     => (float)($postData['tax'] ?? 0),
+                'grand_total'    => (float)($postData['grand_total'] ?? 0),
+                'payment_status' => $paymentStatus,
             ];
-            
+
             // Add settlement_time if gateway response has it and status is PAID
-            if ($gatewayResponse && isset($gatewayResponse['settlementTime']) && 
-                isset($gatewayResponse['status']) && strtoupper($gatewayResponse['status']) === 'PAID') {
+            if (
+                $gatewayResponse &&
+                isset($gatewayResponse['settlementTime']) &&
+                isset($gatewayResponse['status']) &&
+                strtoupper($gatewayResponse['status']) === 'PAID'
+            ) {
                 try {
                     $settlementDateTime = new \DateTime($gatewayResponse['settlementTime']);
                     $saleData['settlement_time'] = $settlementDateTime->format('Y-m-d H:i:s');
@@ -485,7 +502,7 @@ class Sales extends BaseController
                     $errors = $this->model->errors();
                     $errorMsg = 'Gagal update data penjualan: ';
                     if ($errors && is_array($errors)) {
-                        $errorMsg .= implode(', ', array_map(function($e) {
+                        $errorMsg .= implode(', ', array_map(function ($e) {
                             return is_array($e) ? json_encode($e) : $e;
                         }, $errors));
                     } else {
@@ -499,11 +516,11 @@ class Sales extends BaseController
             } else {
                 $insertResult = $this->model->insert($saleData);
                 if (!$insertResult) {
-                    $errors = $this->model->errors();
+                    $errors  = $this->model->errors();
                     $dbError = $db->error();
                     $errorMsg = 'Gagal insert data penjualan. ';
                     if ($errors && is_array($errors)) {
-                        $errorMsg .= 'Validation: ' . implode(', ', array_map(function($e) {
+                        $errorMsg .= 'Validation: ' . implode(', ', array_map(function ($e) {
                             return is_array($e) ? json_encode($e) : $e;
                         }, $errors));
                     }
@@ -529,41 +546,41 @@ class Sales extends BaseController
             $itemModel = new \App\Models\ItemModel();
             foreach ($items as $item) {
                 // Get item name
-                $itemRecord = $itemModel->find((int)$item['item_id']);
+                $itemRecord = $itemModel->find((int) $item['item_id']);
                 $itemName = 'Unknown';
                 if ($itemRecord) {
                     if (is_array($itemRecord)) {
-                        $itemName = isset($itemRecord['name']) ? (string)$itemRecord['name'] : 'Unknown';
+                        $itemName = isset($itemRecord['name']) ? (string) $itemRecord['name'] : 'Unknown';
                     } else {
-                        $itemName = isset($itemRecord->name) ? (string)$itemRecord->name : 'Unknown';
+                        $itemName = isset($itemRecord->name) ? (string) $itemRecord->name : 'Unknown';
                     }
                 }
 
                 // Insert to sales_detail - ensure sn is a string
                 $snValue = null;
                 if (!empty($item['sns'])) {
-                    $snValue = is_array($item['sns']) ? json_encode($item['sns']) : (string)$item['sns'];
+                    $snValue = is_array($item['sns']) ? json_encode($item['sns']) : (string) $item['sns'];
                 }
-                
+
                 $this->salesDetailModel->skipValidation(true);
                 $salesDetailData = [
-                        'sale_id' => $saleId,
-                        'item_id' => (int)$item['item_id'],
-                        'variant_id' => !empty($item['variant_id']) ? (int)$item['variant_id'] : null,
-                    'sn' => $snValue,
-                    'item' => $itemName,
-                        'price' => (float)($item['price'] ?? 0),
-                    'qty' => (int)($item['qty'] ?? 1),
-                    'disc' => (float)($item['discount'] ?? 0),
-                    'amount' => (float)($item['subtotal'] ?? 0)
+                    'sale_id'    => $saleId,
+                    'item_id'    => (int) $item['item_id'],
+                    'variant_id' => !empty($item['variant_id']) ? (int) $item['variant_id'] : null,
+                    'sn'         => $snValue,
+                    'item'       => $itemName,
+                    'price'      => (float) ($item['price'] ?? 0),
+                    'qty'        => (int) ($item['qty'] ?? 1),
+                    'disc'       => (float) ($item['discount'] ?? 0),
+                    'amount'     => (float) ($item['subtotal'] ?? 0),
                 ];
                 $detailInsertResult = $this->salesDetailModel->insert($salesDetailData);
                 if (!$detailInsertResult) {
                     $errors = $this->salesDetailModel->errors();
                     $errorMsg = 'Gagal insert sales_detail: ';
                     if ($errors && is_array($errors)) {
-                        $errorMsg .= implode(', ', array_map(function($e) {
-                            return is_array($e) ? json_encode($e) : (string)$e;
+                        $errorMsg .= implode(', ', array_map(function ($e) {
+                            return is_array($e) ? json_encode($e) : (string) $e;
                         }, $errors));
                     }
                     throw new \Exception($errorMsg);
@@ -579,13 +596,13 @@ class Sales extends BaseController
                     } else {
                         $sns = json_decode($item['sns'], true);
                     }
-                    
+
                     if (is_array($sns) && $salesDetailId) {
                         // Only activate serial numbers if platform.gw_status = '0' (cash/offline payment)
                         $shouldActivateSN = false;
                         if ($platformId && isset($platform)) {
                             $gwStatus = $platform['gw_status'] ?? '0';
-                            $gwStatus = (string)$gwStatus;
+                            $gwStatus = (string) $gwStatus;
                             if ($gwStatus === '0') {
                                 $shouldActivateSN = true;
                             }
@@ -593,21 +610,21 @@ class Sales extends BaseController
                             // No platform selected, treat as cash payment
                             $shouldActivateSN = true;
                         }
-                        
+
                         if ($shouldActivateSN) {
                             // Get item warranty from item record
                             $itemWarranty = 0;
                             if ($itemRecord) {
                                 if (is_array($itemRecord)) {
-                                    $itemWarranty = isset($itemRecord['warranty']) ? (int)$itemRecord['warranty'] : 0;
+                                    $itemWarranty = isset($itemRecord['warranty']) ? (int) $itemRecord['warranty'] : 0;
                                 } else {
-                                    $itemWarranty = isset($itemRecord->warranty) ? (int)$itemRecord->warranty : 0;
+                                    $itemWarranty = isset($itemRecord->warranty) ? (int) $itemRecord->warranty : 0;
                                 }
                             }
-                            
+
                             $itemSnModel = new \App\Models\ItemSnModel();
                             $activatedAt = date('Y-m-d H:i:s');
-                            
+
                             // Calculate expired_at if warranty exists
                             $expiredAt = null;
                             if ($itemWarranty > 0) {
@@ -615,34 +632,34 @@ class Sales extends BaseController
                                     ->modify('+' . $itemWarranty . ' months')
                                     ->format('Y-m-d H:i:s');
                             }
-                            
+
                             foreach ($sns as $sn) {
                                 if (!empty($sn['item_sn_id']) && !empty($sn['sn'])) {
-                                    $itemSnId = (int)$sn['item_sn_id'];
-                                    $snValue = (string)$sn['sn'];
-                                    
+                                    $itemSnId = (int) $sn['item_sn_id'];
+                                    $snValue  = (string) $sn['sn'];
+
                                     // Save to SalesItemSnModel
                                     $this->salesItemSnModel->skipValidation(true);
                                     $salesItemSnData = [
                                         'sales_item_id' => $salesDetailId,
-                                        'item_sn_id' => $itemSnId,
-                                        'sn' => $snValue
+                                        'item_sn_id'    => $itemSnId,
+                                        'sn'            => $snValue,
                                     ];
                                     $this->salesItemSnModel->insert($salesItemSnData);
                                     $this->salesItemSnModel->skipValidation(false);
-                                    
+
                                     // Update ItemSnModel with warranty expiration
                                     $updateData = [
                                         'is_sell'      => '1',
                                         'is_activated' => '1',
                                         'activated_at' => $activatedAt,
                                     ];
-                                    
+
                                     // Add expired_at if warranty is set
                                     if ($expiredAt) {
                                         $updateData['expired_at'] = $expiredAt;
                                     }
-                                    
+
                                     $itemSnModel->skipValidation(true);
                                     $itemSnModel->update($itemSnId, $updateData);
                                     $itemSnModel->skipValidation(false);
@@ -668,23 +685,23 @@ class Sales extends BaseController
                         $paymentMethod = 'other';
                     }
                 }
-                
+
                 // Store full gateway response in response field (TEXT), note for manual notes
                 $gatewayResponseJson = json_encode($gatewayResponse);
-                
+
                 $paymentData = [
-                    'sale_id' => $saleId,
+                    'sale_id'    => $saleId,
                     'platform_id' => $platformId,
-                    'method' => $paymentMethod,
-                    'amount' => (float)($postData['grand_total'] ?? 0),
-                    'note' => '', // Manual notes if needed
-                    'response' => $gatewayResponseJson // Full gateway response JSON
+                    'method'     => $paymentMethod,
+                    'amount'     => (float) ($postData['grand_total'] ?? 0),
+                    'note'       => '', // Manual notes if needed
+                    'response'   => $gatewayResponseJson, // Full gateway response JSON
                 ];
-                
+
                 $this->salesPaymentsModel->skipValidation(true);
                 $paymentInsertResult = $this->salesPaymentsModel->insert($paymentData);
                 $this->salesPaymentsModel->skipValidation(false);
-                
+
                 if (!$paymentInsertResult) {
                     $errors = $this->salesPaymentsModel->errors();
                     $errorMsg = 'Gagal menyimpan data pembayaran: ';
@@ -696,17 +713,17 @@ class Sales extends BaseController
             } elseif ($saleId && $platformId) {
                 // Platform selected but no gateway response (cash payment via platform like "Tunai")
                 $paymentData = [
-                    'sale_id' => $saleId,
+                    'sale_id'    => $saleId,
                     'platform_id' => $platformId,
-                    'method' => 'cash',
-                    'amount' => (float)($postData['grand_total'] ?? 0),
-                    'note' => ''
+                    'method'     => 'cash',
+                    'amount'     => (float) ($postData['grand_total'] ?? 0),
+                    'note'       => '',
                 ];
-                
+
                 $this->salesPaymentsModel->skipValidation(true);
                 $paymentInsertResult = $this->salesPaymentsModel->insert($paymentData);
                 $this->salesPaymentsModel->skipValidation(false);
-                
+
                 if (!$paymentInsertResult) {
                     $errors = $this->salesPaymentsModel->errors();
                     $errorMsg = 'Gagal menyimpan data pembayaran: ';
@@ -734,25 +751,25 @@ class Sales extends BaseController
                 try {
                     $invoiceNo = trim($postData['invoice_no']);
                     $latestGatewayResponse = $this->getPaymentStatusFromGateway($invoiceNo);
-                    
+
                     if ($latestGatewayResponse !== null) {
                         // Update payment record with latest gateway response
                         $paymentRecord = $this->salesPaymentsModel
                             ->where('sale_id', $saleId)
                             ->where('platform_id', $platformId)
                             ->first();
-                        
+
                         if ($paymentRecord) {
                             $latestResponseJson = json_encode($latestGatewayResponse);
                             $this->salesPaymentsModel->skipValidation(true);
                             $this->salesPaymentsModel->update($paymentRecord['id'], [
-                                'response' => $latestResponseJson
+                                'response' => $latestResponseJson,
                             ]);
                             $this->salesPaymentsModel->skipValidation(false);
-                            
+
                             // Update gateway response variable for response data
                             $gatewayResponse = $latestGatewayResponse;
-                            
+
                             log_message('info', 'Sales::store - Updated payment response with latest gateway data for invoice: ' . $invoiceNo);
                         }
                     }
@@ -762,39 +779,48 @@ class Sales extends BaseController
                 }
             }
 
-            $message = $id ? 'Penjualan berhasil diupdate.' : 'Penjualan berhasil disimpan.';
+            $message      = $id ? 'Penjualan berhasil diupdate.' : 'Penjualan berhasil disimpan.';
             $responseData = ['id' => $saleId];
-            
+
             // Include gateway response data (QR code URL) if available
             if ($gatewayResponse && !empty($gatewayResponse['url'])) {
                 $responseData['gateway'] = [
-                    'url' => $gatewayResponse['url'],
-                    'status' => $gatewayResponse['status'] ?? 'PENDING',
-                    'paymentGatewayAdminFee' => $gatewayResponse['paymentGatewayAdminFee'] ?? 0
+                    'url'                    => $gatewayResponse['url'],
+                    'status'                 => $gatewayResponse['status'] ?? 'PENDING',
+                    'paymentGatewayAdminFee' => $gatewayResponse['paymentGatewayAdminFee'] ?? 0,
                 ];
             }
-            
+
             if ($isAjax) {
                 return $this->response->setJSON([
-                    'status' => 'success',
-                    'message' => $message,
-                    'data' => $responseData,
-                    'redirect' => $this->config->baseURL . 'sales/' . $saleId
+                    'status'   => 'success',
+                    'message'  => $message,
+                    'data'     => $responseData,
+                    'redirect' => $this->config->baseURL . 'sales/' . $saleId,
                 ]);
             }
 
-            return redirect()->to('sales/' . $saleId)->with('message', ['status' => 'success', 'message' => $message]);
-
+            return redirect()->to('sales/' . $saleId)
+                ->with('message', [
+                    'status'  => 'success',
+                    'message' => $message,
+                ]);
         } catch (\Exception $e) {
             $db->transRollback();
             log_message('error', 'Sales::store error: ' . $e->getMessage());
-            
+
             $message = 'Gagal menyimpan penjualan: ' . $e->getMessage();
             if ($isAjax) {
-                return $this->response->setJSON(['status' => 'error', 'message' => $message]);
+                return $this->response->setJSON([
+                    'status'  => 'error',
+                    'message' => $message,
+                ]);
             }
-            
-            return redirect()->back()->withInput()->with('message', ['status' => 'error', 'message' => $message]);
+
+            return redirect()->back()->withInput()->with('message', [
+                'status'  => 'error',
+                'message' => $message,
+            ]);
         }
     }
     // DEBUG: pre message store is called

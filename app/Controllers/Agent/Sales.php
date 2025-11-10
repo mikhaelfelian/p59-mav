@@ -667,7 +667,8 @@ class Sales extends BaseController
                 $salesDetailId = $this->salesDetailModel->getInsertID();
                 $this->salesDetailModel->skipValidation(false);
 
-                // Save serial numbers to SalesItemSnModel and update ItemSnModel
+                // Save serial numbers to SalesItemSnModel (for agent orders, do NOT update item_sn.is_sell)
+                // Serial numbers need manual admin confirmation before activation
                 if (!empty($item['sns'])) {
                     // Check if sns is already an array or needs to be decoded
                     if (is_array($item['sns'])) {
@@ -677,33 +678,15 @@ class Sales extends BaseController
                     }
                     
                     if (is_array($sns) && $salesDetailId) {
-                        // Get item warranty from item record
-                        $itemWarranty = 0;
-                        if ($itemRecord) {
-                            if (is_array($itemRecord)) {
-                                $itemWarranty = isset($itemRecord['warranty']) ? (int)$itemRecord['warranty'] : 0;
-                            } else {
-                                $itemWarranty = isset($itemRecord->warranty) ? (int)$itemRecord->warranty : 0;
-                            }
-                        }
-                        
-                        $itemSnModel = new \App\Models\ItemSnModel();
-                        $activatedAt = date('Y-m-d H:i:s');
-                        
-                        // Calculate expired_at if warranty exists
-                        $expiredAt = null;
-                        if ($itemWarranty > 0) {
-                            $expiredAt = (new \DateTime($activatedAt))
-                                ->modify('+' . $itemWarranty . ' months')
-                                ->format('Y-m-d H:i:s');
-                        }
-                        
+                        // Only save to SalesItemSnModel for tracking
+                        // Do NOT update item_sn.is_sell or item_sn.is_activated
+                        // Admin must manually confirm and assign serial numbers
                         foreach ($sns as $sn) {
-                                if (!empty($sn['item_sn_id']) && !empty($sn['sn'])) {
+                            if (!empty($sn['item_sn_id']) && !empty($sn['sn'])) {
                                 $itemSnId = (int)$sn['item_sn_id'];
                                 $snValue = (string)$sn['sn'];
                                 
-                                // Save to SalesItemSnModel
+                                // Save to SalesItemSnModel only (for tracking)
                                 $this->salesItemSnModel->skipValidation(true);
                                 $salesItemSnData = [
                                     'sales_item_id' => $salesDetailId,
@@ -713,21 +696,8 @@ class Sales extends BaseController
                                 $this->salesItemSnModel->insert($salesItemSnData);
                                 $this->salesItemSnModel->skipValidation(false);
                                 
-                                // Update ItemSnModel with warranty expiration
-                                $updateData = [
-                                    'is_sell'      => '1',
-                                    'is_activated' => '1',
-                                    'activated_at' => $activatedAt,
-                                ];
-                                
-                                // Add expired_at if warranty is set
-                                if ($expiredAt) {
-                                    $updateData['expired_at'] = $expiredAt;
-                                }
-                                
-                                $itemSnModel->skipValidation(true);
-                                $itemSnModel->update($itemSnId, $updateData);
-                                $itemSnModel->skipValidation(false);
+                                // NOTE: Do NOT update item_sn.is_sell or item_sn.is_activated here
+                                // Admin must manually confirm payment and assign serial numbers
                             }
                         }
                     }
