@@ -158,9 +158,33 @@ class Sales extends Controller
                 ])->setStatusCode(400);
             }
             
-            $orderId = trim($jsonData['orderId']);
-            $status = strtoupper(trim($jsonData['status']));
-            $settlementTime = !empty($jsonData['settlementTime']) ? trim($jsonData['settlementTime']) : null;
+            $orderIdRaw = $this->extractScalarValue($jsonData['orderId']);
+            $statusRaw = $this->extractScalarValue($jsonData['status']);
+            $settlementTimeRaw = isset($jsonData['settlementTime'])
+                ? $this->extractScalarValue($jsonData['settlementTime'])
+                : null;
+
+            if ($orderIdRaw === null || $orderIdRaw === '') {
+                return $response->setJSON([
+                    'status' => 'error',
+                    'message' => 'orderId must be a string value',
+                    'received_data' => $jsonData
+                ])->setStatusCode(400);
+            }
+
+            if ($statusRaw === null || $statusRaw === '') {
+                return $response->setJSON([
+                    'status' => 'error',
+                    'message' => 'status must be a string value',
+                    'received_data' => $jsonData
+                ])->setStatusCode(400);
+            }
+
+            $orderId = trim((string) $orderIdRaw);
+            $status = strtoupper(trim((string) $statusRaw));
+            $settlementTime = $settlementTimeRaw !== null
+                ? trim((string) $settlementTimeRaw)
+                : null;
             
             // Validate status value
             $validStatuses = ['PAID', 'PENDING', 'FAILED', 'CANCELED', 'EXPIRED'];
@@ -371,6 +395,39 @@ class Sales extends Controller
                 'message' => 'Internal server error: ' . $e->getMessage()
             ])->setStatusCode(500);
         }
+    }
+
+    /**
+     * Extract scalar value from potential array/object input.
+     *
+     * Handles scenarios where request variables arrive as arrays due to the
+     * sender using repeated field names or appending [] to keys.
+     *
+     * @param mixed $value
+     * @return string|int|float|bool|null
+     */
+    protected function extractScalarValue($value)
+    {
+        if (is_scalar($value) || $value === null) {
+            return $value;
+        }
+
+        if (is_array($value)) {
+            foreach ($value as $item) {
+                $scalar = $this->extractScalarValue($item);
+                if (is_scalar($scalar) || $scalar === null) {
+                    return $scalar;
+                }
+            }
+
+            return null;
+        }
+
+        if (is_object($value) && method_exists($value, '__toString')) {
+            return (string) $value;
+        }
+
+        return null;
     }
 }
 
