@@ -19,6 +19,7 @@ namespace App\Controllers\Api;
 use CodeIgniter\Controller;
 use App\Models\SalesModel;
 use App\Models\SalesPaymentsModel;
+use App\Models\SalesPaymentLogModel;
 use CodeIgniter\HTTP\ResponseInterface;
 use CodeIgniter\HTTP\IncomingRequest;
 
@@ -29,6 +30,7 @@ class Sales extends Controller
      */
     protected $model;
     protected $salesPaymentsModel;
+    protected $salesPaymentLogModel;
 
     /**
      * Request instance
@@ -47,6 +49,7 @@ class Sales extends Controller
     {
         $this->model = new SalesModel();
         $this->salesPaymentsModel = new SalesPaymentsModel();
+        $this->salesPaymentLogModel = new SalesPaymentLogModel();
     }
 
     /**
@@ -239,6 +242,7 @@ class Sales extends Controller
             }
             
             // Update sales_payments.response with callback data
+            $paymentRecord = null;
             try {
                 // Find payment record for this sale
                 $paymentRecord = $this->salesPaymentsModel
@@ -299,15 +303,69 @@ class Sales extends Controller
                 return redirect()->to($redirectUrl);
             }
             
-            // Return JSON response using specified structure
-            return $response->setJSON([
+            // Prepare response data for logging
+            $responseData = [
                 'orderId'        => $orderId,
                 'status'         => $status,
                 'settlementTime' => $updateData['settlement_time'] ?? null
-            ]);
+            ];
+            
+            // Insert into sales_payment_log - log every callback response
+            try {
+                $logData = [
+                    'sale_id' => $sale['id'] ?? null,
+                    'platform_id' => $paymentRecord['platform_id'] ?? null,
+                    'response' => json_encode($responseData)
+                ];
+                
+                // If sale_id is null, we still want to log it (for invalid orderId cases)
+                // sale_id can be null for error cases
+                if ($logData['sale_id'] === null) {
+                    // Try to find sale_id from orderId if not found earlier
+                    $saleCheck = $this->model->where('invoice_no', $orderId)->first();
+                    $logData['sale_id'] = $saleCheck['id'] ?? null;
+                }
+                
+                $this->salesPaymentLogModel->skipValidation(true);
+                $this->salesPaymentLogModel->insert($logData);
+                $this->salesPaymentLogModel->skipValidation(false);
+                
+                log_message('info', 'Api\Sales::callback - Logged callback response to sales_payment_log for orderId: ' . $orderId);
+            } catch (\Exception $e) {
+                // Don't fail the callback if log insert fails, just log it
+                log_message('error', 'Api\Sales::callback - Failed to insert into sales_payment_log: ' . $e->getMessage());
+            }
+            
+            // Return JSON response using specified structure
+            return $response->setJSON($responseData);
             
         } catch (\Exception $e) {
             $response = service('response');
+            
+            // Log error response to sales_payment_log as well
+            try {
+                $errorResponseData = [
+                    'error' => true,
+                    'message' => $e->getMessage(),
+                    'orderId' => $jsonData['orderId'] ?? null,
+                    'raw_input' => substr($rawInput ?? '', 0, 500) // Limit size
+                ];
+                
+                $logData = [
+                    'sale_id' => null, // Use null for errors where sale is not found
+                    'platform_id' => null,
+                    'response' => json_encode($errorResponseData)
+                ];
+                
+                $this->salesPaymentLogModel->skipValidation(true);
+                $this->salesPaymentLogModel->insert($logData);
+                $this->salesPaymentLogModel->skipValidation(false);
+                
+                log_message('info', 'Api\Sales::callback - Logged error response to sales_payment_log');
+            } catch (\Exception $logError) {
+                log_message('error', 'Api\Sales::callback - Failed to log error to sales_payment_log: ' . $logError->getMessage());
+            }
+            
             return $response->setJSON([
                 'status' => 'error',
                 'message' => 'Internal server error: ' . $e->getMessage()
