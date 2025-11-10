@@ -18,6 +18,7 @@ namespace App\Controllers\Api;
 
 use CodeIgniter\Controller;
 use App\Models\SalesModel;
+use App\Models\SalesPaymentsModel;
 use CodeIgniter\HTTP\ResponseInterface;
 use CodeIgniter\HTTP\IncomingRequest;
 
@@ -27,6 +28,7 @@ class Sales extends Controller
      * Model instance
      */
     protected $model;
+    protected $salesPaymentsModel;
 
     /**
      * Request instance
@@ -44,6 +46,7 @@ class Sales extends Controller
     public function __construct()
     {
         $this->model = new SalesModel();
+        $this->salesPaymentsModel = new SalesPaymentsModel();
     }
 
     /**
@@ -235,6 +238,40 @@ class Sales extends Controller
                 ])->setStatusCode(500);
             }
             
+            // Update sales_payments.response with callback data
+            try {
+                // Find payment record for this sale
+                $paymentRecord = $this->salesPaymentsModel
+                    ->where('sale_id', $sale['id'])
+                    ->first();
+                
+                if ($paymentRecord) {
+                    // Prepare callback response data
+                    $callbackResponse = [
+                        'orderId' => $orderId,
+                        'status' => $status,
+                        'settlementTime' => $settlementTime,
+                        'payment_status' => $paymentStatus,
+                        'callback_received_at' => date('Y-m-d H:i:s')
+                    ];
+                    
+                    // Encode to JSON
+                    $responseJson = json_encode($callbackResponse);
+                    
+                    // Update payment record
+                    $this->salesPaymentsModel->skipValidation(true);
+                    $this->salesPaymentsModel->update($paymentRecord['id'], [
+                        'response' => $responseJson
+                    ]);
+                    $this->salesPaymentsModel->skipValidation(false);
+                    
+                    log_message('info', 'Api\Sales::callback - Updated sales_payments.response for sale_id: ' . $sale['id']);
+                }
+            } catch (\Exception $e) {
+                // Don't fail the callback if payment update fails, just log it
+                log_message('error', 'Api\Sales::callback - Failed to update sales_payments.response: ' . $e->getMessage());
+            }
+            
             // Get base URL for redirect
             $config = config('App');
             $baseURL = $config->baseURL;
@@ -262,17 +299,11 @@ class Sales extends Controller
                 return redirect()->to($redirectUrl);
             }
             
-            // Return JSON response with redirect URL
+            // Return JSON response using specified structure
             return $response->setJSON([
-                'status'  => 'success',
-                'message' => 'Payment status updated successfully',
-                'data'    => [
-                    'orderId'        => $orderId,
-                    'status'         => $status,
-                    'payment_status' => $paymentStatus,
-                    'settlement_time'=> $updateData['settlement_time'] ?? null,
-                    'redirect_url'   => $redirectUrl
-                ],
+                'orderId'        => $orderId,
+                'status'         => $status,
+                'settlementTime' => $updateData['settlement_time'] ?? null
             ]);
             
         } catch (\Exception $e) {
