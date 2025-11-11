@@ -116,9 +116,6 @@ class Platform extends BaseController
             'code' => 'permit_empty|max_length[160]',
             'platform' => 'permit_empty|max_length[160]',
             'description' => 'permit_empty',
-            'status' => 'in_list[0,1]',
-            'status_agent' => 'permit_empty|in_list[0,1]',
-            'status_pos' => 'permit_empty|in_list[0,1]',
             'gw_code' => 'permit_empty|max_length[50]',
             'gw_status' => 'permit_empty|in_list[0,1]'
         ];
@@ -153,6 +150,8 @@ class Platform extends BaseController
         $statusPos = $this->request->getPost('status_pos') ? '1' : '0';
         $gwCode = $this->request->getPost('gw_code');
         $gwStatus = $this->request->getPost('gw_status') ? '1' : '0';
+        $statusSysInput = $this->request->getPost('status_sys', FILTER_DEFAULT);
+        $statusSys = ($statusSysInput === '1') ? '1' : (($statusSysInput === '0') ? '0' : null);
         $id = $this->request->getPost('id');
         
         // Handle logo upload
@@ -241,6 +240,10 @@ class Platform extends BaseController
             'gw_code' => $gwCode,
             'gw_status' => $gwStatus
         ];
+
+        if ($statusSys !== null) {
+            $data['status_sys'] = $statusSys;
+        }
         
         // Only add logo if it's set (new upload or existing)
         if (!empty($logo)) {
@@ -427,8 +430,12 @@ class Platform extends BaseController
             }
 
             $actionButtons = '<div class="btn-group" role="group">';
-            $actionButtons .= '<button type="button" class="btn btn-sm btn-warning btn-edit" data-id="' . $row['id'] . '" title="Edit"><i class="fas fa-edit"></i></button>';
-            $actionButtons .= '<button type="button" class="btn btn-sm btn-danger btn-delete" data-id="' . $row['id'] . '" data-platform="' . esc($row['platform']) . '" title="Hapus"><i class="fas fa-trash"></i></button>';
+            if (($row['status_sys'] ?? '0') !== '1') {
+                $actionButtons .= '<button type="button" class="btn btn-sm btn-warning btn-edit" data-id="' . $row['id'] . '" title="Edit"><i class="fas fa-edit"></i></button>';
+                $actionButtons .= '<button type="button" class="btn btn-sm btn-danger btn-delete" data-id="' . $row['id'] . '" data-platform="' . esc($row['platform']) . '" title="Hapus"><i class="fas fa-trash"></i></button>';
+            } else {
+                $actionButtons .= '';
+            }
             $actionButtons .= '</div>';
 
             $result[] = [

@@ -100,17 +100,9 @@ class Agent extends BaseController
         }
         $this->data['provinceOptions'] = $provinceOptions;
 
-        // Load user options
-        $users = $this->userModel->findAll();
-        $userOptions = ['' => 'Select User'];
-        foreach ($users as $user) {
-            $userOptions[$user->id_user] = $user->nama . ' (' . $user->email . ')';
-        }
-        $this->data['userOptions'] = $userOptions;
-
-        // Pass user role information to view
-        $this->data['userRoles'] = $this->user['role'] ?? [];
-        $this->data['isRoleLocked'] = isset($this->user['role'][4]);
+        // Default user account data
+        $this->data['agentUser'] = null;
+        $this->data['existingUserRole'] = '1';
 
         // Cek AJAX/modal
         $isAjax = $this->request->isAJAX() 
@@ -324,43 +316,22 @@ class Agent extends BaseController
             }
         }
 
-        // Load user options with error handling
-        try {
-            $users = $this->userModel->findAll();
-            $userOptions = ['' => 'Select User'];
-            foreach ($users as $user) {
-                $userOptions[$user->id_user] = $user->nama . ' (' . $user->email . ')';
-            }
-            $this->data['userOptions'] = $userOptions;
-        } catch (\Exception $e) {
-            log_message('error', 'Error loading users in agent edit: ' . $e->getMessage());
-            $this->data['userOptions'] = ['' => 'Select User'];
-        }
-
-        // Pass user role information to view
-        $this->data['userRoles'] = $this->user['role'] ?? [];
-        $this->data['isRoleLocked'] = isset($this->user['role'][4]);
-
-        // Load existing user-role data for this agent with error handling
+        // Prepare existing user account data
+        $agentUser = null;
+        $existingUserRole = '1';
         try {
             $userRole = $this->userRoleAgentModel->where('agent_id', $id)->first();
             if ($userRole) {
-                $this->data['agent']->user_id = $userRole->user_id;
-                $this->data['agent']->user_role = $userRole->role;
+                $existingUserRole = $userRole->role;
+                $agentUser = $this->userModel->find($userRole->user_id);
             }
         } catch (\Exception $e) {
-            log_message('error', 'Error loading user role in agent edit: ' . $e->getMessage());
+            log_message('error', 'Error loading user account for agent edit: ' . $e->getMessage());
         }
+        $this->data['agentUser'] = $agentUser;
+        $this->data['existingUserRole'] = $existingUserRole;
 
-        // // Cek AJAX/modal
-        // $isAjax = $this->request->isAJAX() 
-        //           || $this->request->getHeader('X-Requested-With') !== null;
-        
-        // if ($isAjax) {
-        //     return view('themes/modern/agent-form', $this->data);
-        // } else {
-            return $this->view('agent-form', $this->data);
-        // }
+        return $this->view('agent-form', $this->data);
     }
 
     public function store()
@@ -432,6 +403,9 @@ class Agent extends BaseController
         }
 
         // Prepare data
+        $creditLimitEnabled = $this->request->getPost('enable_credit_limit') ? true : false;
+        $creditLimitValue = $creditLimitEnabled ? (float) ($this->request->getPost('credit_limit') ?? 0) : 0;
+
         $data = [
             'name' => $this->request->getPost('name'),
             'email' => $this->request->getPost('email'),
@@ -446,46 +420,117 @@ class Agent extends BaseController
             'postal_code' => $this->request->getPost('postal_code'),
             'country' => $this->request->getPost('country'),
             'tax_number' => $this->request->getPost('tax_number'),
-            'credit_limit' => $this->request->getPost('credit_limit'),
-            'payment_terms' => $this->request->getPost('payment_terms'),
-            'is_active' => $this->request->getPost('is_active') ? '1' : '0'
+            'credit_limit' => $creditLimitValue,
+            'payment_terms' => $this->request->getPost('payment_terms')
         ];
 
-        // Add code for edit mode (preserve existing code)
+        // Add code for edit mode (preserve existing code and is_active)
         if ($isEdit) {
             $data['code'] = $this->request->getPost('code');
+            // Preserve existing is_active value (field is disabled, so not submitted)
+            $existingAgent = $this->model->find($id);
+            if ($existingAgent) {
+                $data['is_active'] = $existingAgent->is_active ?? '1';
+            }
         } else {
             // Generate code for new records
             $data['code'] = $this->model->generateCode();
+            // Default to active for new records
+            $data['is_active'] = '1';
         }
 
-        // Save data
-        if ($isEdit) {
-            $result = $this->model->update($id, $data);
-        } else {
-            $result = $this->model->insert($data);
-        }
+        $db = \Config\Database::connect();
+        $db->transBegin();
 
-        if ($result) {
-            // Get the agent ID (for new records, get the inserted ID)
-            $agentId = $isEdit ? $id : $this->model->getInsertID();
-            
-            // Handle user-role assignment
-            $userId = $this->request->getPost('user_id');
-            $userRole = $this->request->getPost('user_role');
-            
-            if (!empty($userId) && !empty($userRole)) {
-                // Remove existing user-role relationships for this agent
-                $this->userRoleAgentModel->where('agent_id', $agentId)->delete();
-                
-                // Create new user-role relationship
-                $this->userRoleAgentModel->insert([
-                    'user_id' => $userId,
-                    'agent_id' => $agentId,
-                    'role' => $userRole
-                ]);
+        try {
+            // Save agent data
+            if ($isEdit) {
+                if (!$this->model->update($id, $data)) {
+                    throw new \RuntimeException('Gagal memperbarui data agen: ' . implode(', ', $this->model->errors()));
+                }
+                $agentId = $id;
+            } else {
+                if (!$this->model->insert($data)) {
+                    throw new \RuntimeException('Gagal menyimpan data agen: ' . implode(', ', $this->model->errors()));
+                }
+                $agentId = $this->model->getInsertID();
             }
-            
+
+            // Handle user account
+            $existingUserId = $this->request->getPost('existing_user_id');
+            $existingUserId = $existingUserId ? (int) $existingUserId : null;
+            $usernameInput = trim((string) ($this->request->getPost('account_username') ?? ''));
+            $passwordInput = (string) ($this->request->getPost('account_password') ?? '');
+            $passwordConfirm = (string) ($this->request->getPost('account_password_confirm') ?? '');
+            $userRole = $this->request->getPost('user_role') ?? '1';
+
+            $existingUser = null;
+            if ($existingUserId) {
+                $existingUser = $this->userModel->find($existingUserId);
+                if (!$existingUser) {
+                    $existingUserId = null;
+                }
+            }
+
+            $shouldHandleAccount = $existingUserId !== null || $usernameInput !== '' || $passwordInput !== '';
+
+            if ($shouldHandleAccount) {
+                if ($usernameInput === '' && !$existingUserId) {
+                    throw new \RuntimeException('Username wajib diisi untuk akun agen.');
+                }
+                if (!$existingUserId && $passwordInput === '') {
+                    throw new \RuntimeException('Password wajib diisi untuk akun agen.');
+                }
+                if ($passwordInput !== '' && $passwordInput !== $passwordConfirm) {
+                    throw new \RuntimeException('Konfirmasi password tidak sesuai.');
+                }
+
+                if ($usernameInput !== '') {
+                    $usernameQuery = $this->userModel->where('username', $usernameInput);
+                    if ($existingUserId) {
+                        $usernameQuery->where('id_user !=', $existingUserId);
+                    }
+                    if ($usernameQuery->first()) {
+                        throw new \RuntimeException('Username sudah digunakan.');
+                    }
+                }
+
+                $userData = [
+                    'nama' => $data['name'],
+                    'email' => $data['email']
+                ];
+
+                if ($usernameInput !== '') {
+                    $userData['username'] = $usernameInput;
+                }
+
+                if ($passwordInput !== '') {
+                    $userData['password'] = password_hash($passwordInput, PASSWORD_DEFAULT);
+                }
+
+                if (!$existingUserId) {
+                    $userData['status'] = 'active';
+                    $userData['verified'] = '1';
+                    if (!$this->userModel->insert($userData)) {
+                        throw new \RuntimeException('Gagal membuat akun user: ' . implode(', ', $this->userModel->errors()));
+                    }
+                    $userId = $this->userModel->getInsertID();
+                } else {
+                    $userId = $existingUserId;
+                    if (!$this->userModel->update($userId, $userData)) {
+                        throw new \RuntimeException('Gagal memperbarui akun user: ' . implode(', ', $this->userModel->errors()));
+                    }
+                }
+
+                $this->userRoleAgentModel->assignUserToAgent($userId, $agentId, $userRole ?: '1');
+            }
+
+            if ($db->transStatus() === false) {
+                throw new \RuntimeException('Transaksi database gagal.');
+            }
+
+            $db->transCommit();
+
             $message = $isEdit ? 'Data berhasil diupdate' : 'Data berhasil disimpan';
             if ($this->request->isAJAX()) {
                 return $this->response->setJSON([
@@ -494,8 +539,14 @@ class Agent extends BaseController
                 ]);
             }
             return redirect()->to('agent')->with('message', $message);
-        } else {
-            $message = 'Gagal menyimpan data: ' . implode(', ', $this->model->errors());
+        } catch (\Throwable $e) {
+            if ($db->transStatus() !== false) {
+                $db->transRollback();
+            }
+
+            log_message('error', 'Agent::store error: ' . $e->getMessage());
+            $message = 'Gagal menyimpan data: ' . $e->getMessage();
+
             if ($this->request->isAJAX()) {
                 return $this->response->setJSON([
                     'status'  => 'error',

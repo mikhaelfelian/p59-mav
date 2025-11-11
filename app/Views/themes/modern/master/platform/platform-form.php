@@ -79,7 +79,7 @@ $isModal = $isModal ?? false;
 							'class' => 'form-check-input',
 							'value' => '1',
 							'id' => 'status',
-							'checked' => set_checkbox('status', '1', (@$platform['status'] ?? '1') == '1')
+							'checked' => set_value('status', @$platform['status'] ?? '0') === '1'
 						]) ?>
 						<label class="form-check-label" for="status">
 							Aktifkan Platform
@@ -89,6 +89,24 @@ $isModal = $isModal ?? false;
 				</div>
 			</div>			
 			<div class="row mb-3">
+				<label class="col-sm-3 col-form-label">Status Kredit</label>
+				<div class="col-sm-9">
+					<div class="form-check form-switch">
+						<?= form_checkbox([
+							'name' => 'status_kredit',
+							'class' => 'form-check-input',
+							'value' => '1',
+							'id' => 'status_kredit',
+							'checked' => set_value('status_kredit', @$platform['status_kredit'] ?? '0') === '1'
+						]) ?>
+						<label class="form-check-label" for="status_kredit">
+							Izinkan transaksi kredit
+						</label>
+					</div>
+					<small class="text-muted">Aktifkan bila platform mendukung penjualan kredit/cicilan.</small>
+				</div>
+			</div>
+			<div class="row mb-3">
 				<label class="col-sm-3 col-form-label">Aktif di agen</label>
 				<div class="col-sm-9">
 					<div class="form-check form-switch">
@@ -97,7 +115,7 @@ $isModal = $isModal ?? false;
 							'class' => 'form-check-input',
 							'value' => '1',
 							'id' => 'status_agent',
-							'checked' => set_checkbox('status_agent', '1', (@$platform['status_agent'] ?? '0') == '1')
+							'checked' => set_value('status_agent', @$platform['status_agent'] ?? '0') === '1'
 						]) ?>
 						<label class="form-check-label" for="status_agent">
 							Aktifkan untuk Agent
@@ -115,7 +133,7 @@ $isModal = $isModal ?? false;
 							'class' => 'form-check-input',
 							'value' => '1',
 							'id' => 'status_pos',
-							'checked' => set_checkbox('status_pos', '1', (@$platform['status_pos'] ?? '0') == '1')
+							'checked' => set_value('status_pos', @$platform['status_pos'] ?? '0') === '1'
 						]) ?>
 						<label class="form-check-label" for="status_pos">
 							Aktifkan untuk POS
@@ -156,7 +174,7 @@ $isModal = $isModal ?? false;
 									'class' => 'form-check-input',
 									'value' => '1',
 									'id' => 'gw_status',
-									'checked' => set_checkbox('gw_status', '1', (@$platform['gw_status'] ?? '0') == '1')
+									'checked' => set_value('gw_status', @$platform['gw_status'] ?? '0') === '1'
 								]) ?>
 								<label class="form-check-label" for="gw_status">
 									Aktifkan Gateway
@@ -220,27 +238,93 @@ $isModal = $isModal ?? false;
 		<?= form_close() ?>
 <?php if (!$isModal): ?>
 	</div>
+
 </div>
 <?php endif; ?>
 
-<?php if (!$isModal): ?>
 <script>
-$(document).ready(function() {
-	// Logo preview
-	$('#logo-upload').on('change', function(e) {
+(function($){
+	"use strict";
+
+	function getForm($element) {
+		var $form = $element.closest('form');
+		if ($form.length === 0) {
+			$form = $('#form-platform');
+		}
+		return $form;
+	}
+
+	function ensureGatewayContainer($form) {
+		var gwCode = $form.find('input[name="gw_code"]').val();
+		var $container = $form.find('#gateway-status-container');
+
+		if (gwCode && gwCode.trim() !== '') {
+			$container.show();
+			if ($form.find('#gateway-status-badge').length === 0) {
+				$container.html(
+					'<span class="badge bg-secondary" id="gateway-status-badge">' +
+					'<i class="fas fa-times-circle me-1"></i>Tidak Aktif' +
+					'</span>' +
+					'<button type="button" class="btn btn-sm btn-outline-primary ms-2" id="btn-check-gateway" title="Cek Status Gateway">' +
+					'<i class="fas fa-sync-alt"></i> Cek Status' +
+					'</button>'
+				);
+			}
+		} else {
+			$container.hide();
+		}
+	}
+
+	function updateGatewayBadge($form, isActive) {
+		var $badge = $form.find('#gateway-status-badge');
+		if (!$badge.length) {
+			return;
+		}
+		if (isActive) {
+			$badge.removeClass('bg-secondary').addClass('bg-success')
+				.html('<i class="fas fa-check-circle me-1"></i>Aktif untuk Agent/Post');
+		} else {
+			$badge.removeClass('bg-success').addClass('bg-secondary')
+				.html('<i class="fas fa-times-circle me-1"></i>Tidak Aktif');
+		}
+	}
+
+	function syncGatewayWithKredit($form) {
+		var $kredit = $form.find('#status_kredit');
+		var $gatewaySwitch = $form.find('#gw_status');
+		var $wrapper = $gatewaySwitch.closest('.form-check');
+
+		if (!$kredit.length || !$gatewaySwitch.length) {
+			return;
+		}
+
+		if ($kredit.is(':checked')) {
+			$gatewaySwitch.prop('checked', false).prop('disabled', true).trigger('change');
+			$wrapper.addClass('opacity-50 pe-none');
+			updateGatewayBadge($form, false);
+		} else {
+			$gatewaySwitch.prop('disabled', false).trigger('change');
+			$wrapper.removeClass('opacity-50 pe-none');
+		}
+	}
+
+	$(document).on('change', '#logo-upload', function(e) {
 		var file = e.target.files[0];
+		var $form = getForm($(this));
+		var $preview = $form.find('#logo-preview');
 		if (file) {
 			var reader = new FileReader();
-			reader.onload = function(e) {
-				$('#logo-preview').attr('src', e.target.result).removeClass('d-none');
+			reader.onload = function(ev) {
+				$preview.attr('src', ev.target.result).removeClass('d-none');
 			};
 			reader.readAsDataURL(file);
 		}
 	});
-	
-	// Check gateway status
-	$('#btn-check-gateway').on('click', function() {
-		var gwCode = $('input[name="gw_code"]').val();
+
+	$(document).on('click', '#btn-check-gateway', function() {
+		var $form = getForm($(this));
+		var gwCode = $form.find('input[name="gw_code"]').val();
+
 		if (!gwCode) {
 			Swal.fire({
 				icon: 'warning',
@@ -249,11 +333,11 @@ $(document).ready(function() {
 			});
 			return;
 		}
-		
-		var btn = $(this);
-		var originalHtml = btn.html();
-		btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Mengecek...');
-		
+
+		var $btn = $(this);
+		var originalHtml = $btn.html();
+		$btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Mengecek...');
+
 		$.ajax({
 			url: '<?= $config->baseURL ?>agent/getGatewayByCode',
 			type: 'POST',
@@ -262,21 +346,12 @@ $(document).ready(function() {
 			success: function(response) {
 				if (response.status === 'success' && response.data) {
 					var isActive = response.is_active;
-					var badge = $('#gateway-status-badge');
-					
-					if (isActive) {
-						badge.removeClass('bg-secondary').addClass('bg-success')
-							.html('<i class="fas fa-check-circle me-1"></i>Aktif untuk Agent/Post');
-					} else {
-						badge.removeClass('bg-success').addClass('bg-secondary')
-							.html('<i class="fas fa-times-circle me-1"></i>Tidak Aktif');
-					}
-					
+					updateGatewayBadge($form, isActive);
 					Swal.fire({
 						icon: isActive ? 'success' : 'info',
 						title: isActive ? 'Gateway Aktif' : 'Gateway Tidak Aktif',
-						text: isActive 
-							? 'Gateway ini dapat digunakan di agent/post' 
+						text: isActive
+							? 'Gateway ini dapat digunakan di agent/post'
 							: 'Pastikan Status dan Status Gateway diaktifkan',
 						timer: 2000,
 						showConfirmButton: false
@@ -301,45 +376,36 @@ $(document).ready(function() {
 				});
 			},
 			complete: function() {
-				btn.prop('disabled', false).html(originalHtml);
+				$btn.prop('disabled', false).html(originalHtml);
 			}
 		});
 	});
-	
-	// Show/hide gateway status container when gw_code changes
-	$('input[name="gw_code"]').on('input blur', function() {
-		var gwCode = $(this).val();
-		var container = $('#gateway-status-container');
-		
-		if (gwCode && gwCode.trim() !== '') {
-			container.show();
-			// If badge doesn't exist yet, create default
-			if ($('#gateway-status-badge').length === 0) {
-				container.html(
-					'<span class="badge bg-secondary" id="gateway-status-badge">' +
-					'<i class="fas fa-times-circle me-1"></i>Tidak Aktif' +
-					'</span>' +
-					'<button type="button" class="btn btn-sm btn-outline-primary ms-2" id="btn-check-gateway" title="Cek Status Gateway">' +
-					'<i class="fas fa-sync-alt"></i> Cek Status' +
-					'</button>'
-				);
-			}
-		} else {
-			container.hide();
-		}
+
+	$(document).on('input blur', 'input[name="gw_code"]', function() {
+		var $form = getForm($(this));
+		ensureGatewayContainer($form);
 	});
-	
-	// Handle form submit using AJAX with file upload
-	$('#form-platform').on('submit', function(e) {
+
+	$(document).on('change', '#status_kredit', function() {
+		var $form = getForm($(this));
+		syncGatewayWithKredit($form);
+	});
+
+	$(document).on('submit', '#form-platform', function(e) {
 		e.preventDefault();
-		
+		var $form = $(this);
 		var formData = new FormData(this);
-		var submitBtn = $('#btn-submit');
-		var originalText = submitBtn.html();
-		
-		// Disable submit button and show loading
-		submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Memproses...');
-		
+
+		formData.set('status', $form.find('#status').is(':checked') ? '1' : '0');
+		formData.set('status_agent', $form.find('#status_agent').is(':checked') ? '1' : '0');
+		formData.set('status_pos', $form.find('#status_pos').is(':checked') ? '1' : '0');
+		formData.set('status_kredit', $form.find('#status_kredit').is(':checked') ? '1' : '0');
+		formData.set('gw_status', $form.find('#status_kredit').is(':checked') ? '0' : ($form.find('#gw_status').is(':checked') ? '1' : '0'));
+
+		var $submitBtn = $form.find('#btn-submit');
+		var originalText = $submitBtn.html();
+		$submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Memproses...');
+
 		$.ajax({
 			url: '<?= $config->baseURL ?>platform/store',
 			type: 'POST',
@@ -349,7 +415,6 @@ $(document).ready(function() {
 			dataType: 'json',
 			success: function(response) {
 				if (response.status === 'success') {
-					// Show success message
 					Swal.fire({
 						icon: 'success',
 						title: 'Berhasil!',
@@ -357,11 +422,9 @@ $(document).ready(function() {
 						timer: 2000,
 						showConfirmButton: false
 					}).then(function() {
-						// Redirect to list page
 						window.location.href = '<?= $config->baseURL ?>platform';
 					});
 				} else {
-					// Show error message
 					Swal.fire({
 						icon: 'error',
 						title: 'Error!',
@@ -369,8 +432,7 @@ $(document).ready(function() {
 					});
 				}
 			},
-			error: function(xhr, status, error) {
-				// Show error message
+			error: function(xhr) {
 				var errorMessage = 'Terjadi kesalahan saat memproses permintaan.';
 				if (xhr.responseJSON && xhr.responseJSON.message) {
 					errorMessage = xhr.responseJSON.message;
@@ -382,12 +444,18 @@ $(document).ready(function() {
 				});
 			},
 			complete: function() {
-				// Re-enable submit button
-				submitBtn.prop('disabled', false).html(originalText);
+				$submitBtn.prop('disabled', false).html(originalText);
 			}
 		});
 	});
-});
-</script>
-<?php endif; ?>
 
+	$(function() {
+		var $form = $('#form-platform');
+		if ($form.length) {
+			ensureGatewayContainer($form);
+			syncGatewayWithKredit($form);
+		}
+	});
+
+})(jQuery);
+</script>

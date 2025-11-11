@@ -78,6 +78,11 @@ $isModal = $isModal ?? false;
 	.shadow-sm {
 		box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
 	}
+
+	#credit_limit_wrapper.disabled {
+		opacity: 0.6;
+		pointer-events: none;
+	}
 </style>
 <?php if (!$isModal): ?>
 	<div class="card">
@@ -92,7 +97,10 @@ $isModal = $isModal ?? false;
 		<?php endif; ?>
 
 		<?= form_open('', ['class' => 'needs-validation', 'id' => 'form-agent', 'novalidate' => '']) ?>
-		<?= form_hidden('id', @$id ?? '') ?>
+<?= form_hidden('id', @$id ?? '') ?>
+<?= form_hidden('existing_user_id', set_value('existing_user_id', @$agentUser->id_user ?? '')) ?>
+<?= form_hidden('user_role', set_value('user_role', @$existingUserRole ?? '1')) ?>
+<?php $creditLimitEnabled = set_value('enable_credit_limit', (@$agent->credit_limit ?? '0') > 0 ? '1' : '0') === '1'; ?>
 
 		<!-- Tabs Navigation -->
 		<ul class="nav nav-tabs" id="agentTabs" role="tablist">
@@ -109,11 +117,6 @@ $isModal = $isModal ?? false;
 			<li class="nav-item" role="presentation">
 				<a class="nav-link" data-bs-toggle="tab" href="#tab-business" role="tab">
 					<i class="fas fa-briefcase me-1"></i> Bisnis
-				</a>
-			</li>
-			<li class="nav-item" role="presentation">
-				<a class="nav-link" data-bs-toggle="tab" href="#tab-user" role="tab">
-					<i class="fas fa-users me-1"></i> Pengguna & Status
 				</a>
 			</li>
 		</ul>
@@ -181,6 +184,43 @@ $isModal = $isModal ?? false;
 								<label class="form-label fw-semibold">Alamat Lengkap</label>
 								<textarea class="form-control" name="address" rows="3"
 									placeholder="Masukkan alamat lengkap agen"><?= set_value('address', @$agent->address ?? '') ?></textarea>
+							</div>
+
+							<div class="col-md-6">
+								<label class="form-label fw-semibold">Username <span class="text-danger">*</span></label>
+								<div class="input-group">
+									<span class="input-group-text">
+										<i class="fas fa-user"></i>
+									</span>
+									<input class="form-control" type="text" name="account_username"
+										value="<?= set_value('account_username', @$agentUser->username ?? '') ?>"
+										placeholder="Masukkan username" autocomplete="username">
+								</div>
+								<small class="text-muted">Username digunakan untuk login ke sistem</small>
+							</div>
+
+							<div class="col-md-6">
+								<label class="form-label fw-semibold">Password <?= empty($agentUser) ? '<span class="text-danger">*</span>' : '' ?></label>
+								<div class="input-group">
+									<span class="input-group-text">
+										<i class="fas fa-lock"></i>
+									</span>
+									<input class="form-control" type="password" name="account_password"
+										placeholder="Masukkan password" autocomplete="new-password">
+								</div>
+								<small class="text-muted">Kosongkan jika tidak ingin mengubah password</small>
+							</div>
+
+							<div class="col-md-6">
+								<label class="form-label fw-semibold">Konfirmasi Password</label>
+								<div class="input-group">
+									<span class="input-group-text">
+										<i class="fas fa-check-double"></i>
+									</span>
+									<input class="form-control" type="password" name="account_password_confirm"
+										placeholder="Ulangi password" autocomplete="new-password">
+								</div>
+								<small class="text-muted">Harus diisi sama dengan password baru</small>
 							</div>
 						</div>
 					</div>
@@ -324,34 +364,6 @@ $isModal = $isModal ?? false;
 					<div class="card-body">
 						<div class="row g-3">
 							<div class="col-md-6">
-								<label class="form-label fw-semibold">Nomor Pajak</label>
-								<div class="input-group">
-									<span class="input-group-text">
-										<i class="fas fa-file-invoice"></i>
-									</span>
-									<input class="form-control" type="text" name="tax_number"
-										value="<?= set_value('tax_number', @$agent->tax_number ?? '') ?>"
-										placeholder="Masukkan nomor pajak" />
-								</div>
-							</div>
-							<div class="col-md-6">
-								<label class="form-label fw-semibold">Limit Kredit</label>
-								<div class="input-group">
-									<span class="input-group-text">
-										<i class="fas fa-credit-card"></i>
-									</span>
-									<input class="form-control" type="number" name="credit_limit" step="0.01"
-										value="<?= set_value('credit_limit', @$agent->credit_limit ?? '0') ?>"
-										placeholder="0" />
-									<span class="input-group-text">Rp</span>
-								</div>
-								<small class="text-muted">
-									<i class="fas fa-info-circle me-1"></i>
-									Batas maksimal kredit yang dapat diberikan kepada agen ini
-								</small>
-							</div>
-
-							<div class="col-md-6">
 								<label class="form-label fw-semibold">Syarat Pembayaran (Hari)</label>
 								<div class="input-group">
 									<span class="input-group-text">
@@ -368,131 +380,29 @@ $isModal = $isModal ?? false;
 								</small>
 							</div>
 						</div>
-					</div>
-				</div>
-			</div>
-
-			<!-- Pengguna & Status Tab -->
-			<div class="tab-pane fade" id="tab-user" role="tabpanel">
-				<!-- User Assignment Section -->
-				<div class="card shadow-sm mb-4">
-					<div class="card-header bg-light">
-						<h6 class="card-title mb-0">
-							<i class="fas fa-user me-2"></i>Penugasan User
-						</h6>
-					</div>
-					<div class="card-body">
-						<div class="row">
-							<div class="col-md-6">
-								<div class="mb-3">
-									<label class="form-label fw-semibold mb-2">
-										<i class="fas fa-user-tag me-1"></i>User
-									</label>
-									<?php
-									$userDropdownAttrs = [
-										'class' => 'form-select',
-										'id' => 'user_id'
-									];
-									// Lock dropdown if user has role id = 4
-									if (isset($isRoleLocked) && $isRoleLocked) {
-										$userDropdownAttrs['disabled'] = 'disabled';
-										$userDropdownAttrs['readonly'] = 'readonly';
-									}
-									$userValue = set_value('user_id', @$agent->user_id ?? '');
-									?>
-									<?= form_dropdown('user_id', $userOptions ?? [], $userValue, $userDropdownAttrs) ?>
-									<?php if (isset($isRoleLocked) && $isRoleLocked): ?>
-										<input type="hidden" name="user_id" value="<?= $userValue ?>">
-										<small class="text-muted d-block mt-1">
-											<i class="fas fa-lock me-1"></i>Field ini terkunci untuk role Anda
-										</small>
-									<?php else: ?>
-										<small class="text-muted d-block mt-1">Pilih user yang akan ditugaskan ke agen ini</small>
-									<?php endif; ?>
-									<?php echo form_hidden('user_role', '1'); ?>
+						<div class="row mb-3">
+							<label class="col-sm-3 col-form-label fw-semibold">Limit Kredit</label>
+							<div class="col-sm-9">
+								<div class="form-check form-switch mb-2">
+									<input class="form-check-input" type="checkbox" id="enable_credit_limit" name="enable_credit_limit" value="1" <?= $creditLimitEnabled ? 'checked' : '' ?>>
+									<label class="form-check-label" for="enable_credit_limit">Aktifkan limit kredit untuk agen ini</label>
+								</div>
+								<div id="credit_limit_wrapper" class="<?= $creditLimitEnabled ? '' : 'disabled' ?>">
+									<div class="input-group">
+										<span class="input-group-text">
+											<i class="fas fa-credit-card"></i>
+										</span>
+										<input class="form-control" type="number" name="credit_limit" step="0.01"
+											value="<?= set_value('credit_limit', @$agent->credit_limit ?? '0') ?>"
+											placeholder="0" />
+										<span class="input-group-text">Rp</span>
+									</div>
+									<small class="text-muted">
+										<i class="fas fa-info-circle me-1"></i>
+										Batas maksimal kredit yang dapat diberikan kepada agen ini
+									</small>
 								</div>
 							</div>
-						</div>
-					</div>
-				</div>
-
-				<!-- Password Update Section -->
-				<div class="card shadow-sm mb-4" id="password-update-card" style="<?= (empty($agent) || empty($agent->user_id)) ? 'display: none;' : '' ?>">
-					<div class="card-header bg-primary text-white">
-						<h6 class="card-title mb-0">
-							<i class="fas fa-key me-2"></i>Update Password User
-						</h6>
-					</div>
-					<div class="card-body">
-						<?= form_open('agent/updateUserPassword', ['id' => 'form-update-password', 'class' => 'needs-validation', 'novalidate' => '']) ?>
-						<?= csrf_field() ?>
-						<?= form_hidden('agent_id', @$agent->id ?? @$id ?? '') ?>
-						<input type="hidden" name="user_id" id="password-form-user-id" value="<?= @$agent->user_id ?? '' ?>">
-						
-						<div class="row g-3">
-							<div class="col-md-4">
-								<label class="form-label fw-semibold" for="old_password">
-									Password Lama <span class="text-danger">*</span>
-								</label>
-								<div class="input-group">
-									<span class="input-group-text">
-										<i class="fas fa-lock"></i>
-									</span>
-									<input type="password" class="form-control" id="old_password" name="old_password"
-										autocomplete="current-password" placeholder="Masukkan password lama" required minlength="1">
-								</div>
-								<div class="invalid-feedback">Password lama harus diisi</div>
-							</div>
-							<div class="col-md-4">
-								<label class="form-label fw-semibold" for="new_password">
-									Password Baru <span class="text-danger">*</span>
-								</label>
-								<div class="input-group">
-									<span class="input-group-text">
-										<i class="fas fa-key"></i>
-									</span>
-									<input type="password" class="form-control" id="new_password" name="new_password"
-										autocomplete="new-password" placeholder="Masukkan password baru" required minlength="3">
-								</div>
-								<div class="invalid-feedback">Password baru harus diisi (minimal 3 karakter)</div>
-								<small class="text-muted">Minimal 3 karakter</small>
-							</div>
-							<div class="col-md-4">
-								<label class="form-label fw-semibold" for="repeat_password">
-									Ulangi Password Baru <span class="text-danger">*</span>
-								</label>
-								<div class="input-group">
-									<span class="input-group-text">
-										<i class="fas fa-check-double"></i>
-									</span>
-									<input type="password" class="form-control" id="repeat_password" name="repeat_password"
-										autocomplete="new-password" placeholder="Ulangi password baru" required minlength="3">
-								</div>
-								<div class="invalid-feedback">Ulangi password baru harus diisi dan cocok dengan password baru</div>
-							</div>
-						</div>
-						
-						<div class="row mt-4">
-							<div class="col-md-12">
-								<button type="submit" class="btn btn-primary btn-lg" id="btn-update-password">
-									<i class="fas fa-key me-2"></i>Update Password
-								</button>
-								<button type="reset" class="btn btn-outline-secondary btn-lg ms-2" id="btn-reset-password">
-									<i class="fas fa-redo me-2"></i>Reset
-								</button>
-							</div>
-						</div>
-						<?= form_close() ?>
-					</div>
-				</div>
-
-				<!-- Info Message when no user selected -->
-				<div id="password-info-message" class="alert alert-info border-0 shadow-sm" style="<?= (!empty($agent) && !empty($agent->user_id)) ? 'display: none;' : '' ?>">
-					<div class="d-flex align-items-center">
-						<i class="fas fa-info-circle fa-2x me-3"></i>
-						<div>
-							<strong>Informasi</strong>
-							<p class="mb-0">Pilih user terlebih dahulu untuk dapat mengupdate password</p>
 						</div>
 					</div>
 				</div>
@@ -513,15 +423,16 @@ $isModal = $isModal ?? false;
 								'value' => '1',
 								'class' => 'form-check-input',
 								'id' => 'is_active',
-								'checked' => set_value('is_active', @$agent->is_active ?? '1') == '1'
+								'checked' => set_value('is_active', @$agent->is_active ?? '1') == '1',
+								'disabled' => 'disabled'
 							]) ?>
-							<label class="form-check-label fw-semibold" for="is_active">
-								Status Aktif
+							<label class="form-check-label fw-semibold" for="is_active" style="opacity: 0.6;">
+								Status Aktif &amp; User Aktif
 							</label>
 						</div>
 						<small class="text-muted d-block mt-2">
 							<i class="fas fa-info-circle me-1"></i>
-							Agen aktif dapat melakukan transaksi dan akses sistem
+							Status tidak dapat diubah dari form ini
 						</small>
 					</div>
 				</div>
@@ -841,184 +752,24 @@ $isModal = $isModal ?? false;
 			loadVillages(<?= $agent->district_id ?>, <?= $agent->village_id ?? 'null' ?>);
 		<?php endif; ?>
 
-		// Password update form validation and AJAX submission
-		var passwordForm = $('#form-update-password');
-		if (passwordForm.length) {
-			passwordForm.on('submit', function(event) {
-				event.preventDefault();
-				var form = this;
-				
-				// Check HTML5 validation
-				if (!form.checkValidity()) {
-					form.classList.add('was-validated');
-					return false;
-				}
-				
-				// Additional validation: check if passwords match
-				var newPassword = $('#new_password').val();
-				var repeatPassword = $('#repeat_password').val();
-				
-				if (newPassword !== repeatPassword) {
-					if (typeof Swal !== 'undefined') {
-						Swal.fire({
-							icon: 'error',
-							title: 'Error',
-							text: 'Password baru dan ulangi password tidak cocok'
-						});
-					} else {
-						alert('Password baru dan ulangi password tidak cocok');
-					}
-					return false;
-				}
-				
-				// Check minimum length
-				if (newPassword.length < 3) {
-					if (typeof Swal !== 'undefined') {
-						Swal.fire({
-							icon: 'error',
-							title: 'Error',
-							text: 'Password baru minimal 3 karakter'
-						});
-					} else {
-						alert('Password baru minimal 3 karakter');
-					}
-					return false;
-				}
-				
-				// Validate user_id is set
-				var userId = $('#password-form-user-id').val() || passwordForm.find('input[name="user_id"]').val();
-				if (!userId || userId === '') {
-					if (typeof Swal !== 'undefined') {
-						Swal.fire({
-							icon: 'error',
-							title: 'Error',
-							text: 'User ID tidak ditemukan. Silakan pilih user terlebih dahulu.'
-						});
-					} else {
-						alert('User ID tidak ditemukan. Silakan pilih user terlebih dahulu.');
-					}
-					return false;
-				}
-				
-				// Show loading state
-				var submitBtn = passwordForm.find('button[type="submit"]');
-				var originalBtnText = submitBtn.html();
-				submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Memproses...');
-				
-				// Submit via AJAX
-				$.ajax({
-					url: passwordForm.attr('action'),
-					type: 'POST',
-					data: passwordForm.serialize(),
-					dataType: 'json',
-					headers: {
-						'X-Requested-With': 'XMLHttpRequest'
-					},
-					success: function(response) {
-						submitBtn.prop('disabled', false).html(originalBtnText);
-						
-						if (response.status === 'success') {
-							if (typeof Swal !== 'undefined') {
-								Swal.fire({
-									icon: 'success',
-									title: 'Berhasil',
-									text: response.message || 'Password berhasil diupdate',
-									timer: 2000,
-									showConfirmButton: false
-								});
-							} else {
-								alert(response.message || 'Password berhasil diupdate');
-							}
-							// Reset form
-							passwordForm[0].reset();
-							passwordForm.removeClass('was-validated');
-						} else {
-							if (typeof Swal !== 'undefined') {
-								Swal.fire({
-									icon: 'error',
-									title: 'Error',
-									text: response.message || 'Gagal mengupdate password'
-								});
-							} else {
-								alert(response.message || 'Gagal mengupdate password');
-							}
-						}
-					},
-					error: function(xhr, status, error) {
-						submitBtn.prop('disabled', false).html(originalBtnText);
-						
-						var errorMessage = 'Terjadi kesalahan saat mengupdate password';
-						
-						// Try to parse JSON response first
-						if (xhr.responseJSON) {
-							if (xhr.responseJSON.message) {
-								errorMessage = xhr.responseJSON.message;
-							} else if (xhr.responseJSON.error) {
-								errorMessage = xhr.responseJSON.error;
-							}
-						} else if (xhr.responseText) {
-							// Try to parse HTML response for error messages
-							try {
-								var parser = new DOMParser();
-								var doc = parser.parseFromString(xhr.responseText, 'text/html');
-								var alertElement = doc.querySelector('.alert-danger, .alert, [role="alert"]');
-								if (alertElement) {
-									errorMessage = alertElement.textContent.trim();
-								}
-							} catch (e) {
-								// If parsing fails, use default message
-							}
-						}
-						
-						if (typeof Swal !== 'undefined') {
-							Swal.fire({
-								icon: 'error',
-								title: 'Error',
-								text: errorMessage
-							});
-						} else {
-							alert(errorMessage);
-						}
-					}
-				});
-			});
-		}
+		(function($){
+			"use strict";
 
-		// Update password form when user dropdown changes (for new agents)
-		$('#user_id').on('change', function() {
-			var userId = $(this).val();
-			var passwordForm = $('#form-update-password');
-			var passwordFormUserId = $('#password-form-user-id');
-			var passwordCard = $('#password-update-card');
-			var infoMessage = $('#password-info-message');
-			
-			if (userId && userId !== '') {
-				// Update hidden user_id field in password form
-				if (passwordFormUserId.length) {
-					passwordFormUserId.val(userId);
-				} else {
-					// If field doesn't exist, create it
-					passwordForm.append('<input type="hidden" name="user_id" id="password-form-user-id" value="' + userId + '">');
+			function toggleCreditLimit() {
+				var checked = $('#enable_credit_limit').is(':checked');
+				$('#credit_limit_wrapper input').prop('disabled', !checked);
+				$('#credit_limit_wrapper').toggleClass('disabled', !checked);
+				if (!checked) {
+					$('#credit_limit_wrapper input').val('0');
 				}
-				// Show the password form section if it was hidden
-				passwordCard.slideDown(300);
-				infoMessage.slideUp(300);
-			} else {
-				// Hide password form if no user selected
-				passwordCard.slideUp(300);
-				infoMessage.slideDown(300);
-				// Clear password form
-				passwordForm[0].reset();
-				passwordForm.removeClass('was-validated');
 			}
-		});
-		
-		// Reset button handler
-		$('#btn-reset-password').on('click', function(e) {
-			e.preventDefault();
-			var passwordForm = $('#form-update-password');
-			passwordForm[0].reset();
-			passwordForm.removeClass('was-validated');
-		});
+
+			$(document).on('change', '#enable_credit_limit', toggleCreditLimit);
+
+			$(function(){
+				toggleCreditLimit();
+			});
+
+		})(jQuery);
 	});
 </script>
