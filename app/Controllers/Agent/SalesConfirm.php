@@ -113,23 +113,48 @@ class SalesConfirm extends \App\Controllers\BaseController
 
             $db = \Config\Database::connect();
             
-            // Get sales with online channel that have sales_item_sn but item_sn.is_sell = '0'
-            // This means they have serial numbers assigned but not yet activated
-            $builder = $db->table('sales')
-                ->select('sales.*, 
-                    customer.name as customer_name,
-                    user.nama as user_name,
-                    agent.name as agent_name,
-                    COUNT(DISTINCT sales_item_sn.id) as pending_sn_count')
-                ->join('customer', 'customer.id = sales.customer_id', 'left')
-                ->join('user', 'user.id_user = sales.user_id', 'left')
-                ->join('agent', 'agent.id = sales.warehouse_id', 'left')
+            // Get sales with online channel that have at least one pending serial number
+            // First, get distinct sale IDs that have pending SNs
+            $saleIdsWithPendingSN = $db->table('sales')
+                ->select('sales.id')
                 ->join('sales_detail', 'sales_detail.sale_id = sales.id', 'inner')
                 ->join('sales_item_sn', 'sales_item_sn.sales_item_id = sales_detail.id', 'inner')
                 ->join('item_sn', 'item_sn.id = sales_item_sn.item_sn_id', 'inner')
                 ->where('sales.sale_channel', self::CHANNEL_ONLINE)
                 ->where('item_sn.is_sell', '0')
-                ->groupBy('sales.id');
+                ->groupBy('sales.id')
+                ->get()
+                ->getResultArray();
+            
+            $saleIds = array_column($saleIdsWithPendingSN, 'id');
+            
+            if (empty($saleIds)) {
+                // No sales with pending SNs
+                return $this->response->setJSON([
+                    'draw'            => $draw,
+                    'recordsTotal'    => 0,
+                    'recordsFiltered' => 0,
+                    'data'            => [],
+                ]);
+            }
+            
+            // Now get the full sale details with pending SN counts
+            $builder = $db->table('sales')
+                ->select('sales.*, 
+                    customer.name as customer_name,
+                    user.nama as user_name,
+                    agent.name as agent_name,
+                    (SELECT COUNT(DISTINCT sales_item_sn.id) 
+                     FROM sales_detail 
+                     INNER JOIN sales_item_sn ON sales_item_sn.sales_item_id = sales_detail.id
+                     INNER JOIN item_sn ON item_sn.id = sales_item_sn.item_sn_id
+                     WHERE sales_detail.sale_id = sales.id 
+                       AND item_sn.is_sell = \'0\') as pending_sn_count')
+                ->join('customer', 'customer.id = sales.customer_id', 'left')
+                ->join('user', 'user.id_user = sales.user_id', 'left')
+                ->join('agent', 'agent.id = sales.warehouse_id', 'left')
+                ->where('sales.sale_channel', self::CHANNEL_ONLINE)
+                ->whereIn('sales.id', $saleIds);
 
             // Apply search filter
             if (!empty($searchValue)) {
@@ -141,20 +166,25 @@ class SalesConfirm extends \App\Controllers\BaseController
                       ->groupEnd();
             }
 
-            // Get total count
-            $totalRecords = $db->table('sales')
-                ->select('sales.id')
-                ->join('sales_detail', 'sales_detail.sale_id = sales.id', 'inner')
-                ->join('sales_item_sn', 'sales_item_sn.sales_item_id = sales_detail.id', 'inner')
-                ->join('item_sn', 'item_sn.id = sales_item_sn.item_sn_id', 'inner')
-                ->where('sales.sale_channel', self::CHANNEL_ONLINE)
-                ->where('item_sn.is_sell', '0')
-                ->groupBy('sales.id')
-                ->countAllResults(false);
+            // Get total count using subquery
+            $totalRecordsQuery = $db->query("
+                SELECT COUNT(DISTINCT sales.id) as total
+                FROM sales
+                INNER JOIN sales_detail ON sales_detail.sale_id = sales.id
+                INNER JOIN sales_item_sn ON sales_item_sn.sales_item_id = sales_detail.id
+                INNER JOIN item_sn ON item_sn.id = sales_item_sn.item_sn_id
+                WHERE sales.sale_channel = '" . self::CHANNEL_ONLINE . "'
+                  AND item_sn.is_sell = '0'
+            ");
+            $totalRecords = $totalRecordsQuery->getRow()->total ?? 0;
 
-            // Get filtered count
-            $countQuery = clone $builder;
-            $totalFiltered = $countQuery->countAllResults(false);
+            // Get filtered count (same as total if no search, otherwise apply search)
+            if (!empty($searchValue)) {
+                $countQuery = clone $builder;
+                $totalFiltered = $countQuery->countAllResults(false);
+            } else {
+                $totalFiltered = $totalRecords;
+            }
 
             // Get data
             $data = $builder->orderBy('sales.created_at', 'DESC')
@@ -168,7 +198,7 @@ class SalesConfirm extends \App\Controllers\BaseController
             $no = $start + 1;
             foreach ($data as $row) {
                 $actionButtons = '<div class="btn-group" role="group">';
-                $actionButtons .= '<a href="' . $this->config->baseURL . 'agent/sales-confirm/' . $row['id'] . '" ';
+                $actionButtons .= '<a href="' . $this->config->baseURL . 'agent/sales/confirm/' . $row['id'] . '" ';
                 $actionButtons .= 'class="btn btn-sm btn-primary" title="Verifikasi & Assign SN">';
                 $actionButtons .= '<i class="fas fa-check-circle"></i> Verifikasi</a>';
                 $actionButtons .= '</div>';
@@ -221,7 +251,7 @@ class SalesConfirm extends \App\Controllers\BaseController
     {
         helper('angka');
         if ($id <= 0) {
-            return redirect()->to('agent/sales-confirm')->with('message', [
+            return redirect()->to('agent/sales/confirm')->with('message', [
                 'status' => 'error',
                 'message' => 'ID penjualan tidak valid.'
             ]);
@@ -232,7 +262,7 @@ class SalesConfirm extends \App\Controllers\BaseController
             $sale = $this->model->getSalesWithRelations($id);
             
             if (!$sale) {
-                return redirect()->to('agent/sales-confirm')->with('message', [
+                return redirect()->to('agent/sales/confirm')->with('message', [
                     'status' => 'error',
                     'message' => 'Data penjualan tidak ditemukan.'
                 ]);
@@ -240,7 +270,7 @@ class SalesConfirm extends \App\Controllers\BaseController
 
             // Verify it's an online sale (agent order)
             if ($sale['sale_channel'] != self::CHANNEL_ONLINE) {
-                return redirect()->to('agent/sales-confirm')->with('message', [
+                return redirect()->to('agent/sales/confirm')->with('message', [
                     'status' => 'error',
                     'message' => 'Hanya penjualan online (agent) yang memerlukan verifikasi SN.'
                 ]);
@@ -249,10 +279,10 @@ class SalesConfirm extends \App\Controllers\BaseController
             // Get items from sales_detail
             $items = $this->salesDetailModel->getDetailsBySale($id);
 
-            // Get serial numbers for each item that need confirmation
+            // Get serial numbers for each item (both assigned and available)
             $itemsWithSN = [];
             foreach ($items as $item) {
-                // Get sales_item_sn records for this sales_detail
+                // Get sales_item_sn records for this sales_detail (already assigned)
                 $salesItemSns = $this->salesItemSnModel
                     ->select('sales_item_sn.*, item_sn.sn, item_sn.is_sell, item_sn.is_activated, item_sn.activated_at, item_sn.expired_at, item_sn.item_id')
                     ->join('item_sn', 'item_sn.id = sales_item_sn.item_sn_id', 'inner')
@@ -267,10 +297,35 @@ class SalesConfirm extends \App\Controllers\BaseController
                     }
                 }
 
-                if (!empty($pendingSns)) {
-                    $item['pending_sns'] = $pendingSns;
-                    $itemsWithSN[] = $item;
+                // Get available unused serial numbers for this item
+                $availableSns = $this->itemSnModel
+                    ->select('item_sn.*')
+                    ->where('item_sn.item_id', $item['item_id'])
+                    ->where('item_sn.is_sell', '0')
+                    ->orderBy('item_sn.created_at', 'ASC')
+                    ->findAll();
+
+                // Convert objects to arrays properly
+                $availableSnsArray = [];
+                foreach ($availableSns as $sn) {
+                    if (is_object($sn)) {
+                        $availableSnsArray[] = [
+                            'id' => $sn->id ?? null,
+                            'sn' => $sn->sn ?? '',
+                            'item_id' => $sn->item_id ?? null,
+                            'is_sell' => $sn->is_sell ?? '0',
+                            'is_activated' => $sn->is_activated ?? '0',
+                            'created_at' => $sn->created_at ?? null,
+                        ];
+                    } else {
+                        $availableSnsArray[] = $sn;
+                    }
                 }
+
+                $item['pending_sns'] = $pendingSns;
+                $item['available_sns'] = $availableSnsArray;
+                $item['needs_assignment'] = (int)($item['qty'] ?? 1) > count($pendingSns);
+                $itemsWithSN[] = $item;
             }
 
             // Get payment information
@@ -301,7 +356,7 @@ class SalesConfirm extends \App\Controllers\BaseController
             $this->view('sales/confirm-sn-detail', $this->data);
         } catch (\Exception $e) {
             log_message('error', 'Agent\SalesConfirm::detail error: ' . $e->getMessage());
-            return redirect()->to('agent/sales-confirm')->with('message', [
+            return redirect()->to('agent/sales/confirm')->with('message', [
                 'status' => 'error',
                 'message' => 'Gagal memuat data: ' . $e->getMessage()
             ]);
@@ -317,7 +372,7 @@ class SalesConfirm extends \App\Controllers\BaseController
     public function verify(int $id)
     {
         if ($id <= 0) {
-            return redirect()->to('agent/sales-confirm')->with('message', [
+            return redirect()->to('agent/sales/confirm')->with('message', [
                 'status' => 'error',
                 'message' => 'ID penjualan tidak valid.'
             ]);
@@ -334,7 +389,7 @@ class SalesConfirm extends \App\Controllers\BaseController
                 if ($isAjax) {
                     return $this->response->setJSON(['status' => 'error', 'message' => $message]);
                 }
-                return redirect()->to('agent/sales-confirm')->with('message', ['status' => 'error', 'message' => $message]);
+                return redirect()->to('agent/sales/confirm')->with('message', ['status' => 'error', 'message' => $message]);
             }
 
             if ($sale['sale_channel'] != self::CHANNEL_ONLINE) {
@@ -342,7 +397,7 @@ class SalesConfirm extends \App\Controllers\BaseController
                 if ($isAjax) {
                     return $this->response->setJSON(['status' => 'error', 'message' => $message]);
                 }
-                return redirect()->to('agent/sales-confirm')->with('message', ['status' => 'error', 'message' => $message]);
+                return redirect()->to('agent/sales/confirm')->with('message', ['status' => 'error', 'message' => $message]);
             }
 
             // Get items with pending serial numbers
@@ -428,7 +483,7 @@ class SalesConfirm extends \App\Controllers\BaseController
                     ]);
                 }
 
-                return redirect()->to('agent/sales-confirm')->with('message', [
+                return redirect()->to('agent/sales/confirm')->with('message', [
                     'status' => 'success',
                     'message' => $message
                 ]);
@@ -446,9 +501,152 @@ class SalesConfirm extends \App\Controllers\BaseController
                 return $this->response->setJSON(['status' => 'error', 'message' => $message]);
             }
             
-            return redirect()->to('agent/sales-confirm')->with('message', [
+            return redirect()->to('agent/sales/confirm')->with('message', [
                 'status' => 'error',
                 'message' => $message
+            ]);
+        }
+    }
+
+    /**
+     * Assign serial numbers to a sale item
+     * 
+     * @param int $id Sale ID
+     * @return ResponseInterface
+     */
+    public function assignSN(int $id): ResponseInterface
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Request tidak valid.'
+            ]);
+        }
+
+        if ($id <= 0) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'ID penjualan tidak valid.'
+            ]);
+        }
+
+        try {
+            // Verify sale exists and is online
+            $sale = $this->model->getSalesWithRelations($id);
+            
+            if (!$sale) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Data penjualan tidak ditemukan.'
+                ]);
+            }
+
+            if ($sale['sale_channel'] != self::CHANNEL_ONLINE) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Hanya penjualan online (agent) yang dapat di-assign serial number.'
+                ]);
+            }
+
+            $postData = $this->request->getPost();
+            $salesItemId = (int)($postData['sales_item_id'] ?? 0);
+            $itemSnIds = $postData['item_sn_ids'] ?? [];
+
+            if ($salesItemId <= 0) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Sales item ID tidak valid.'
+                ]);
+            }
+
+            if (empty($itemSnIds) || !is_array($itemSnIds)) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Serial number harus dipilih.'
+                ]);
+            }
+
+            // Verify sales_detail belongs to this sale
+            $salesDetail = $this->salesDetailModel->find($salesItemId);
+            if (!$salesDetail || (int)$salesDetail['sale_id'] !== $id) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Sales detail tidak ditemukan atau tidak sesuai dengan sale.'
+                ]);
+            }
+
+            $db = \Config\Database::connect();
+            $db->transStart();
+
+            try {
+                $assignedCount = 0;
+                foreach ($itemSnIds as $itemSnId) {
+                    $itemSnId = (int)$itemSnId;
+                    if ($itemSnId <= 0) {
+                        continue;
+                    }
+
+                    // Verify item_sn exists and is available (is_sell = '0')
+                    $itemSn = $this->itemSnModel->find($itemSnId);
+                    if (!$itemSn) {
+                        continue;
+                    }
+
+                    $itemSnArray = is_array($itemSn) ? $itemSn : (array)$itemSn;
+                    if (($itemSnArray['is_sell'] ?? '0') !== '0') {
+                        continue; // Already sold
+                    }
+
+                    // Verify item_sn belongs to the same item
+                    if ((int)$itemSnArray['item_id'] !== (int)$salesDetail['item_id']) {
+                        continue; // Wrong item
+                    }
+
+                    // Check if already assigned to this sales_item
+                    $existing = $this->salesItemSnModel
+                        ->where('sales_item_id', $salesItemId)
+                        ->where('item_sn_id', $itemSnId)
+                        ->first();
+
+                    if ($existing) {
+                        continue; // Already assigned
+                    }
+
+                    // Assign serial number to sales_item
+                    $this->salesItemSnModel->skipValidation(true);
+                    $this->salesItemSnModel->insert([
+                        'sales_item_id' => $salesItemId,
+                        'item_sn_id' => $itemSnId,
+                        'sn' => $itemSnArray['sn'] ?? ''
+                    ]);
+                    $this->salesItemSnModel->skipValidation(false);
+                    
+                    $assignedCount++;
+                }
+
+                $db->transComplete();
+
+                if ($db->transStatus() === false) {
+                    throw new \Exception('Transaksi gagal.');
+                }
+
+                return $this->response->setJSON([
+                    'status' => 'success',
+                    'message' => "Serial number berhasil di-assign. Total: {$assignedCount} SN",
+                    'assigned_count' => $assignedCount
+                ]);
+
+            } catch (\Exception $e) {
+                $db->transRollback();
+                throw $e;
+            }
+
+        } catch (\Exception $e) {
+            log_message('error', 'Agent\SalesConfirm::assignSN error: ' . $e->getMessage());
+            
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Gagal meng-assign serial number: ' . $e->getMessage()
             ]);
         }
     }

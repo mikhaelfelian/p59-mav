@@ -243,18 +243,24 @@ helper('angka');
 		</div>
 		<?php endif; ?>
 
-		<!-- Items with Pending Serial Numbers -->
+		<!-- Items with Serial Numbers -->
 		<div class="row">
 			<div class="col-md-12">
-				<h5 class="mb-3"><i class="fas fa-list me-2"></i>Item dengan Serial Number Pending</h5>
+				<h5 class="mb-3"><i class="fas fa-list me-2"></i>Item Penjualan</h5>
 				
 				<?php if (empty($items)): ?>
 					<div class="alert alert-info">
 						<i class="fas fa-info-circle me-2"></i>
-						Tidak ada serial number yang perlu dikonfirmasi untuk penjualan ini.
+						Tidak ada item dalam penjualan ini.
 					</div>
 				<?php else: ?>
-					<?php foreach ($items as $item): ?>
+					<?php 
+					$hasPendingSNs = false;
+					foreach ($items as $item): 
+						if (!empty($item['pending_sns'])) {
+							$hasPendingSNs = true;
+						}
+					?>
 						<div class="item-card">
 							<div class="item-header">
 								<h6><?= esc($item['item'] ?? 'Unknown Item') ?></h6>
@@ -266,41 +272,96 @@ helper('angka');
 							</div>
 							
 							<div class="mt-3">
-								<h6 class="mb-3">
-									<span class="pending-badge">
-										<i class="fas fa-clock me-1"></i>
-										<?= count($item['pending_sns'] ?? []) ?> Serial Number Pending
-									</span>
-								</h6>
+								<!-- Assigned Pending Serial Numbers -->
+								<?php if (!empty($item['pending_sns'])): ?>
+									<h6 class="mb-3">
+										<span class="pending-badge">
+											<i class="fas fa-clock me-1"></i>
+											<?= count($item['pending_sns']) ?> Serial Number Assigned (Pending Activation)
+										</span>
+									</h6>
+									
+									<?php foreach ($item['pending_sns'] as $sn): ?>
+										<div class="sn-item">
+											<div>
+												<span class="sn-badge"><?= esc($sn['sn'] ?? '-') ?></span>
+												<span class="sn-status ms-2 text-muted">
+													<i class="fas fa-info-circle me-1"></i>
+													Belum diaktifkan
+												</span>
+											</div>
+											<div>
+												<span class="badge bg-warning">Pending</span>
+											</div>
+										</div>
+									<?php endforeach; ?>
+								<?php endif; ?>
 								
-								<?php foreach ($item['pending_sns'] ?? [] as $sn): ?>
-									<div class="sn-item">
-										<div>
-											<span class="sn-badge"><?= esc($sn['sn'] ?? '-') ?></span>
-											<span class="sn-status ms-2 text-muted">
-												<i class="fas fa-info-circle me-1"></i>
-												Belum diaktifkan
-											</span>
-										</div>
-										<div>
-											<span class="badge bg-warning">Pending</span>
-										</div>
+								<!-- Assign Serial Numbers Section -->
+								<?php 
+								$requiredQty = (int)($item['qty'] ?? 1);
+								$assignedCount = count($item['pending_sns'] ?? []);
+								$needsMore = $requiredQty > $assignedCount;
+								$availableCount = count($item['available_sns'] ?? []);
+								?>
+								
+								<?php if ($needsMore): ?>
+									<div class="mt-4 pt-3 border-top">
+										<h6 class="mb-3">
+											<i class="fas fa-plus-circle me-2 text-primary"></i>
+											Assign Serial Number
+											<small class="text-muted">(Perlu: <?= $requiredQty ?>, Sudah: <?= $assignedCount ?>, Tersedia: <?= $availableCount ?>)</small>
+										</h6>
+										
+										<?php if ($availableCount > 0): ?>
+											<form class="assign-sn-form" data-sales-item-id="<?= $item['id'] ?? '' ?>">
+												<?= csrf_field() ?>
+												<div class="mb-3">
+													<label class="form-label">Pilih Serial Number:</label>
+													<select class="form-select form-select-sm" name="item_sn_ids[]" multiple size="5" required>
+														<?php foreach ($item['available_sns'] as $sn): 
+															// Handle both object and array
+															$snId = is_object($sn) ? ($sn->id ?? '') : ($sn['id'] ?? '');
+															$snValue = is_object($sn) ? ($sn->sn ?? '-') : ($sn['sn'] ?? '-');
+														?>
+															<option value="<?= $snId ?>"><?= esc($snValue) ?></option>
+														<?php endforeach; ?>
+													</select>
+													<small class="text-muted">Gunakan Ctrl/Cmd untuk memilih multiple</small>
+												</div>
+												<button type="submit" class="btn btn-sm btn-primary">
+													<i class="fas fa-plus me-1"></i>Assign Serial Number
+												</button>
+											</form>
+										<?php else: ?>
+											<div class="alert alert-warning">
+												<i class="fas fa-exclamation-triangle me-2"></i>
+												Tidak ada serial number tersedia untuk item ini.
+											</div>
+										<?php endif; ?>
 									</div>
-								<?php endforeach; ?>
+								<?php elseif ($assignedCount >= $requiredQty): ?>
+									<div class="alert alert-success mt-3">
+										<i class="fas fa-check-circle me-2"></i>
+										Serial number sudah lengkap untuk item ini.
+									</div>
+								<?php endif; ?>
 							</div>
 						</div>
 					<?php endforeach; ?>
 					
-					<!-- Confirm Button -->
-					<div class="text-center mt-4">
-						<form id="confirmSNForm" method="POST" action="<?= $config->baseURL ?>agent/sales-confirm/verify/<?= $sale['id'] ?? '' ?>">
-							<?= csrf_field() ?>
-							<button type="submit" class="btn confirm-btn" id="confirmBtn">
-								<i class="fas fa-check-circle me-2"></i>
-								Verifikasi & Aktifkan Serial Number
-							</button>
-						</form>
-					</div>
+					<!-- Verify & Activate Button (only if there are pending SNs) -->
+					<?php if ($hasPendingSNs): ?>
+						<div class="text-center mt-4">
+							<form id="confirmSNForm" method="POST" action="<?= $config->baseURL ?>agent/sales/confirm/verify/<?= $sale['id'] ?? '' ?>">
+								<?= csrf_field() ?>
+								<button type="submit" class="btn confirm-btn" id="confirmBtn">
+									<i class="fas fa-check-circle me-2"></i>
+									Verifikasi & Aktifkan Serial Number
+								</button>
+							</form>
+						</div>
+					<?php endif; ?>
 				<?php endif; ?>
 			</div>
 		</div>
@@ -308,7 +369,7 @@ helper('angka');
 		<!-- Action Buttons -->
 		<div class="row mt-4">
 			<div class="col-md-12 d-flex gap-3">
-				<a href="<?= $config->baseURL ?>agent/sales-confirm" class="btn btn-secondary text-white">
+				<a href="<?= $config->baseURL ?>agent/sales/confirm" class="btn btn-secondary text-white">
 					<i class="fas fa-arrow-left"></i>Kembali ke Daftar
 				</a>
 				<a href="<?= $config->baseURL ?>sales/print_dm/<?= $sale['id'] ?? '' ?>" target="_blank" class="btn btn-primary text-white">
@@ -321,6 +382,111 @@ helper('angka');
 
 <script>
 $(document).ready(function() {
+	// Handle assign SN form submission
+	$('.assign-sn-form').on('submit', function(e) {
+		e.preventDefault();
+		
+		var $form = $(this);
+		var $btn = $form.find('button[type="submit"]');
+		var originalText = $btn.html();
+		var salesItemId = $form.data('sales-item-id');
+		var saleId = <?= $sale['id'] ?? 0 ?>;
+		
+		// Disable button and show loading
+		$btn.prop('disabled', true);
+		$btn.html('<i class="fas fa-spinner fa-spin me-1"></i>Memproses...');
+		
+		// Get selected SN IDs
+		var selectedSNs = $form.find('select[name="item_sn_ids[]"]').val();
+		if (!selectedSNs || selectedSNs.length === 0) {
+			alert('Pilih minimal satu serial number');
+			$btn.prop('disabled', false);
+			$btn.html(originalText);
+			return;
+		}
+		
+		// Prepare form data
+		var formData = $form.serializeArray();
+		formData.push({name: 'sales_item_id', value: salesItemId});
+		// Add each selected SN ID
+		$.each(selectedSNs, function(i, snId) {
+			formData.push({name: 'item_sn_ids[]', value: snId});
+		});
+		
+		// Convert to object for jQuery
+		var dataObj = {};
+		$.each(formData, function(i, field) {
+			if (field.name.endsWith('[]')) {
+				if (!dataObj[field.name]) {
+					dataObj[field.name] = [];
+				}
+				dataObj[field.name].push(field.value);
+			} else {
+				dataObj[field.name] = field.value;
+			}
+		});
+		
+		// Submit via AJAX
+		$.ajax({
+			url: '<?= $config->baseURL ?>agent/sales/confirm/assignSN/' + saleId,
+			type: 'POST',
+			data: dataObj,
+			headers: {
+				'X-Requested-With': 'XMLHttpRequest'
+			},
+			dataType: 'json',
+			success: function(response) {
+				if (response.status === 'success') {
+					if (typeof Swal !== 'undefined') {
+						Swal.fire({
+							icon: 'success',
+							title: 'Berhasil',
+							text: response.message || 'Serial number berhasil di-assign',
+							confirmButtonText: 'OK'
+						}).then(function() {
+							// Reload page to show updated data
+							window.location.reload();
+						});
+					} else {
+						alert(response.message || 'Serial number berhasil di-assign');
+						window.location.reload();
+					}
+				} else {
+					if (typeof Swal !== 'undefined') {
+						Swal.fire({
+							icon: 'error',
+							title: 'Error',
+							text: response.message || 'Gagal meng-assign serial number'
+						});
+					} else {
+						alert(response.message || 'Gagal meng-assign serial number');
+					}
+					$btn.prop('disabled', false);
+					$btn.html(originalText);
+				}
+			},
+			error: function(xhr, status, error) {
+				var errorMsg = 'Terjadi kesalahan saat memproses permintaan';
+				if (xhr.responseJSON && xhr.responseJSON.message) {
+					errorMsg = xhr.responseJSON.message;
+				}
+				
+				if (typeof Swal !== 'undefined') {
+					Swal.fire({
+						icon: 'error',
+						title: 'Error',
+						text: errorMsg
+					});
+				} else {
+					alert(errorMsg);
+				}
+				
+				$btn.prop('disabled', false);
+				$btn.html(originalText);
+			}
+		});
+	});
+	
 	$('#confirmSNForm').on('submit', function(e) {
 		e.preventDefault();
 		
@@ -348,11 +514,11 @@ $(document).ready(function() {
 							confirmButtonText: 'OK'
 						}).then(function() {
 							// Redirect to list
-							window.location.href = '<?= $config->baseURL ?>agent/sales-confirm';
+							window.location.href = '<?= $config->baseURL ?>agent/sales/confirm';
 						});
 					} else {
 						alert(response.message || 'Serial number berhasil diaktifkan');
-						window.location.href = '<?= $config->baseURL ?>agent/sales-confirm';
+						window.location.href = '<?= $config->baseURL ?>agent/sales/confirm';
 					}
 				} else {
 					// Show error message
