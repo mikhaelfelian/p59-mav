@@ -356,11 +356,6 @@ $isModal = $isModal ?? false;
 			<!-- Bisnis Tab -->
 			<div class="tab-pane fade" id="tab-business" role="tabpanel">
 				<div class="card shadow-sm border-0">
-					<div class="card-header bg-light">
-						<h6 class="card-title mb-0">
-							<i class="fas fa-briefcase me-2"></i>Informasi Bisnis
-						</h6>
-					</div>
 					<div class="card-body">
 						<div class="row g-3">
 							<div class="col-md-6">
@@ -381,8 +376,8 @@ $isModal = $isModal ?? false;
 							</div>
 						</div>
 						<div class="row mb-3">
-							<label class="col-sm-3 col-form-label fw-semibold">Limit Kredit</label>
 							<div class="col-sm-9">
+							<label class="col-sm-3 col-form-label fw-semibold">Limit Kredit</label>
 								<div class="form-check form-switch mb-2">
 									<input class="form-check-input" type="checkbox" id="enable_credit_limit" name="enable_credit_limit" value="1" <?= $creditLimitEnabled ? 'checked' : '' ?>>
 									<label class="form-check-label" for="enable_credit_limit">Aktifkan limit kredit untuk agen ini</label>
