@@ -63,6 +63,12 @@ class CreatePlatformTable extends Migration
                 'null'       => false,
                 'default'    => '1',
             ],
+            'status_kredit' => [
+                'type'       => 'ENUM',
+                'constraint' => ['0', '1'],
+                'null'       => false,
+                'default'    => '0',
+            ],
             'status_sys' => [
                 'type'       => 'ENUM',
                 'constraint' => ['0', '1'],

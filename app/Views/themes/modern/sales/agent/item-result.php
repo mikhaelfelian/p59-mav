@@ -1,323 +1,649 @@
 <?php
 /**
- * Created by: Mikhael Felian Waskito - mikhaelfelian@gmail.com
- * Date: 2025-11-04
- * Github: github.com/mikhaelfelian
- * Description: POS-style grid view for agent items/products
+ * Agent Product Catalog View
+ * Professional catalogue with advanced filtering & responsive layout.
+ *
+ * @var array $filters
+ * @var array $categories
+ * @var array $brands
+ * @var array $items
+ * @var array $pagerInfo
+ * @var array $priceRange
+ * @var array $sortOptions
+ * @var array $perPageOptions
  */
+
+$filters = $filters ?? [];
+$selectedCategories = $filters['category'] ?? [];
+$selectedBrands = $filters['brand'] ?? [];
+$searchValue = trim((string) ($filters['search'] ?? ''));
+$availability = $filters['availability'] ?? 'all';
+$viewMode = $filters['view'] ?? 'grid';
+
+$priceMinValue = $filters['price_min'] ?? null;
+$priceMaxValue = $filters['price_max'] ?? null;
+
+$appliedFilterCount = 0;
+$appliedFilterCount += $searchValue !== '' ? 1 : 0;
+$appliedFilterCount += !empty($selectedCategories) ? 1 : 0;
+$appliedFilterCount += !empty($selectedBrands) ? 1 : 0;
+$appliedFilterCount += ($priceMinValue !== null || $priceMaxValue !== null) ? 1 : 0;
+$appliedFilterCount += ($availability !== 'all') ? 1 : 0;
+$hasActiveFilters = $appliedFilterCount > 0;
+
+$totalItems = $pagerInfo['totalItems'] ?? count($items);
+$firstItem = $pagerInfo['firstItem'] ?? 0;
+$lastItem = $pagerInfo['lastItem'] ?? 0;
+$currentPage = $pagerInfo['currentPage'] ?? 1;
+$totalPages = $pagerInfo['totalPages'] ?? 1;
 ?>
-<div class="container-fluid px-3 py-4">
-	<div class="row mb-4">
-		<div class="col-12">
-			<h4 class="mb-3"><?= $title ?? 'Daftar Produk' ?></h4>
-			
-			<!-- Filter Bar -->
-			<div class="card shadow-sm mb-4">
-				<div class="card-body">
-					<form method="GET" action="<?= $config->baseURL ?>agent/item" id="filter-form">
-						<div class="row g-3 align-items-end">
-							<div class="col-md-8">
-								<label for="filter" class="form-label fw-semibold">Filter</label>
-								<input type="text" 
-									class="form-control form-control-lg" 
-									id="filter" 
-									name="q" 
-									value="<?= esc($searchQuery ?? '') ?>" 
-									placeholder="Cari produk..." 
-									autocomplete="off">
-							</div>
-							<div class="col-md-4">
-								<button type="submit" class="btn btn-primary btn-lg w-100">
-									<i class="fas fa-search me-2"></i>Cari
-								</button>
-							</div>
-						</div>
-					</form>
-				</div>
-			</div>
-		</div>
-	</div>
 
-	<!-- Product Grid -->
-	<?php if (!empty($items) && is_array($items)): ?>
-		<div class="row g-4 mb-4">
-			<?php foreach ($items as $item): ?>
-				<div class="col-6 col-md-4 col-lg-3 col-xl-2">
-					<div class="card shadow-sm h-100 product-card" style="border: 1px solid #dee2e6;">
-						<!-- Product Image -->
-						<div class="card-img-top position-relative" style="height: 180px; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-							<?php if (!empty($item['image'])): ?>
-								<img src="<?= $config->baseURL ?>public/images/item/<?= esc($item['image']) ?>" 
-									alt="<?= esc($item['name']) ?>" 
-									class="img-fluid" 
-									style="max-height: 100%; width: auto; object-fit: contain;">
-							<?php else: ?>
-								<div class="text-muted text-center p-3">
-									<i class="fas fa-image fa-3x mb-2"></i>
-									<p class="small mb-0">No Image</p>
-								</div>
-							<?php endif; ?>
-						</div>
-						
-						<!-- Product Info -->
-						<div class="card-body d-flex flex-column p-3">
-							<h6 class="card-title mb-2" style="font-size: 0.9rem; line-height: 1.3; min-height: 2.6em; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
-								<?= esc($item['name']) ?>
-							</h6>
-							
-							<div class="mb-3">
-								<strong class="text-primary" style="font-size: 1rem;">
-									<?= format_angka_rp($item['price'] ?? 0) ?>
-								</strong>
-							</div>
-							
-							<!-- Buy Button -->
-							<button type="button" 
-								class="btn btn-primary w-100 mt-auto beli-btn" 
-								data-item-id="<?= $item['id'] ?>"
-								data-item-name="<?= esc($item['name']) ?>"
-								data-item-price="<?= $item['price'] ?? 0 ?>">
-								<i class="fas fa-shopping-cart me-2"></i>Beli
-							</button>
-						</div>
-					</div>
-				</div>
-			<?php endforeach; ?>
-		</div>
+<div class="container-fluid py-4 agent-catalog-page">
+    <div class="row g-4">
+        <!-- Sidebar Filters -->
+        <div class="col-12 col-xl-3">
+            <form id="agentCatalogFilter" class="card shadow-sm border-0 sticky-top filter-card" style="top: 92px;" method="get" action="<?= $config->baseURL ?>agent/item">
+                <div class="card-header bg-white border-0 pb-0">
+                    <h5 class="card-title mb-1 d-flex align-items-center justify-content-between">
+                        <span><i class="fas fa-filter me-2 text-primary"></i>Filter Produk</span>
+                        <?php if ($hasActiveFilters): ?>
+                            <span class="badge bg-primary rounded-pill"><?= $appliedFilterCount ?></span>
+                        <?php endif; ?>
+                    </h5>
+                    <p class="text-muted small mb-0">Sesuaikan pencarian produk sesuai kebutuhan Anda.</p>
+                </div>
 
-		<!-- Pagination -->
-		<?php if (isset($pager) && $pagerInfo['totalPages'] > 1): ?>
-			<div class="row">
-				<div class="col-12">
-					<nav aria-label="Page navigation">
-						<ul class="pagination justify-content-center">
-							<?php if ($pager->hasPrevious()): ?>
-								<li class="page-item">
-									<a class="page-link" href="<?= $pager->getFirst() ?>" aria-label="First">
-										<span aria-hidden="true">&laquo;&laquo;</span>
-									</a>
-								</li>
-								<li class="page-item">
-									<a class="page-link" href="<?= $pager->getPrevious() ?>" aria-label="Previous">
-										<span aria-hidden="true">&laquo;</span>
-									</a>
-								</li>
-							<?php else: ?>
-								<li class="page-item disabled">
-									<span class="page-link" aria-hidden="true">&laquo;&laquo;</span>
-								</li>
-								<li class="page-item disabled">
-									<span class="page-link" aria-hidden="true">&laquo;</span>
-								</li>
-							<?php endif; ?>
-							
-							<?php 
-							$pager->setSurroundCount(2);
-							foreach ($pager->links() as $link): ?>
-								<li class="page-item <?= $link['active'] ? 'active' : '' ?>">
-									<?php if ($link['active']): ?>
-										<span class="page-link"><?= $link['title'] ?></span>
-									<?php else: ?>
-										<a class="page-link" href="<?= $link['uri'] ?>"><?= $link['title'] ?></a>
-									<?php endif; ?>
-								</li>
-							<?php endforeach; ?>
-							
-							<?php if ($pager->hasNext()): ?>
-								<li class="page-item">
-									<a class="page-link" href="<?= $pager->getNext() ?>" aria-label="Next">
-										<span aria-hidden="true">&raquo;</span>
-									</a>
-								</li>
-								<li class="page-item">
-									<a class="page-link" href="<?= $pager->getLast() ?>" aria-label="Last">
-										<span aria-hidden="true">&raquo;&raquo;</span>
-									</a>
-								</li>
-							<?php else: ?>
-								<li class="page-item disabled">
-									<span class="page-link" aria-hidden="true">&raquo;</span>
-								</li>
-								<li class="page-item disabled">
-									<span class="page-link" aria-hidden="true">&raquo;&raquo;</span>
-								</li>
-							<?php endif; ?>
-						</ul>
-					</nav>
-					
-					<!-- Pagination Info -->
-					<div class="text-center text-muted mt-2">
-						<small>
-							Menampilkan <?= count($items) ?> dari <?= $pagerInfo['totalItems'] ?> produk
-							(Halaman <?= $pagerInfo['currentPage'] ?> dari <?= $pagerInfo['totalPages'] ?>)
-						</small>
-					</div>
-				</div>
-			</div>
-		<?php endif; ?>
-		
-	<?php else: ?>
-		<!-- No Items Found -->
-		<div class="row">
-			<div class="col-12">
-				<div class="card shadow-sm">
-					<div class="card-body text-center py-5">
-						<i class="fas fa-box-open fa-3x text-muted mb-3"></i>
-						<h5 class="text-muted">Tidak ada produk ditemukan</h5>
-						<?php if (!empty($searchQuery)): ?>
-							<p class="text-muted">Coba gunakan kata kunci lain untuk pencarian</p>
-							<a href="<?= $config->baseURL ?>agent/item" class="btn btn-outline-primary mt-2">
-								<i class="fas fa-redo me-2"></i>Reset Filter
-							</a>
-						<?php endif; ?>
-					</div>
-				</div>
-			</div>
-		</div>
-	<?php endif; ?>
+                <div class="card-body">
+                    <input type="hidden" name="view" id="viewModeInput" value="<?= esc($viewMode) ?>">
+
+                    <!-- Search -->
+                    <div class="mb-4">
+                        <label for="catalogSearch" class="form-label fw-semibold text-uppercase small text-muted">Pencarian Kata Kunci</label>
+                        <div class="input-group input-group-lg rounded-pill shadow-sm">
+                            <span class="input-group-text bg-transparent border-0"><i class="fas fa-search text-primary"></i></span>
+                            <input type="text"
+                                   id="catalogSearch"
+                                   name="q"
+                                   value="<?= esc($searchValue) ?>"
+                                   class="form-control border-0"
+                                   placeholder="Cari nama, SKU, deskripsi..."
+                                   autocomplete="off">
+                        </div>
+                    </div>
+
+                    <!-- Categories -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <label class="form-label fw-semibold text-uppercase small text-muted mb-0">Kategori</label>
+                            <?php if (!empty($categories)): ?>
+                                <button type="button" class="btn btn-sm btn-link text-decoration-none text-muted clear-section" data-target="category">
+                                    Reset
+                                </button>
+                            <?php endif; ?>
+                        </div>
+                        <?php if (!empty($categories)): ?>
+                            <div class="filter-checkbox-list">
+                                <?php foreach ($categories as $category): ?>
+                                    <?php
+                                    $categoryId = $category['id'] ?? null;
+                                    if (!$categoryId) {
+                                        continue;
+                                    }
+                                    $isChecked = in_array((int) $categoryId, $selectedCategories, true);
+                                    ?>
+                                    <div class="form-check">
+                                        <input class="form-check-input auto-submit" type="checkbox" name="category[]" value="<?= esc($categoryId) ?>" id="cat-<?= esc($categoryId) ?>" <?= $isChecked ? 'checked' : '' ?>>
+                                        <label class="form-check-label" for="cat-<?= esc($categoryId) ?>">
+                                            <?= esc($category['category'] ?? 'Kategori') ?>
+                                        </label>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php else: ?>
+                            <p class="text-muted small fst-italic mb-0">Kategori belum tersedia.</p>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Brands -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <label class="form-label fw-semibold text-uppercase small text-muted mb-0">Brand</label>
+                            <?php if (!empty($brands)): ?>
+                                <button type="button" class="btn btn-sm btn-link text-decoration-none text-muted clear-section" data-target="brand">
+                                    Reset
+                                </button>
+                            <?php endif; ?>
+                        </div>
+                        <?php if (!empty($brands)): ?>
+                            <div class="filter-checkbox-list">
+                                <?php foreach ($brands as $brand): ?>
+                                    <?php
+                                    $brandId = $brand['id'] ?? null;
+                                    if (!$brandId) {
+                                        continue;
+                                    }
+                                    $isChecked = in_array((int) $brandId, $selectedBrands, true);
+                                    ?>
+                                    <div class="form-check">
+                                        <input class="form-check-input auto-submit" type="checkbox" name="brand[]" value="<?= esc($brandId) ?>" id="brand-<?= esc($brandId) ?>" <?= $isChecked ? 'checked' : '' ?>>
+                                        <label class="form-check-label" for="brand-<?= esc($brandId) ?>">
+                                            <?= esc($brand['name'] ?? 'Brand') ?>
+                                        </label>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php else: ?>
+                            <p class="text-muted small fst-italic mb-0">Brand belum tersedia.</p>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Price Range -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold text-uppercase small text-muted">Rentang Harga (Rp)</label>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <div class="form-floating">
+                                    <input type="number"
+                                           min="0"
+                                           step="1000"
+                                           class="form-control"
+                                           id="priceMin"
+                                           name="price_min"
+                                           value="<?= $priceMinValue !== null ? esc((int) $priceMinValue) : '' ?>"
+                                           placeholder="Min">
+                                    <label for="priceMin">Minimal</label>
+                                </div>
+                                <small class="text-muted d-block mt-1">≥ <?= format_angka_rp($priceRange['min'] ?? 0) ?></small>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-floating">
+                                    <input type="number"
+                                           min="0"
+                                           step="1000"
+                                           class="form-control"
+                                           id="priceMax"
+                                           name="price_max"
+                                           value="<?= $priceMaxValue !== null ? esc((int) $priceMaxValue) : '' ?>"
+                                           placeholder="Max">
+                                    <label for="priceMax">Maksimal</label>
+                                </div>
+                                <small class="text-muted d-block mt-1">≤ <?= format_angka_rp($priceRange['max'] ?? 0) ?></small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Availability -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold text-uppercase small text-muted">Ketersediaan</label>
+                        <select class="form-select auto-submit" name="availability">
+                            <option value="all" <?= $availability === 'all' ? 'selected' : '' ?>>Semua Produk</option>
+                            <option value="stockable" <?= $availability === 'stockable' ? 'selected' : '' ?>>Produk Stok / Serial</option>
+                            <option value="non_stock" <?= $availability === 'non_stock' ? 'selected' : '' ?>>Produk Non-Stok</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card-footer bg-light border-0 d-flex flex-column gap-2">
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary rounded-pill">
+                            <i class="fas fa-filter me-2"></i>Terapkan Filter
+                        </button>
+                    </div>
+                    <div class="d-grid">
+                        <a href="<?= $config->baseURL ?>agent/item" class="btn btn-outline-secondary rounded-pill<?= $hasActiveFilters ? '' : ' disabled' ?>">
+                            <i class="fas fa-undo me-2"></i>Reset Filter
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Product Catalogue -->
+        <div class="col-12 col-xl-9">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body pb-2">
+                    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                        <div>
+                            <h4 class="mb-1"><?= esc($title ?? 'Katalog Produk') ?></h4>
+                            <div class="text-muted small">
+                                <?php if ($totalItems > 0): ?>
+                                    Menampilkan <strong><?= format_angka($firstItem) ?></strong> – <strong><?= format_angka($lastItem) ?></strong> dari <strong><?= format_angka($totalItems) ?></strong> produk
+                                    (Halaman <?= format_angka($currentPage) ?> dari <?= format_angka($totalPages) ?>)
+                                <?php else: ?>
+                                    Tidak ada produk yang sesuai dengan filter Anda.
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <div class="btn-group" role="group" aria-label="View mode">
+                                <button type="button" class="btn btn-outline-secondary view-toggle<?= $viewMode === 'grid' ? ' active' : '' ?>" data-view="grid" title="Tampilan Grid">
+                                    <i class="fas fa-th-large"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary view-toggle<?= $viewMode === 'list' ? ' active' : '' ?>" data-view="list" title="Tampilan List">
+                                    <i class="fas fa-list"></i>
+                                </button>
+                            </div>
+
+                            <div class="input-group input-group-sm" style="min-width: 180px;">
+                                <label class="input-group-text" for="sortSelect"><i class="fas fa-sort-amount-down"></i></label>
+                                <select id="sortSelect" name="sort" class="form-select auto-submit" form="agentCatalogFilter">
+                                    <?php foreach ($sortOptions as $value => $label): ?>
+                                        <option value="<?= esc($value) ?>" <?= ($filters['sort'] ?? 'popular') === $value ? 'selected' : '' ?>>
+                                            <?= esc($label) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+
+                            <div class="input-group input-group-sm" style="min-width: 160px;">
+                                <label class="input-group-text" for="perPageSelect"><i class="fas fa-layer-group"></i></label>
+                                <select id="perPageSelect" name="per_page" class="form-select auto-submit" form="agentCatalogFilter">
+                                    <?php foreach ($perPageOptions as $option): ?>
+                                        <option value="<?= esc($option) ?>" <?= (int) ($filters['per_page'] ?? 12) === (int) $option ? 'selected' : '' ?>>
+                                            <?= $option ?> / halaman
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <?php if ($searchValue !== ''): ?>
+                        <div class="alert alert-info alert-dismissible fade show mt-3 mb-0" role="alert">
+                            <i class="fas fa-search me-2"></i>
+                            Hasil pencarian untuk: <strong><?= esc($searchValue) ?></strong>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <?php if (!empty($items)): ?>
+                <?php if ($viewMode === 'list'): ?>
+                    <div class="list-group product-list-view mb-4">
+                        <?php foreach ($items as $item): ?>
+                            <?php
+                            $itemId = $item['id'] ?? null;
+                            $itemName = $item['name'] ?? 'Produk';
+                            $categoryName = $item['category_name'] ?? 'Tanpa Kategori';
+                            $brandName = $item['brand_name'] ?? 'Tanpa Brand';
+                            $price = (float) ($item['price'] ?? 0);
+                            $agentPrice = (float) ($item['agent_price'] ?? 0);
+                            $isStockable = ($item['is_stockable'] ?? '0') === '1';
+                            ?>
+                            <div class="list-group-item product-card-list border-0 shadow-sm mb-3 rounded-3">
+                                <div class="row g-3 align-items-center">
+                                    <div class="col-12 col-md-3">
+                                        <div class="product-thumb ratio ratio-4x3 rounded-3 overflow-hidden bg-light d-flex align-items-center justify-content-center">
+                                            <?php if (!empty($item['image'])): ?>
+                                                <img src="<?= $config->baseURL ?>public/images/item/<?= esc($item['image']) ?>"
+                                                     alt="<?= esc($itemName) ?>"
+                                                     class="img-fluid">
+                                            <?php else: ?>
+                                                <div class="text-center text-muted">
+                                                    <i class="fas fa-image fa-2x mb-2"></i>
+                                                    <p class="small mb-0">Tidak ada gambar</p>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <div class="d-flex align-items-center gap-2 mb-2">
+                                            <span class="badge bg-secondary-subtle text-secondary fw-semibold"><?= esc($categoryName) ?></span>
+                                            <span class="badge bg-info-subtle text-info fw-semibold"><?= esc($brandName) ?></span>
+                                            <?php if ($isStockable): ?>
+                                                <span class="badge bg-success-subtle text-success fw-semibold"><i class="fas fa-barcode me-1"></i>Serial</span>
+                                            <?php else: ?>
+                                                <span class="badge bg-warning-subtle text-warning fw-semibold"><i class="fas fa-box-open me-1"></i>Non-Serial</span>
+                                            <?php endif; ?>
+                                        </div>
+                                        <h5 class="mb-2 text-dark fw-semibold"><?= esc($itemName) ?></h5>
+                                        <?php if (!empty($item['short_description'])): ?>
+                                            <p class="text-muted small mb-2"><?= esc($item['short_description']) ?></p>
+                                        <?php elseif (!empty($item['description'])): ?>
+                                            <?php
+                                            $plainDescription = strip_tags((string) $item['description']);
+                                            $shortDescription = mb_strlen($plainDescription) > 120
+                                                ? mb_substr($plainDescription, 0, 117) . '...'
+                                                : $plainDescription;
+                                            ?>
+                                            <p class="text-muted small mb-2"><?= esc($shortDescription) ?></p>
+                                        <?php endif; ?>
+                                        <?php if (!empty($item['sku'])): ?>
+                                            <p class="text-muted small mb-0"><i class="fas fa-hashtag me-1"></i>SKU: <?= esc($item['sku']) ?></p>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="col-12 col-md-3 text-md-end">
+                                        <div class="mb-3">
+                                            <div class="text-primary fw-bold fs-5"><?= format_angka_rp($price) ?></div>
+                                            <?php if ($agentPrice > 0 && $agentPrice !== $price): ?>
+                                                <div class="text-success small">Harga Agen: <?= format_angka_rp($agentPrice) ?></div>
+                                            <?php endif; ?>
+                                        </div>
+                                        <button type="button"
+                                                class="btn btn-primary btn-lg rounded-pill w-100 btn-add-cart"
+                                                data-item-id="<?= esc($itemId) ?>"
+                                                data-item-name="<?= esc($itemName) ?>"
+                                                data-item-price="<?= esc($agentPrice > 0 ? $agentPrice : $price) ?>">
+                                            <i class="fas fa-shopping-cart me-2"></i>Tambah
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php else: ?>
+                    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xxl-4 g-4 mb-4 product-grid-view">
+                        <?php foreach ($items as $item): ?>
+                            <?php
+                            $itemId = $item['id'] ?? null;
+                            $itemName = $item['name'] ?? 'Produk';
+                            $categoryName = $item['category_name'] ?? 'Tanpa Kategori';
+                            $brandName = $item['brand_name'] ?? 'Tanpa Brand';
+                            $price = (float) ($item['price'] ?? 0);
+                            $agentPrice = (float) ($item['agent_price'] ?? 0);
+                            $isStockable = ($item['is_stockable'] ?? '0') === '1';
+                            ?>
+                            <div class="col">
+                                <div class="card h-100 border-0 shadow-sm product-card">
+                                    <div class="ratio ratio-4x3 rounded-top overflow-hidden bg-light position-relative">
+                                        <?php if (!empty($item['image'])): ?>
+                                            <img src="<?= $config->baseURL ?>public/images/item/<?= esc($item['image']) ?>"
+                                                 alt="<?= esc($itemName) ?>"
+                                                 class="img-fluid product-image">
+                                        <?php else: ?>
+                                            <div class="d-flex flex-column align-items-center justify-content-center h-100 text-muted">
+                                                <i class="fas fa-image fa-2x mb-2"></i>
+                                                <span class="small">Tidak ada gambar</span>
+                                            </div>
+                                        <?php endif; ?>
+                                        <div class="position-absolute top-0 start-0 m-2">
+                                            <span class="badge bg-secondary bg-opacity-75 text-white"><?= esc($categoryName) ?></span>
+                                        </div>
+                                        <div class="position-absolute top-0 end-0 m-2">
+                                            <span class="badge bg-info bg-opacity-75 text-white"><?= esc($brandName) ?></span>
+                                        </div>
+                                    </div>
+                                    <div class="card-body d-flex flex-column">
+                                        <h6 class="card-title fw-semibold text-truncate"><?= esc($itemName) ?></h6>
+                                        <?php if (!empty($item['sku'])): ?>
+                                            <p class="text-muted small mb-2"><i class="fas fa-hashtag me-1"></i><?= esc($item['sku']) ?></p>
+                                        <?php endif; ?>
+
+                                        <div class="mb-3">
+                                            <div class="text-primary fw-bold fs-5"><?= format_angka_rp($price) ?></div>
+                                            <?php if ($agentPrice > 0 && $agentPrice !== $price): ?>
+                                                <div class="text-success small fw-semibold">Harga Agen <?= format_angka_rp($agentPrice) ?></div>
+                                            <?php endif; ?>
+                                        </div>
+
+                                        <div class="d-flex align-items-center gap-2 mb-3">
+                                            <?php if ($isStockable): ?>
+                                                <span class="badge bg-success-subtle text-success"><i class="fas fa-barcode me-1"></i>Serial</span>
+                                            <?php else: ?>
+                                                <span class="badge bg-warning-subtle text-warning"><i class="fas fa-box-open me-1"></i>Non-Serial</span>
+                                            <?php endif; ?>
+                                        </div>
+
+                                        <div class="mt-auto">
+                                            <button type="button"
+                                                    class="btn btn-primary w-100 rounded-pill btn-add-cart"
+                                                    data-item-id="<?= esc($itemId) ?>"
+                                                    data-item-name="<?= esc($itemName) ?>"
+                                                    data-item-price="<?= esc($agentPrice > 0 ? $agentPrice : $price) ?>">
+                                                <i class="fas fa-shopping-cart me-2"></i>Tambah
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Pagination -->
+                <?php if (isset($pager) && ($pagerInfo['totalPages'] ?? 1) > 1): ?>
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <nav aria-label="Navigasi halaman katalog">
+                                <ul class="pagination justify-content-center mb-0">
+                                    <?php if ($pager->hasPrevious()): ?>
+                                        <li class="page-item">
+                                            <a class="page-link" href="<?= $pager->getFirst() ?>" aria-label="Halaman pertama">
+                                                <span aria-hidden="true">&laquo;&laquo;</span>
+                                            </a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="<?= $pager->getPrevious() ?>" aria-label="Halaman sebelumnya">
+                                                <span aria-hidden="true">&laquo;</span>
+                                            </a>
+                                        </li>
+                                    <?php else: ?>
+                                        <li class="page-item disabled"><span class="page-link">&laquo;&laquo;</span></li>
+                                        <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                                    <?php endif; ?>
+
+                                    <?php
+                                    $pager->setSurroundCount(2);
+                                    foreach ($pager->links() as $link): ?>
+                                        <li class="page-item <?= $link['active'] ? 'active' : '' ?>">
+                                            <?php if ($link['active']): ?>
+                                                <span class="page-link"><?= esc($link['title']) ?></span>
+                                            <?php else: ?>
+                                                <a class="page-link" href="<?= esc($link['uri']) ?>"><?= esc($link['title']) ?></a>
+                                            <?php endif; ?>
+                                        </li>
+                                    <?php endforeach; ?>
+
+                                    <?php if ($pager->hasNext()): ?>
+                                        <li class="page-item">
+                                            <a class="page-link" href="<?= $pager->getNext() ?>" aria-label="Halaman selanjutnya">
+                                                <span aria-hidden="true">&raquo;</span>
+                                            </a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="<?= $pager->getLast() ?>" aria-label="Halaman terakhir">
+                                                <span aria-hidden="true">&raquo;&raquo;</span>
+                                            </a>
+                                        </li>
+                                    <?php else: ?>
+                                        <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                                        <li class="page-item disabled"><span class="page-link">&raquo;&raquo;</span></li>
+                                    <?php endif; ?>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                <?php endif; ?>
+            <?php else: ?>
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted mb-2">Produk tidak ditemukan</h5>
+                        <p class="text-muted mb-4">Coba ubah kata kunci atau atur ulang filter untuk melihat produk lainnya.</p>
+                        <a href="<?= $config->baseURL ?>agent/item" class="btn btn-outline-primary rounded-pill">
+                            <i class="fas fa-redo me-2"></i>Reset Semua Filter
+                        </a>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
 </div>
 
 <script>
-$(document).ready(function() {
-	// Get CSRF token
-	const csrfTokenName = '<?= csrf_token() ?>';
-	let csrfHash = '<?= csrf_hash() ?>';
-	
-	// Auto-submit filter on Enter key
-	$('#filter').on('keypress', function(e) {
-		if (e.which === 13) {
-			e.preventDefault();
-			$('#filter-form').submit();
-		}
-	});
-	
-	// Handle Buy button click - Add to cart via AJAX
-	$('.beli-btn').on('click', function() {
-		var $btn = $(this);
-		var itemId = $btn.data('item-id');
-		var itemName = $btn.data('item-name');
-		var itemPrice = $btn.data('item-price');
-		
-		// Disable button during request
-		$btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Menambahkan...');
-		
-		// Add item to cart via AJAX
-		$.ajax({
-			url: '<?= $config->baseURL ?>agent/sales/addToCart',
-			type: 'POST',
-			data: {
-				item_id: itemId,
-				item_name: itemName,
-				item_price: itemPrice,
-				qty: 1,
-				[csrfTokenName]: csrfHash
-			},
-			dataType: 'json',
-			headers: {
-				'X-Requested-With': 'XMLHttpRequest'
-			},
-			success: function(response) {
-				// Update CSRF token if provided in response
-				if (response.csrf_hash) {
-					csrfHash = response.csrf_hash;
-				}
-				
-				if (response.status === 'success') {
-					if (typeof Swal !== 'undefined') {
-						Swal.fire({
-							icon: 'success',
-							title: 'Berhasil',
-							text: response.message || 'Item berhasil ditambahkan ke keranjang',
-							showCancelButton: true,
-							confirmButtonText: 'Lihat Keranjang',
-							cancelButtonText: 'Lanjutkan Belanja',
-							confirmButtonColor: '#3085d6',
-							cancelButtonColor: '#6c757d'
-						}).then((result) => {
-							if (result.isConfirmed) {
-								window.location.href = '<?= $config->baseURL ?>agent/sales/cart';
-							}
-						});
-					} else {
-						if (confirm(response.message + '\n\nLihat keranjang sekarang?')) {
-							window.location.href = '<?= $config->baseURL ?>agent/sales/cart';
-						}
-					}
-				} else {
-					if (typeof Swal !== 'undefined') {
-						Swal.fire({
-							icon: 'error',
-							title: 'Error',
-							text: response.message || 'Gagal menambahkan item ke keranjang'
-						});
-					} else {
-						alert(response.message || 'Gagal menambahkan item ke keranjang');
-					}
-				}
-			},
-			error: function(xhr) {
-				var errorMsg = 'Terjadi kesalahan saat menambahkan item';
-				
-				// Update CSRF token if provided in error response
-				if (xhr.responseJSON && xhr.responseJSON.csrf_hash) {
-					csrfHash = xhr.responseJSON.csrf_hash;
-				}
-				
-				if (xhr.responseJSON && xhr.responseJSON.message) {
-					errorMsg = xhr.responseJSON.message;
-				} else if (xhr.status === 403) {
-					errorMsg = 'Akses ditolak. Silakan refresh halaman dan coba lagi.';
-				} else if (xhr.status === 404) {
-					errorMsg = 'Endpoint tidak ditemukan. Silakan hubungi administrator.';
-				} else if (xhr.status === 500) {
-					errorMsg = 'Terjadi kesalahan server. Silakan coba lagi nanti.';
-				}
-				
-				if (typeof Swal !== 'undefined') {
-					Swal.fire({
-						icon: 'error',
-						title: 'Error',
-						text: errorMsg
-					});
-				} else {
-					alert(errorMsg);
-				}
-			},
-			complete: function() {
-				$btn.prop('disabled', false).html('<i class="fas fa-shopping-cart me-2"></i>Beli');
-			}
-		});
-	});
-	
-	// Helper function to format currency
-	function formatCurrency(amount) {
-		return 'Rp ' + parseFloat(amount).toLocaleString('id-ID');
-	}
+document.addEventListener('DOMContentLoaded', function () {
+    const filterForm = document.getElementById('agentCatalogFilter');
+    const csrfTokenName = '<?= csrf_token() ?>';
+    let csrfHash = '<?= csrf_hash() ?>';
+
+    // Auto-submit on change
+    document.querySelectorAll('#agentCatalogFilter .auto-submit').forEach(function (element) {
+        element.addEventListener('change', function () {
+            filterForm.submit();
+        });
+    });
+
+    // Clear specific filter section
+    document.querySelectorAll('#agentCatalogFilter .clear-section').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const target = button.getAttribute('data-target');
+            filterForm.querySelectorAll(`[name="${target}[]"]`).forEach(function (checkbox) {
+                checkbox.checked = false;
+            });
+            filterForm.submit();
+        });
+    });
+
+    // View mode toggle
+    const viewInput = document.getElementById('viewModeInput');
+    document.querySelectorAll('.view-toggle').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const selectedView = button.getAttribute('data-view');
+            if (viewInput.value !== selectedView) {
+                viewInput.value = selectedView;
+                filterForm.submit();
+            }
+        });
+    });
+
+    // Handle add-to-cart buttons
+    document.querySelectorAll('.btn-add-cart').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const itemId = button.getAttribute('data-item-id');
+            const itemName = button.getAttribute('data-item-name');
+            const itemPrice = button.getAttribute('data-item-price');
+            const originalText = button.innerHTML;
+
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Memproses...';
+
+            const payload = new URLSearchParams({
+                item_id: itemId,
+                item_name: itemName,
+                item_price: itemPrice,
+                qty: 1
+            });
+
+            if (csrfTokenName) {
+                payload.append(csrfTokenName, csrfHash);
+            }
+
+            fetch('<?= $config->baseURL ?>agent/sales/addToCart', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: payload.toString()
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.csrf_hash) {
+                    csrfHash = data.csrf_hash;
+                }
+
+                if (data.status === 'success') {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil',
+                            text: data.message || 'Produk ditambahkan ke keranjang.',
+                            showCancelButton: true,
+                            confirmButtonText: 'Lihat Keranjang',
+                            cancelButtonText: 'Lanjut Belanja',
+                            confirmButtonColor: '#2563eb',
+                            cancelButtonColor: '#6b7280'
+                        }).then(result => {
+                            if (result.isConfirmed) {
+                                window.location.href = '<?= $config->baseURL ?>agent/sales/cart';
+                            }
+                        });
+                    } else {
+                        if (confirm((data.message || 'Produk ditambahkan ke keranjang.') + '\n\nBuka keranjang sekarang?')) {
+                            window.location.href = '<?= $config->baseURL ?>agent/sales/cart';
+                        }
+                    }
+                } else {
+                    const errorMessage = data.message || 'Gagal menambahkan produk. Silakan coba lagi.';
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({ icon: 'error', title: 'Error', text: errorMessage });
+                    } else {
+                        alert(errorMessage);
+                    }
+                }
+            })
+            .catch(error => {
+                const message = 'Terjadi kesalahan koneksi. Silakan coba lagi.';
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({ icon: 'error', title: 'Error', text: message });
+                } else {
+                    alert(message);
+                }
+                console.error('Add to cart error:', error);
+            })
+            .finally(() => {
+                button.disabled = false;
+                button.innerHTML = originalText;
+            });
+        });
+    });
 });
 </script>
 
 <style>
-.product-card {
-	transition: transform 0.2s, box-shadow 0.2s;
+.agent-catalog-page .filter-card {
+    max-height: calc(100vh - 108px);
+    overflow-y: auto;
 }
 
-.product-card:hover {
-	transform: translateY(-5px);
-	box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+.agent-catalog-page .filter-checkbox-list {
+    max-height: 210px;
+    overflow-y: auto;
+    padding-right: 4px;
 }
 
-.beli-btn {
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.5px;
+.agent-catalog-page .filter-checkbox-list .form-check {
+    margin-bottom: 0.35rem;
 }
 
-.card-img-top img {
-	transition: transform 0.3s;
+.agent-catalog-page .product-card,
+.agent-catalog-page .product-card-list {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.product-card:hover .card-img-top img {
-	transform: scale(1.05);
+.agent-catalog-page .product-card:hover,
+.agent-catalog-page .product-card-list:hover {
+    transform: translateY(-4px);
+    box-shadow: 0px 12px 24px rgba(15, 23, 42, 0.12) !important;
+}
+
+.agent-catalog-page .product-image {
+    object-fit: cover;
+    transition: transform 0.3s ease;
+    width: 100%;
+    height: 100%;
+}
+
+.agent-catalog-page .product-card:hover .product-image {
+    transform: scale(1.05);
+}
+
+.agent-catalog-page .btn-add-cart {
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+}
+
+@media (max-width: 991.98px) {
+    .agent-catalog-page .filter-card {
+        position: static !important;
+        max-height: unset;
+    }
+
+    .agent-catalog-page .product-card-list {
+        margin-bottom: 1.25rem;
+    }
 }
 </style>
 

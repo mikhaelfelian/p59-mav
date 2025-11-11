@@ -1,4 +1,7 @@
 $(document).ready(function() {
+	var dashboardBase = (typeof agentDashboardConfig !== 'undefined' && agentDashboardConfig.baseUrl)
+		? agentDashboardConfig.baseUrl
+		: base_url + 'dashboard/';
 	
 	// Wait for DataTable to be available before initializing
 	function waitForDataTable(callback) {
@@ -378,7 +381,7 @@ $(document).ready(function() {
 								'<div class="spinner-border spinner-border-sm"></div>' +
 							'</div>').prependTo($this.parent());
 							
-		$.get(base_url + 'dashboard/ajaxGetPenjualan?tahun=' + $(this).val(), function(data) {
+		$.get(dashboardBase + 'ajaxGetPenjualan?tahun=' + $(this).val(), function(data) {
 			$spinner.remove();
 			if (data) {
 				data_penjualan = JSON.parse(data);
@@ -421,7 +424,7 @@ $(document).ready(function() {
 								'<div class="spinner-border spinner-border-sm"></div>' +
 							'</div>').prependTo($this.parent());
 							
-		$.get(base_url + 'dashboard/ajaxGetItemTerjual?tahun=' + $(this).val(), function(data) {
+		$.get(dashboardBase + 'ajaxGetItemTerjual?tahun=' + $(this).val(), function(data) {
 			$spinner.remove();
 			if (data) {
 				data = JSON.parse(data);
@@ -455,7 +458,7 @@ $(document).ready(function() {
 								'<div class="spinner-border spinner-border-sm"></div>' +
 							'</div>').prependTo($this.parent());
 	
-		$.get(base_url + 'dashboard/ajaxGetKategoriTerjual?tahun=' + $(this).val(), function(data) {
+		$.get(dashboardBase + 'ajaxGetKategoriTerjual?tahun=' + $(this).val(), function(data) {
 			$spinner.remove();
 			if (data) {
 				data = JSON.parse(data);
@@ -492,7 +495,7 @@ $(document).ready(function() {
 								'<div class="spinner-border spinner-border-sm"></div>' +
 							'</div>').prependTo($this.parent());
 	
-		$.get(base_url + 'dashboard/ajaxGetKategoriTerjual?tahun=' + $(this).val(), function(data) {
+		$.get(dashboardBase + 'ajaxGetKategoriTerjual?tahun=' + $(this).val(), function(data) {
 			$spinner.remove();
 			if (data) {
 				data = JSON.parse(data);
@@ -527,7 +530,7 @@ $(document).ready(function() {
 		html = '<tr><td colspan="' + len + '">Loading data...</td></tr>';
 		$tbody.html(html);
 	
-		$.get(base_url + 'dashboard/ajaxGetPenjualanTerbaru?tahun=' + $(this).val(), function(data) {
+		$.get(dashboardBase + 'ajaxGetPenjualanTerbaru?tahun=' + $(this).val(), function(data) {
 			$spinner.remove();
 			if (data) {
 				data = JSON.parse(data);
@@ -557,7 +560,7 @@ $(document).ready(function() {
 								'<div class="spinner-border spinner-border-sm"></div>' +
 							'</div>').prependTo($this.parent());
 								
-		$.get(base_url + 'dashboard/ajaxGetPelangganTerbesar?tahun=' + $(this).val(), function(data) {
+		$.get(dashboardBase + 'ajaxGetPelangganTerbesar?tahun=' + $(this).val(), function(data) {
 			$spinner.remove();
 			if (data) {
 				data = JSON.parse(data);

@@ -409,7 +409,13 @@ class SalesConfirm extends \App\Controllers\BaseController
             $db->transStart();
 
             try {
-                $itemModel = new \App\Models\ItemModel();
+                // Reuse shared models to avoid repeated instantiation
+                $itemModel = $this->itemModel;
+                $itemSnModel = $this->itemSnModel;
+
+                // Disable validation during bulk updates to prevent partial data issues
+                $itemSnModel->skipValidation(true);
+
                 $activatedCount = 0;
 
                 foreach ($items as $item) {
@@ -436,7 +442,6 @@ class SalesConfirm extends \App\Controllers\BaseController
                         }
                     }
 
-                    $itemSnModel = new \App\Models\ItemSnModel();
                     $activatedAt = date('Y-m-d H:i:s');
 
                     // Calculate expired_at if warranty exists
@@ -461,13 +466,20 @@ class SalesConfirm extends \App\Controllers\BaseController
                             $updateData['expired_at'] = $expiredAt;
                         }
 
-                        $itemSnModel->skipValidation(true);
-                        $itemSnModel->update($itemSnId, $updateData);
-                        $itemSnModel->skipValidation(false);
+                        $updateSuccess = $itemSnModel->update($itemSnId, $updateData);
+
+                        if ($updateSuccess === false) {
+                            $dbError = $db->error();
+                            $errorMessage = $dbError['message'] ?? 'Gagal memperbarui status serial number.';
+                            throw new \RuntimeException($errorMessage);
+                        }
                         
                         $activatedCount++;
                     }
                 }
+
+                // Restore validation state after updates
+                $itemSnModel->skipValidation(false);
 
                 // Update sales.status to '1' (completed) after SN confirmed and assigned
                 if ($activatedCount > 0) {
@@ -478,8 +490,10 @@ class SalesConfirm extends \App\Controllers\BaseController
 
                 $db->transComplete();
 
-                if ($db->transStatus() === false) {
-                    throw new \Exception('Transaksi gagal.');
+                $dbError = $db->error();
+                if ($db->transStatus() === false && (!empty($dbError['code']) || !empty($dbError['message']))) {
+                    $errorMessage = $dbError['message'] ?? 'Transaksi gagal.';
+                    throw new \RuntimeException($errorMessage);
                 }
 
                 $message = "Serial number berhasil diaktifkan. Total: {$activatedCount} SN";
@@ -498,16 +512,27 @@ class SalesConfirm extends \App\Controllers\BaseController
                 ]);
 
             } catch (\Exception $e) {
+                if (isset($itemSnModel)) {
+                    $itemSnModel->skipValidation(false);
+                }
                 $db->transRollback();
                 throw $e;
             }
 
         } catch (\Exception $e) {
-            log_message('error', 'Agent\SalesConfirm::verify error: ' . $e->getMessage());
+            $errorMessage = trim($e->getMessage() ?? '');
+            if ($errorMessage === '') {
+                $errorMessage = 'Terjadi kesalahan yang tidak diketahui. Silakan periksa log server.';
+            }
+
+            log_message('error', 'Agent\SalesConfirm::verify error: ' . $errorMessage);
             
-            $message = 'Gagal mengaktifkan serial number: ' . $e->getMessage();
+            $message = 'Gagal mengaktifkan serial number: ' . $errorMessage;
             if ($isAjax) {
-                return $this->response->setJSON(['status' => 'error', 'message' => $message]);
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => $message
+                ]);
             }
             
             return redirect()->to('agent/sales/confirm')->with('message', [

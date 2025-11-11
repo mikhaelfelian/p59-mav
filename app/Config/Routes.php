@@ -96,6 +96,15 @@ $routes->post('agent-rules/delete/(:num)', 'AgentRules::delete/$1');
 
 /* Bagian agen */
 $routes->group('agent', function($routes) {
+    // Agent Dashboard
+    $routes->get('dashboard', 'Agent\Dashboard::index');
+    $routes->get('dashboard/ajaxGetPenjualan', 'Agent\Dashboard::ajaxGetPenjualan');
+    $routes->get('dashboard/ajaxGetItemTerjual', 'Agent\Dashboard::ajaxGetItemTerjual');
+    $routes->get('dashboard/ajaxGetKategoriTerjual', 'Agent\Dashboard::ajaxGetKategoriTerjual');
+    $routes->get('dashboard/ajaxGetPenjualanTerbaru', 'Agent\Dashboard::ajaxGetPenjualanTerbaru');
+    $routes->get('dashboard/ajaxGetPelangganTerbesar', 'Agent\Dashboard::ajaxGetPelangganTerbesar');
+    $routes->post('dashboard/getDataDTPenjualanTerbesar', 'Agent\Dashboard::getDataDTPenjualanTerbesar');
+
     // Agent Item (POS View)
     $routes->get('item', 'Agent\Item::index');
 

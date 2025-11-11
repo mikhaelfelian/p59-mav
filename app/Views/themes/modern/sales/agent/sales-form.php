@@ -206,12 +206,16 @@
 						<span class="input-group-text bg-light"><i class="fas fa-user-tie"></i></span>
 						<?php
 						$agentOptions = ['' => '-- Pilih Agen --'];
-						foreach ($agents ?? [] as $agent) {
-							$agentId = is_object($agent) ? $agent->id : $agent['id'];
-							$agentName = is_object($agent) ? $agent->name : $agent['name'];
-							$agentOptions[$agentId] = esc($agentName);
+						$defaultAgentId = $agentId ?? '';
+						foreach ($agents ?? [] as $agentData) {
+							$optionId = is_object($agentData) ? $agentData->id : ($agentData['id'] ?? null);
+							$optionName = is_object($agentData) ? $agentData->name : ($agentData['name'] ?? '');
+							if ($optionId === null) {
+								continue;
+							}
+							$agentOptions[$optionId] = esc($optionName);
 						}
-						$selectedAgent = set_value('agent_id', @$agentId ?? '');
+						$selectedAgent = set_value('agent_id', $defaultAgentId);
 						echo form_dropdown('agent_id', $agentOptions, $selectedAgent, [
 							'class' => 'form-control',
 							'id' => 'agent_id',

@@ -27,6 +27,7 @@ use App\Models\AgentModel;
 use App\Models\CustomerModel;
 use App\Models\UserRoleAgentModel;
 use App\Models\PlatformModel;
+use App\Models\SalesPaymentLogModel;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class Sales extends BaseController
@@ -42,6 +43,7 @@ class Sales extends BaseController
     protected $customerModel;
     protected $userRoleAgentModel;
     protected $platformModel;
+    protected $salesPaymentLogModel;
     
     /**
      * Sales status constants
@@ -79,6 +81,7 @@ class Sales extends BaseController
         $this->customerModel = new CustomerModel();
         $this->userRoleAgentModel = new UserRoleAgentModel();
         $this->platformModel = new PlatformModel();
+        $this->salesPaymentLogModel = new SalesPaymentLogModel();
     }
     
     /**
@@ -103,8 +106,25 @@ class Sales extends BaseController
             }
         }
         
-        // Get agents list for dropdown (if needed)
-        $agents = $this->agentModel->where('is_active', '1')->orderBy('name', 'ASC')->findAll();
+        // Get agents linked to the logged-in user (via user_role_agent)
+        $agents = [];
+        if ($userId) {
+            $agents = $this->agentModel
+                ->select('agent.*')
+                ->join('user_role_agent', 'user_role_agent.agent_id = agent.id', 'inner')
+                ->where('user_role_agent.user_id', $userId)
+                ->where('agent.is_active', '1')
+                ->orderBy('agent.name', 'ASC')
+                ->findAll();
+        }
+
+        // Fallback: if user has no agent mapping, still allow selecting active agents (optional)
+        if (empty($agents)) {
+            $agents = $this->agentModel
+                ->where('is_active', '1')
+                ->orderBy('name', 'ASC')
+                ->findAll();
+        }
         
         // Get platforms with status_agent='1' (include status_pos, gw_status, gw_code for API check)
         $platforms = $this->platformModel
@@ -446,18 +466,32 @@ class Sales extends BaseController
             
             // Handle payment gateway API call if platform is selected
             $gatewayResponse = null;
+            $isOfflinePlatform = false;
+            $settlementTime = null;
             $platformId = !empty($postData['platform_id']) ? (int)$postData['platform_id'] : null;
+            $platform = null;
             
             if ($platformId) {
                 // Get platform details
                 $platform = $this->platformModel->find($platformId);
+                
+                if (!$platform) {
+                    $message = 'Platform pembayaran tidak ditemukan.';
+                    if ($isAjax) {
+                        return $this->response->setJSON(['status' => 'error', 'message' => $message]);
+                    }
+                    return redirect()->back()->withInput()->with('message', [
+                        'status' => 'error',
+                        'message' => $message
+                    ]);
+                }
                 
                 // Only send to gateway if platform.gw_status = '1'
                 // Platforms like "Tunai" (Cash) with gw_status = '0' should NOT go through gateway
                 $gwStatus = $platform['gw_status'] ?? '0';
                 // Handle both string and integer values
                 $gwStatus = (string)$gwStatus;
-                if ($platform && $gwStatus === '1') {
+                if ($gwStatus === '1') {
                     
                     // Prepare API request data
                     $invoiceNo = trim($postData['invoice_no']);
@@ -524,6 +558,10 @@ class Sales extends BaseController
                         }
                         return redirect()->back()->withInput()->with('message', ['status' => 'error', 'message' => $message]);
                     }
+                } else {
+                    // Offline/cash platform, bypass gateway
+                    $isOfflinePlatform = true;
+                    $settlementTime = date('Y-m-d H:i:s');
                 }
             }
             
@@ -559,6 +597,9 @@ class Sales extends BaseController
             }
             // Determine payment status based on gateway response
             $paymentStatus = $postData['payment_status'] ?? '0';
+            if ($isOfflinePlatform) {
+                $paymentStatus = '2';
+            }
             if ($gatewayResponse && isset($gatewayResponse['status'])) {
                 $gatewayStatus = strtoupper($gatewayResponse['status']);
                 if ($gatewayStatus === 'PAID') {
@@ -583,6 +624,10 @@ class Sales extends BaseController
             ];
             
             // Add settlement_time if gateway response has it and status is PAID
+            if ($isOfflinePlatform && !$settlementTime) {
+                $settlementTime = date('Y-m-d H:i:s');
+            }
+            
             if ($gatewayResponse && isset($gatewayResponse['settlementTime']) && 
                 isset($gatewayResponse['status']) && strtoupper($gatewayResponse['status']) === 'PAID') {
                 try {
@@ -591,6 +636,8 @@ class Sales extends BaseController
                 } catch (\Exception $e) {
                     log_message('error', 'Agent\Sales::store - Invalid settlementTime format: ' . ($gatewayResponse['settlementTime'] ?? ''));
                 }
+            } elseif ($settlementTime) {
+                $saleData['settlement_time'] = $settlementTime;
             }
                 
             $this->model->skipValidation(true);
@@ -744,6 +791,15 @@ class Sales extends BaseController
                     }
                     throw new \Exception($errorMsg);
                 }
+                
+                // Log payment request/response
+                $this->salesPaymentLogModel->skipValidation(true);
+                $this->salesPaymentLogModel->insert([
+                    'sale_id' => $saleId,
+                    'platform_id' => $platformId,
+                    'response' => $gatewayResponseJson
+                ]);
+                $this->salesPaymentLogModel->skipValidation(false);
             } elseif ($saleId && $platformId) {
                 // Platform selected but no gateway response (cash payment via platform like "Tunai")
                 $paymentData = [
@@ -771,6 +827,27 @@ class Sales extends BaseController
                     }
                     throw new \Exception($errorMsg);
                 }
+                
+                // Log offline payment confirmation
+                $offlineLogPayload = [
+                    'status' => 'PAID',
+                    'channel' => 'offline',
+                    'message' => 'Pembayaran ditandai lunas tanpa gateway',
+                    'recorded_at' => date('c'),
+                    'platform' => [
+                        'id' => $platformId,
+                        'name' => $platform['platform'] ?? ''
+                    ],
+                    'amount' => (float)($postData['grand_total'] ?? $grandTotal)
+                ];
+                
+                $this->salesPaymentLogModel->skipValidation(true);
+                $this->salesPaymentLogModel->insert([
+                    'sale_id' => $saleId,
+                    'platform_id' => $platformId,
+                    'response' => json_encode($offlineLogPayload)
+                ]);
+                $this->salesPaymentLogModel->skipValidation(false);
             }
 
             // Complete transaction
