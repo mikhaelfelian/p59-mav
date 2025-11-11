@@ -69,6 +69,8 @@ class SalesConfirm extends \App\Controllers\BaseController
         $this->data['msg'] = $this->session->getFlashdata('message');
         
         $this->view('sales/confirm-sn-list', $this->data);
+
+        // redirect()->to(base_url('agent/sales'));
     }
 
     /**
@@ -465,6 +467,13 @@ class SalesConfirm extends \App\Controllers\BaseController
                         
                         $activatedCount++;
                     }
+                }
+
+                // Update sales.status to '1' (completed) after SN confirmed and assigned
+                if ($activatedCount > 0) {
+                    $this->model->skipValidation(true);
+                    $this->model->update($id, ['status' => '1']);
+                    $this->model->skipValidation(false);
                 }
 
                 $db->transComplete();

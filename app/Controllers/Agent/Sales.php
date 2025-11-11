@@ -1383,6 +1383,20 @@ class Sales extends BaseController
             $actionButtons .= '<a href="' . $this->config->baseURL . 'agent/sales/' . $row['id'] . '" ';
             $actionButtons .= 'class="btn btn-sm btn-info" title="Detail">';
             $actionButtons .= '<i class="fas fa-eye"></i></a>';
+            
+            // Show confirm button only if:
+            // 1. Payment status is '2' (Paid)
+            // 2. Sales status is NOT '1' (not completed)
+            // 3. User has 'update_all' permission
+            $salesStatus = $row['status'] ?? '0';
+            $hasUpdateAllPermission = $this->hasPermission('update_all');
+            
+            if ($paymentStatus === '2' && $salesStatus !== '1' && $hasUpdateAllPermission) {
+                $actionButtons .= '<a href="' . $this->config->baseURL . 'agent/sales/confirm/' . $row['id'] . '" ';
+                $actionButtons .= 'class="btn btn-sm btn-success" title="Confirm">';
+                $actionButtons .= '<i class="fas fa-check"></i></a>';
+            }
+
             $actionButtons .= '</div>';
 
             $result[] = [

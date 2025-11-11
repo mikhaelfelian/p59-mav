@@ -140,6 +140,17 @@ helper('angka');
 	cursor: not-allowed;
 	transform: none;
 }
+
+/* Ensure all action buttons have consistent white text
+.btn-secondary.text-white,
+.btn-primary.text-white {
+	color: #ffffff !important;
+}
+
+.btn-secondary.text-white:hover,
+.btn-primary.text-white:hover {
+	color: #ffffff !important;
+} */
 </style>
 
 <div class="card">
@@ -329,7 +340,7 @@ helper('angka');
 													</select>
 													<small class="text-muted">Gunakan Ctrl/Cmd untuk memilih multiple</small>
 												</div>
-												<button type="submit" class="btn btn-sm btn-primary">
+												<button type="submit" class="btn btn-sm btn-primary text-white">
 													<i class="fas fa-plus me-1"></i>Assign Serial Number
 												</button>
 											</form>
@@ -369,11 +380,11 @@ helper('angka');
 		<!-- Action Buttons -->
 		<div class="row mt-4">
 			<div class="col-md-12 d-flex gap-3">
-				<a href="<?= $config->baseURL ?>agent/sales/confirm" class="btn btn-secondary text-white">
-					<i class="fas fa-arrow-left"></i>Kembali ke Daftar
+				<a href="<?= $config->baseURL ?>agent/sales" class="btn btn-secondary text-black">
+					&laquo; Kembali
 				</a>
 				<a href="<?= $config->baseURL ?>sales/print_dm/<?= $sale['id'] ?? '' ?>" target="_blank" class="btn btn-primary text-white">
-					<i class="fas fa-print"></i>Print Nota
+					<i class="fas fa-print me-1"></i>Print Nota
 				</a>
 			</div>
 		</div>
@@ -444,12 +455,12 @@ $(document).ready(function() {
 							text: response.message || 'Serial number berhasil di-assign',
 							confirmButtonText: 'OK'
 						}).then(function() {
-							// Reload page to show updated data
-							window.location.reload();
+							// Redirect to /agent/sales after assign
+							window.location.href = '<?= $config->baseURL ?>agent/sales';
 						});
 					} else {
 						alert(response.message || 'Serial number berhasil di-assign');
-						window.location.reload();
+						window.location.href = '<?= $config->baseURL ?>agent/sales';
 					}
 				} else {
 					if (typeof Swal !== 'undefined') {
@@ -513,12 +524,12 @@ $(document).ready(function() {
 							text: response.message || 'Serial number berhasil diaktifkan',
 							confirmButtonText: 'OK'
 						}).then(function() {
-							// Redirect to list
-							window.location.href = '<?= $config->baseURL ?>agent/sales/confirm';
+							// Redirect to /agent/sales instead of confirm page
+							window.location.href = '<?= $config->baseURL ?>agent/sales';
 						});
 					} else {
 						alert(response.message || 'Serial number berhasil diaktifkan');
-						window.location.href = '<?= $config->baseURL ?>agent/sales/confirm';
+						window.location.href = '<?= $config->baseURL ?>agent/sales';
 					}
 				} else {
 					// Show error message

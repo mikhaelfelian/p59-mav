@@ -33,7 +33,8 @@ class SalesModel extends Model
         'tax_amount',
         'grand_total',
         'payment_status',
-        'settlement_time'
+        'settlement_time',
+        'status'
     ];
 
     // Dates
@@ -54,7 +55,8 @@ class SalesModel extends Model
         'discount_amount' => 'permit_empty|decimal',
         'tax_amount' => 'permit_empty|decimal',
         'grand_total' => 'permit_empty|decimal',
-        'payment_status' => 'permit_empty|in_list[0,1,2]'
+        'payment_status' => 'permit_empty|in_list[0,1,2]',
+        'status' => 'permit_empty|in_list[0,1,2]'
     ];
     protected $validationMessages   = [];
     protected $skipValidation       = false;
