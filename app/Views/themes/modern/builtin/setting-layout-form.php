@@ -24,7 +24,7 @@
 					<div class="col-sm-5 form-inline">
 						<ul id="color-scheme" class="color-scheme-options">
 							<?php
-							$list = ['blue-dark', 'blue', 'green', 'grey', 'purple', 'red', 'yellow'];
+							$list = ['blue-dark', 'blue', 'green', 'grey', 'purple', 'red', 'yellow', 'light'];
 							
 							foreach ($list as $val) {
 								$check = $color_scheme ==  $val ? '<i class="fa fa-check theme-check"></i>' : '';

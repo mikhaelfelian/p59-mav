@@ -6,47 +6,26 @@ use CodeIgniter\Database\Migration;
 
 /**
  * Created by: Mikhael Felian Waskito - mikhaelfelian@gmail.com
- * Date: 2025-11-01
+ * Date: 2025-11-11
  * Github: github.com/mikhaelfelian
- * Description: Migration for creating sales_item_sn table to map multiple serial numbers (SN) to one sales item.
- * This file represents the Migration for CreateSalesItemSnTable.
+ * Description: Migration to add missing columns to sales_item_sn table (no_hp, plat_code, plat_number, plat_last, file, activated_at, expired_at, updated_at)
  */
-class CreateSalesItemSnTable extends Migration
+class AddFieldsToSalesItemSn extends Migration
 {
     public function up()
     {
-        if ($this->db->tableExists('sales_item_sn')) {
+        // Check if columns already exist
+        if ($this->db->fieldExists('no_hp', 'sales_item_sn')) {
             return;
         }
-        $this->forge->addField([
-            'id' => [
-                'type'           => 'BIGINT',
-                'constraint'     => 20,
-                'unsigned'       => true,
-                'auto_increment' => true,
-            ],
-            'sales_item_id' => [
-                'type'       => 'BIGINT',
-                'constraint' => 20,
-                'unsigned'   => true,
-                'null'       => false,
-            ],
-            'item_sn_id' => [
-                'type'       => 'BIGINT',
-                'constraint' => 20,
-                'unsigned'   => true,
-                'null'       => false,
-            ],
-            'sn' => [
-                'type'       => 'VARCHAR',
-                'constraint' => 100,
-                'null'       => false,
-            ],
+
+        $fields = [
             'no_hp' => [
                 'type'       => 'VARCHAR',
                 'constraint' => 20,
                 'null'       => true,
                 'default'    => null,
+                'after'      => 'sn',
                 'comment'    => 'Phone number'
             ],
             'plat_code' => [
@@ -54,6 +33,7 @@ class CreateSalesItemSnTable extends Migration
                 'constraint' => 10,
                 'null'       => true,
                 'default'    => null,
+                'after'      => 'no_hp',
                 'comment'    => 'Vehicle plate code (e.g., B, H, D)'
             ],
             'plat_number' => [
@@ -61,6 +41,7 @@ class CreateSalesItemSnTable extends Migration
                 'constraint' => 10,
                 'null'       => true,
                 'default'    => null,
+                'after'      => 'plat_code',
                 'comment'    => 'Vehicle plate number (e.g., 4575)'
             ],
             'plat_last' => [
@@ -68,6 +49,7 @@ class CreateSalesItemSnTable extends Migration
                 'constraint' => 10,
                 'null'       => true,
                 'default'    => null,
+                'after'      => 'plat_number',
                 'comment'    => 'Vehicle plate last code (e.g., PBP, ABC)'
             ],
             'file' => [
@@ -75,51 +57,49 @@ class CreateSalesItemSnTable extends Migration
                 'constraint' => 255,
                 'null'       => true,
                 'default'    => null,
+                'after'      => 'plat_last',
                 'comment'    => 'File path or filename'
             ],
             'activated_at' => [
                 'type'    => 'TIMESTAMP',
                 'null'    => true,
                 'default' => null,
+                'after'   => 'file',
                 'comment' => 'Activation timestamp'
             ],
             'expired_at' => [
                 'type'    => 'TIMESTAMP',
                 'null'    => true,
                 'default' => null,
+                'after'   => 'activated_at',
                 'comment' => 'Expiration timestamp'
-            ],
-            'created_at' => [
-                'type'    => 'TIMESTAMP',
-                'null'    => false,
             ],
             'updated_at' => [
                 'type'    => 'TIMESTAMP',
                 'null'    => true,
                 'default' => null,
+                'after'   => 'expired_at',
                 'comment' => 'Last update timestamp'
             ],
-        ]);
+        ];
 
-        // Primary key
-        $this->forge->addKey('id', true);
-
-        // Indexes
-        $this->forge->addKey(['sales_item_id', 'item_sn_id'], false, false, 'idx_sales_item_sn');
-
-        // Create table with comment
-        $this->forge->createTable('sales_item_sn', false, [
-            'ENGINE' => 'InnoDB',
-            'COMMENT' => 'Maps multiple serial numbers (SN) to one sales item.'
-        ]);
-
-        // Set DEFAULT CURRENT_TIMESTAMP for created_at
-        $this->db->query("ALTER TABLE `sales_item_sn` MODIFY `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
+        $this->forge->addColumn('sales_item_sn', $fields);
     }
 
     public function down()
     {
-        $this->forge->dropTable('sales_item_sn', true);
+        if ($this->db->fieldExists('no_hp', 'sales_item_sn')) {
+            $this->forge->dropColumn('sales_item_sn', [
+                'no_hp',
+                'plat_code',
+                'plat_number',
+                'plat_last',
+                'file',
+                'activated_at',
+                'expired_at',
+                'updated_at'
+            ]);
+        }
     }
 }
 

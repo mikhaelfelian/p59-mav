@@ -101,8 +101,15 @@ jQuery(document).ready(function () {
 		
 		$btn.attr('disabled', 'disabled');
 		$loader = $('<div class="spinner-submit fa-3x"><i class="fas fa-circle-notch fa-spin"></i></div>').insertAfter($btn);
+		
+		// Fix URL: convert slashes back to dashes for controller names (e.g., builtin/setting/layout -> builtin/setting-layout)
+		var ajax_url = module_url;
+		if (ajax_url.indexOf('/setting/layout') !== -1) {
+			ajax_url = ajax_url.replace('/setting/layout', '/setting-layout');
+		}
+		
 		$.ajax({
-			'url' : module_url
+			'url' : ajax_url
 			, 'method': 'POST'
 			, 'data': $(this).serialize() + '&submit=submit&ajax=ajax'
 			, 'success' : function(data) {

@@ -1231,6 +1231,9 @@ class Sales extends BaseController
         $this->data['config'] = $this->config;
         $this->data['msg'] = $this->session->getFlashdata('message');
         
+        // Pass permission data to view
+        $this->data['canCreate'] = $this->hasPermissionPrefix('create');
+        
         $this->view('sales/agent/sales-result', $this->data);
     }
 
@@ -1304,6 +1307,338 @@ class Sales extends BaseController
             return redirect()->to('sales')->with('message', [
                 'status' => 'error',
                 'message' => 'Gagal memuat detail penjualan.'
+            ]);
+        }
+    }
+    
+    /**
+     * Display serial numbers for agent sales
+     * Shows unused and used serial numbers in tabbed interface with DataTables
+     * 
+     * @return void
+     */
+    public function sn(): void
+    {
+        // Get agent IDs for current user
+        // Check if user is admin (has read_all or update_all permission)
+        $isAdmin = key_exists('read_all', $this->userPermission) || key_exists('update_all', $this->userPermission);
+        
+        $agentIds = [];
+        if (!$isAdmin && !empty($this->user['id_user'])) {
+            $agentRows = $this->userRoleAgentModel
+                ->select('agent_id')
+                ->where('user_id', $this->user['id_user'])
+                ->findAll();
+
+            $agentIds = array_values(array_unique(array_map(
+                static function ($row) {
+                    if (is_object($row)) {
+                        return (int)($row->agent_id ?? 0);
+                    }
+                    if (is_array($row)) {
+                        return (int)($row['agent_id'] ?? 0);
+                    }
+                    return 0;
+                },
+                $agentRows
+            )));
+        }
+
+        $this->data['title'] = 'Data Serial Number';
+        $this->data['currentModule'] = $this->currentModule;
+        $this->data['config'] = $this->config;
+        $this->data['isAdmin'] = $isAdmin;
+        $this->data['agentIds'] = $agentIds;
+
+        $this->view('sales/agent/sales-sn', $this->data);
+    }
+    
+    /**
+     * Display activation form page
+     * 
+     * @param int $id Sales item SN ID
+     * @return \CodeIgniter\HTTP\RedirectResponse|void
+     */
+    public function activateForm(int $id)
+    {
+        if ($id <= 0) {
+            return redirect()->to($this->config->baseURL . 'agent/sales/sn')->with('message', [
+                'status' => 'error',
+                'message' => 'ID serial number tidak valid.'
+            ]);
+        }
+
+        try {
+            // Get SN record
+            $snRecord = $this->salesItemSnModel->find($id);
+            if (!$snRecord) {
+                return redirect()->to($this->config->baseURL . 'agent/sales/sn')->with('message', [
+                    'status' => 'error',
+                    'message' => 'Serial number tidak ditemukan.'
+                ]);
+            }
+
+            // Check if already activated
+            if (!empty($snRecord['activated_at'])) {
+                return redirect()->to($this->config->baseURL . 'agent/sales/sn')->with('message', [
+                    'status' => 'warning',
+                    'message' => 'Serial number ini sudah diaktifasi.'
+                ]);
+            }
+
+            $this->data['title'] = 'Form Aktivasi SN';
+            $this->data['currentModule'] = $this->currentModule;
+            $this->data['config'] = $this->config;
+            $this->data['sn'] = $snRecord;
+            $this->data['msg'] = $this->session->getFlashdata('message');
+
+            $this->view('sales/agent/sales-sn-activate', $this->data);
+        } catch (\Exception $e) {
+            log_message('error', 'Agent\Sales::activateForm error: ' . $e->getMessage());
+            return redirect()->to($this->config->baseURL . 'agent/sales/sn')->with('message', [
+                'status' => 'error',
+                'message' => 'Gagal memuat form aktivasi.'
+            ]);
+        }
+    }
+    
+    /**
+     * Get serial number data for activation form
+     * 
+     * @param int $id Sales item SN ID
+     * @return ResponseInterface
+     */
+    public function getSnData(int $id): ResponseInterface
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status'  => 'error',
+                'message' => 'Request tidak valid.',
+            ]);
+        }
+
+        try {
+            $snRecord = $this->salesItemSnModel->find($id);
+            if (!$snRecord) {
+                return $this->response->setJSON([
+                    'status'  => 'error',
+                    'message' => 'Serial number tidak ditemukan.',
+                ]);
+            }
+
+            return $this->response->setJSON([
+                'status' => 'success',
+                'data'   => [
+                    'id' => $snRecord['id'],
+                    'sn' => $snRecord['sn'],
+                    'plat_code' => $snRecord['plat_code'] ?? '',
+                    'plat_number' => $snRecord['plat_number'] ?? '',
+                    'plat_last' => $snRecord['plat_last'] ?? '',
+                    'file' => $snRecord['file'] ?? '',
+                    'activated_at' => $snRecord['activated_at'] ?? '',
+                    'expired_at' => $snRecord['expired_at'] ?? '',
+                ],
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Agent\Sales::getSnData error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'status'  => 'error',
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage(),
+            ]);
+        }
+    }
+    
+    /**
+     * Get DataTables data for serial numbers
+     * Filters by unused (activated_at IS NULL) or used (activated_at IS NOT NULL)
+     * 
+     * @return ResponseInterface
+     */
+    public function getSnDataDT(): ResponseInterface
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status'  => 'error',
+                'message' => 'Request tidak valid.',
+            ]);
+        }
+
+        try {
+            $draw   = (int) ($this->request->getPost('draw') ?? $this->request->getGet('draw') ?? 0);
+            $start  = (int) ($this->request->getPost('start') ?? $this->request->getGet('start') ?? 0);
+            $length = (int) ($this->request->getPost('length') ?? $this->request->getGet('length') ?? 10);
+            $filter = $this->request->getPost('filter') ?? 'unused'; // 'unused' or 'used'
+
+            // Defensive bounds for pagination
+            if ($start < 0) {
+                $start = 0;
+            }
+            if ($length < 1 || $length > 100) {
+                $length = 10;
+            }
+
+            // Retrieve search value from DataTables POST/GET
+            $search = $this->request->getPost('search');
+            if ($search === null) {
+                $search = $this->request->getGet('search');
+            }
+
+            $searchValue = '';
+            if (is_array($search) && isset($search['value'])) {
+                $searchValue = trim($search['value']);
+            } elseif (is_string($search)) {
+                $searchValue = trim($search);
+            }
+
+            // Check if user is admin (has read_all or update_all permission)
+            $isAdmin = key_exists('read_all', $this->userPermission) || key_exists('update_all', $this->userPermission);
+            
+            // Get agent IDs for current user (only for non-admin users)
+            $agentIds = [];
+            if (!$isAdmin && !empty($this->user['id_user'])) {
+                $agentRows = $this->userRoleAgentModel
+                    ->select('agent_id')
+                    ->where('user_id', $this->user['id_user'])
+                    ->findAll();
+
+                $agentIds = array_values(array_unique(array_map(
+                    static function ($row) {
+                        if (is_object($row)) {
+                            return (int)($row->agent_id ?? 0);
+                        }
+                        if (is_array($row)) {
+                            return (int)($row['agent_id'] ?? 0);
+                        }
+                        return 0;
+                    },
+                    $agentRows
+                )));
+            }
+
+            // For non-admin users without agent mapping, return empty data
+            if (!$isAdmin && empty($agentIds)) {
+                return $this->response->setJSON([
+                    'draw'            => $draw,
+                    'recordsTotal'    => 0,
+                    'recordsFiltered' => 0,
+                    'data'            => [],
+                ]);
+            }
+
+            $db = \Config\Database::connect();
+            
+            // Build base query
+            $builder = $db->table('sales_item_sn')
+                ->select('sales_item_sn.*,
+                    sales_detail.item_id,
+                    sales_detail.item as item_name,
+                    sales_detail.qty,
+                    item.name as item_name_fallback,
+                    item.sku as item_sku,
+                    sales.sale_channel,
+                    sales.warehouse_id')
+                ->join('sales_detail', 'sales_detail.id = sales_item_sn.sales_item_id', 'inner')
+                ->join('sales', 'sales.id = sales_detail.sale_id', 'inner')
+                ->join('item', 'item.id = sales_detail.item_id', 'left')
+                ->where('sales.sale_channel', self::CHANNEL_ONLINE);
+            
+            // Apply agent filter only for non-admin users
+            if (!$isAdmin && !empty($agentIds)) {
+                $builder->whereIn('sales.warehouse_id', $agentIds);
+            }
+
+            // Apply filter for unused/used
+            if ($filter === 'unused') {
+                $builder->where('sales_item_sn.activated_at IS NULL');
+            } else {
+                $builder->where('sales_item_sn.activated_at IS NOT NULL');
+            }
+
+            // Count total records
+            $totalRecords = $db->table('sales_item_sn')
+                ->select('sales_item_sn.id')
+                ->join('sales_detail', 'sales_detail.id = sales_item_sn.sales_item_id', 'inner')
+                ->join('sales', 'sales.id = sales_detail.sale_id', 'inner')
+                ->where('sales.sale_channel', self::CHANNEL_ONLINE);
+            
+            // Apply agent filter only for non-admin users
+            if (!$isAdmin && !empty($agentIds)) {
+                $totalRecords->whereIn('sales.warehouse_id', $agentIds);
+            }
+            
+            if ($filter === 'unused') {
+                $totalRecords->where('sales_item_sn.activated_at IS NULL');
+            } else {
+                $totalRecords->where('sales_item_sn.activated_at IS NOT NULL');
+            }
+            $totalRecords = $totalRecords->countAllResults();
+
+            // Apply search filter
+            $totalFiltered = $totalRecords;
+            if (!empty($searchValue)) {
+                $builder->groupStart()
+                      ->like('sales_item_sn.sn', $searchValue)
+                      ->orLike('sales_detail.item', $searchValue)
+                      ->orLike('item.name', $searchValue)
+                      ->orLike('item.sku', $searchValue)
+                      ->groupEnd();
+
+                // Clone query for count
+                $countBuilder = clone $builder;
+                $totalFiltered = $countBuilder->countAllResults();
+            }
+
+            // Get data
+            $data = $builder->orderBy('sales_item_sn.created_at', 'DESC')
+                          ->limit($length, $start)
+                          ->get()
+                          ->getResultArray();
+
+            // Format for DataTables
+            $result = [];
+            $no = $start + 1;
+
+            foreach ($data as $row) {
+                // Use item name from sales_detail, fallback to item.name
+                $itemName = !empty($row['item_name']) ? $row['item_name'] : ($row['item_name_fallback'] ?? '-');
+                
+                // Action button (only for unused)
+                $actionButton = '';
+                if ($filter === 'unused') {
+                    $actionButton = '<a href="' . $this->config->baseURL . 'agent/sales/sn/activate/' . $row['id'] . '" class="btn btn-sm btn-primary" title="Aktifasi Serial Number"><i class="fas fa-check-circle"></i> Aktifasi</a>';
+                } else {
+                    $actionButton = '<span class="badge bg-success">Aktif</span>';
+                }
+
+                $result[] = [
+                    'ignore_search_urut' => $no,
+                    'sn'                => esc($row['sn']),
+                    'item_name'         => esc($itemName),
+                    'qty'               => esc($row['qty'] ?? 1),
+                    'ignore_search_action' => $actionButton,
+                ];
+
+                $no++;
+            }
+
+            return $this->response->setJSON([
+                'draw'            => $draw,
+                'recordsTotal'    => $totalRecords,
+                'recordsFiltered' => $totalFiltered,
+                'data'            => $result,
+            ]);
+        } catch (\Throwable $e) {
+            log_message(
+                'error',
+                'Agent\Sales::getSnDataDT error: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString()
+            );
+
+            return $this->response->setJSON([
+                'draw'            => 0,
+                'recordsTotal'    => 0,
+                'recordsFiltered' => 0,
+                'data'            => [],
+                'error'           => 'Terjadi kesalahan saat memuat data.',
             ]);
         }
     }
@@ -1494,6 +1829,143 @@ class Sales extends BaseController
         }
 
         return $result;
+    }
+    
+    /**
+     * Activate serial number
+     * Handles form submission with file upload and updates sales_item_sn
+     * 
+     * @param int $id Sales item SN ID
+     * @return ResponseInterface
+     */
+    public function activateSN(int $id)
+    {
+        try {
+            // Validate ID
+            if ($id <= 0) {
+                return redirect()->to($this->config->baseURL . 'agent/sales/sn')->with('message', [
+                    'status'  => 'error',
+                    'message' => 'ID tidak valid.',
+                ]);
+            }
+
+            // Get existing record
+            $snRecord = $this->salesItemSnModel->find($id);
+            if (!$snRecord) {
+                return redirect()->to($this->config->baseURL . 'agent/sales/sn')->with('message', [
+                    'status'  => 'error',
+                    'message' => 'Serial number tidak ditemukan.',
+                ]);
+            }
+
+            // Get form data
+            $platCode = $this->request->getPost('plat_code') ?? '';
+            $platNumber = $this->request->getPost('plat_number') ?? '';
+            $platLast = $this->request->getPost('plat_last') ?? '';
+            $activatedAt = $this->request->getPost('activated_at') ?? '';
+            $expiredAt = $this->request->getPost('expired_at') ?? '';
+
+            // Validate required fields
+            if (empty($activatedAt)) {
+                return redirect()->back()->withInput()->with('message', [
+                    'status'  => 'error',
+                    'message' => 'Tanggal Aktif harus diisi.',
+                ]);
+            }
+
+            // Handle file upload
+            $filePath = '';
+            $file = $this->request->getFile('file');
+            
+            if ($file && $file->isValid() && !$file->hasMoved()) {
+                // Validate file size (max 5MB)
+                if ($file->getSize() > 5242880) { // 5MB
+                    return redirect()->back()->withInput()->with('message', [
+                        'status'  => 'error',
+                        'message' => 'Ukuran file maksimal 5MB.',
+                    ]);
+                }
+                
+                // Validate file type (images only)
+                $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+                if (!in_array($file->getMimeType(), $allowedTypes)) {
+                    return redirect()->back()->withInput()->with('message', [
+                        'status'  => 'error',
+                        'message' => 'Format file harus JPG, PNG, atau GIF.',
+                    ]);
+                }
+                
+                // Create upload directory if it doesn't exist
+                $uploadPath = ROOTPATH . 'public/uploads/sn/';
+                if (!is_dir($uploadPath)) {
+                    mkdir($uploadPath, 0755, true);
+                }
+                
+                // Generate unique filename
+                $newName = $file->getRandomName();
+                if ($file->move($uploadPath, $newName)) {
+                    $filePath = 'sn/' . $newName;
+                    
+                    // Delete old file if exists
+                    if (!empty($snRecord['file']) && file_exists(ROOTPATH . 'public/uploads/' . $snRecord['file'])) {
+                        @unlink(ROOTPATH . 'public/uploads/' . $snRecord['file']);
+                    }
+                } else {
+                    return redirect()->back()->withInput()->with('message', [
+                        'status'  => 'error',
+                        'message' => 'Gagal mengupload file.',
+                    ]);
+                }
+            } elseif (!empty($snRecord['file'])) {
+                // Keep existing file if no new file uploaded
+                $filePath = $snRecord['file'];
+            }
+
+            // Prepare update data
+            $updateData = [
+                'plat_code' => $platCode,
+                'plat_number' => $platNumber,
+                'plat_last' => $platLast,
+                'activated_at' => date('Y-m-d H:i:s', strtotime($activatedAt)),
+            ];
+
+            if (!empty($expiredAt)) {
+                $updateData['expired_at'] = date('Y-m-d H:i:s', strtotime($expiredAt));
+            }
+
+            if (!empty($filePath)) {
+                $updateData['file'] = $filePath;
+            }
+
+            // Update record
+            $this->salesItemSnModel->skipValidation(true);
+            $result = $this->salesItemSnModel->update($id, $updateData);
+            $this->salesItemSnModel->skipValidation(false);
+
+            if (!$result) {
+                $errors = $this->salesItemSnModel->errors();
+                $errorMsg = 'Gagal mengupdate serial number: ';
+                if ($errors && is_array($errors)) {
+                    $errorMsg .= implode(', ', $errors);
+                }
+                return redirect()->back()->withInput()->with('message', [
+                    'status'  => 'error',
+                    'message' => $errorMsg,
+                ]);
+            }
+
+            return redirect()->to($this->config->baseURL . 'agent/sales/sn')->with('message', [
+                'status'  => 'success',
+                'message' => 'Serial number berhasil diaktifasi.',
+            ]);
+
+        } catch (\Exception $e) {
+            log_message('error', 'Agent\Sales::activateSN error: ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('message', [
+                'status'  => 'error',
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage(),
+            ]);
+        }
     }
 }
 

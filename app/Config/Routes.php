@@ -112,6 +112,11 @@ $routes->group('agent', function($routes) {
     $routes->get('sales', 'Agent\Sales::index');
     $routes->get('sales/(:num)', 'Agent\Sales::detail/$1');
     $routes->get('sales/cart', 'Agent\Sales::cart');
+    $routes->get('sales/sn', 'Agent\Sales::sn');
+    $routes->get('sales/sn/activate/(:num)', 'Agent\Sales::activateForm/$1');
+    $routes->post('sales/getSnDataDT', 'Agent\Sales::getSnDataDT');
+    $routes->post('sales/getSnData/(:num)', 'Agent\Sales::getSnData/$1');
+    $routes->post('sales/activateSN/(:num)', 'Agent\Sales::activateSN/$1');
     $routes->post('sales/store', 'Agent\Sales::store');
     $routes->post('sales/addToCart', 'Agent\Sales::addToCart');
     $routes->post('sales/updateCart', 'Agent\Sales::updateCart');

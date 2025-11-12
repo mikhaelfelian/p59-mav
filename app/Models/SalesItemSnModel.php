@@ -25,21 +25,35 @@ class SalesItemSnModel extends Model
     protected $allowedFields    = [
         'sales_item_id',
         'item_sn_id',
-        'sn'
+        'sn',
+        'no_hp',
+        'plat_code',
+        'plat_number',
+        'plat_last',
+        'file',
+        'activated_at',
+        'expired_at'
     ];
 
     // Dates
-    protected $useTimestamps = false; // No updated_at in this table
+    protected $useTimestamps = true; // Enable timestamps for created_at and updated_at
     protected $dateFormat    = 'datetime';
     protected $createdField  = 'created_at';
-    protected $updatedField  = null;
+    protected $updatedField  = 'updated_at';
     protected $deletedField  = 'deleted_at';
 
     // Validation
     protected $validationRules      = [
         'sales_item_id' => 'required|integer',
         'item_sn_id' => 'required|integer',
-        'sn' => 'required|max_length[100]'
+        'sn' => 'required|max_length[100]',
+        'no_hp' => 'permit_empty|max_length[20]',
+        'plat_code' => 'permit_empty|max_length[10]',
+        'plat_number' => 'permit_empty|max_length[10]',
+        'plat_last' => 'permit_empty|max_length[10]',
+        'file' => 'permit_empty|max_length[255]',
+        'activated_at' => 'permit_empty|valid_date',
+        'expired_at' => 'permit_empty|valid_date'
     ];
     protected $validationMessages   = [];
     protected $skipValidation       = false;

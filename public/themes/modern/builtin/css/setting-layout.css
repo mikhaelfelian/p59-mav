@@ -42,6 +42,9 @@
 .yellow-theme {
 	background: #FF9800;
 }
+.light-theme {
+	background: #b0bec5;
+}
 
 input[type=range] {
   -webkit-appearance: none; /* Hides the slider so that custom slider can be made */

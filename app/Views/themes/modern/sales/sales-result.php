@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Created by: Mikhael Felian Waskito - mikhaelfelian@gmail.com
  * Date: 2025-11-01
@@ -12,11 +13,14 @@
 	</div>
 
 	<div class="card-body">
-		<a href="<?= $config->baseURL ?>sales/create" class="btn btn-success btn-xs btn-add">
-			<i class="fa fa-plus pe-1"></i> Tambah
-		</a>
-		<hr />
-		
+
+		<?php if ($canCreate): ?>
+			<a href="<?= $config->baseURL ?>sales/create" class="btn btn-success btn-xs btn-add">
+				<i class="fa fa-plus pe-1"></i> Tambah
+			</a>
+			<hr />
+		<?php endif; ?>
+
 		<?php
 		if (!empty($msg)) {
 			show_alert($msg);
@@ -36,7 +40,7 @@
 		$settings['order'] = [6, 'desc']; // Order by created_at descending
 		$index = 0;
 		$th = '';
-		
+
 		foreach ($column as $key => $val) {
 			$th .= '<th>' . $val . '</th>';
 			if (strpos($key, 'ignore_search') !== false) {
@@ -58,14 +62,14 @@
 				</tr>
 			</tfoot>
 		</table>
-		
+
 		<?php
 		// Prepare column data for DataTables
 		foreach ($column as $key => $val) {
 			$column_dt[] = ['data' => $key];
 		}
 		?>
-		
+
 		<span id="dataTables-column" style="display:none"><?= json_encode($column_dt) ?></span>
 		<span id="dataTables-setting" style="display:none"><?= json_encode($settings) ?></span>
 		<span id="dataTables-url" style="display:none"><?= $config->baseURL ?>sales/getDataDT</span>
@@ -73,30 +77,32 @@
 </div>
 
 <script>
-$(document).ready(function() {
-	// Initialize DataTables
-	var column = JSON.parse($('#dataTables-column').text());
-	var settings = JSON.parse($('#dataTables-setting').text());
-	var url = $('#dataTables-url').text();
+	$(document).ready(function() {
+		// Initialize DataTables
+		var column = JSON.parse($('#dataTables-column').text());
+		var settings = JSON.parse($('#dataTables-setting').text());
+		var url = $('#dataTables-url').text();
 
-	$('#table-result').DataTable({
-		"processing": true,
-		"serverSide": true,
-		"ajax": {
-			"url": url,
-			"type": "POST"
-		},
-		"columns": column,
-		"order": settings.order,
-		"columnDefs": settings.columnDefs,
-		"pageLength": 10,
-		"lengthMenu": [[10, 25, 50, 100], [10, 25, 50, 100]],
-		"language": {
-			"processing": "Memuat...",
-			"emptyTable": "Tidak ada data",
-			"zeroRecords": "Data tidak ditemukan"
-		}
+		$('#table-result').DataTable({
+			"processing": true,
+			"serverSide": true,
+			"ajax": {
+				"url": url,
+				"type": "POST"
+			},
+			"columns": column,
+			"order": settings.order,
+			"columnDefs": settings.columnDefs,
+			"pageLength": 10,
+			"lengthMenu": [
+				[10, 25, 50, 100],
+				[10, 25, 50, 100]
+			],
+			"language": {
+				"processing": "Memuat...",
+				"emptyTable": "Tidak ada data",
+				"zeroRecords": "Data tidak ditemukan"
+			}
+		});
 	});
-});
 </script>
-

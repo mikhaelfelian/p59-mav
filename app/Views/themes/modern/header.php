@@ -13,7 +13,13 @@ if (empty($_SESSION['user'])) {
 }
 ?>
 <!DOCTYPE HTML>
-<html lang="en" data-bs-theme="<?=$theme_mode?>">
+<?php
+// Check if current module is an agent module
+$is_agent_module = (strpos($current_module['nama_module'], 'agent') === 0 || strpos($current_module['nama_module'], 'agent') !== false);
+// Force light theme for agent modules
+$final_theme_mode = $is_agent_module ? 'light' : $theme_mode;
+?>
+<html lang="en" data-bs-theme="<?=$final_theme_mode?>">
 <head>
 <title><?=$current_module['judul_module']?> | <?=$settingAplikasi['judul_web']?></title>
 <meta name="descrition" content="<?=$current_module['deskripsi']?>"/>

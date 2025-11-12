@@ -12,10 +12,12 @@
 	</div>
 
 	<div class="card-body">
+		<?php if ($canCreate): ?>
 		<a href="<?= $config->baseURL ?>agent/sales/cart" class="btn btn-success btn-xs btn-add">
 			<i class="fa fa-plus pe-1"></i> Tambah
 		</a>
 		<hr />
+		<?php endif; ?>
 		
 		<?php
 		if (!empty($msg)) {
