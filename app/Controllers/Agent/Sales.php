@@ -899,11 +899,37 @@ class Sales extends BaseController
                 $responseData = ['id' => $saleId];
                 
                 // Include gateway response data (QR code URL) if available
+                // Only calculate totalReceive if platform.gw_status = 1 (gateway is active)
                 if ($gatewayResponse && !empty($gatewayResponse['url'])) {
+                    $totalReceive = 0;
+                    
+                    // Calculate totalReceive based on chargeCustomerForPaymentGatewayFee
+                    if (isset($gatewayResponse['chargeCustomerForPaymentGatewayFee']) && 
+                        isset($gatewayResponse['originalAmount'])) {
+                        
+                        $chargeCustomer = $gatewayResponse['chargeCustomerForPaymentGatewayFee'];
+                        $originalAmount = (float) ($gatewayResponse['originalAmount'] ?? $grandTotal);
+                        
+                        if ($chargeCustomer === true || $chargeCustomer === 'true' || $chargeCustomer === 1 || $chargeCustomer === '1') {
+                            // Customer is charged the fee, so totalReceive = originalAmount
+                            $totalReceive = $originalAmount;
+                        } else {
+                            // Customer is NOT charged the fee, so totalReceive = originalAmount - paymentGatewayAdminFee
+                            $adminFee = (float) ($gatewayResponse['paymentGatewayAdminFee'] ?? 0);
+                            $totalReceive = $originalAmount - $adminFee;
+                        }
+                    } else {
+                        // Fallback: if fields not present, use grand_total
+                        $totalReceive = $grandTotal;
+                    }
+                    
                     $responseData['gateway'] = [
                         'url' => $gatewayResponse['url'],
                         'status' => $gatewayResponse['status'] ?? 'PENDING',
-                        'paymentGatewayAdminFee' => $gatewayResponse['paymentGatewayAdminFee'] ?? 0
+                        'paymentGatewayAdminFee' => $gatewayResponse['paymentGatewayAdminFee'] ?? 0,
+                        'originalAmount' => $gatewayResponse['originalAmount'] ?? $grandTotal,
+                        'chargeCustomerForPaymentGatewayFee' => $gatewayResponse['chargeCustomerForPaymentGatewayFee'] ?? false,
+                        'totalReceive' => $totalReceive
                     ];
                 }
                 

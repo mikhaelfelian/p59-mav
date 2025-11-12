@@ -567,6 +567,19 @@
 							'value' => '0'
 						]) ?>
 					</div>
+					
+					<?php if (!empty($platforms)): ?>
+					<div class="summary-input-group mt-3" id="total-receive-group" style="display: none;">
+						<label class="form-label text-white mb-2">Total Diterima</label>
+						<div class="text-white" id="total-receive-display">Rp 0.00</div>
+						<?= form_input([
+							'type' => 'hidden',
+							'name' => 'total_receive',
+							'id' => 'total-receive-input',
+							'value' => '0'
+						]) ?>
+					</div>
+					<?php endif; ?>
 				</div>
 			</div>
 		</div>
@@ -597,6 +610,94 @@ $(document).ready(function() {
 	
 	// Store platform data for API check
 	let platformsData = <?= json_encode($platforms ?? []) ?>;
+	
+	/**
+	 * Get all used serial number IDs from cart items
+	 * @returns {Array} Array of item_sn_id values
+	 */
+	function getUsedSnIds() {
+		let usedSnIds = [];
+		items.forEach(function(item) {
+			if (item.sns && Array.isArray(item.sns)) {
+				item.sns.forEach(function(sn) {
+					if (sn.item_sn_id) {
+						usedSnIds.push(parseInt(sn.item_sn_id));
+					}
+				});
+			}
+		});
+		return usedSnIds;
+	}
+	
+	/**
+	 * Load and filter serial numbers for selected product
+	 * @param {number} itemId - The item ID to load serial numbers for
+	 */
+	function loadSerialNumbers(itemId) {
+		let $snSelect = $('#select-sn');
+		let usedSnIds = getUsedSnIds();
+		
+		// Clear and disable Select2
+		$snSelect.empty().append('<option value="">Loading...</option>');
+		$snSelect.prop('disabled', true);
+		$snSelect.val(null).trigger('change.select2');
+
+		if (itemId) {
+			$.ajax({
+				url: '<?= $config->baseURL ?>sales/getUnusedSNs',
+				type: 'GET',
+				data: { item_id: itemId },
+				dataType: 'json',
+				success: function(response) {
+					// Clear existing options
+					$snSelect.empty();
+					
+					// Add placeholder option
+					$snSelect.append('<option value="">-- Pilih Nomor Seri --</option>');
+					
+					if (response.status === 'success' && response.data && response.data.length > 0) {
+						// Filter out serial numbers that are already in cart
+						let availableSns = response.data.filter(function(sn) {
+							let snId = parseInt(sn.id);
+							return usedSnIds.indexOf(snId) === -1;
+						});
+						
+						if (availableSns.length > 0) {
+							// Add filtered options
+							$.each(availableSns, function(i, sn) {
+								$snSelect.append(
+									$('<option>', {
+										value: sn.id,
+										'data-sn': sn.sn,
+										text: sn.sn
+									})
+								);
+							});
+						} else {
+							$snSelect.append('<option value="">Semua nomor seri sudah digunakan</option>');
+						}
+					} else {
+						$snSelect.append('<option value="">Tidak ada nomor seri tersedia</option>');
+					}
+					
+					// Re-enable and update Select2
+					$snSelect.prop('disabled', false);
+					$snSelect.val(null).trigger('change.select2');
+				},
+				error: function() {
+					$snSelect.empty();
+					$snSelect.append('<option value="">Gagal memuat nomor seri</option>');
+					$snSelect.prop('disabled', false);
+					$snSelect.val(null).trigger('change.select2');
+				}
+			});
+		} else {
+			$snSelect.empty();
+			$snSelect.append('<option value="">-- Pilih Nomor Seri --</option>');
+			$snSelect.prop('disabled', false);
+			$snSelect.val(null).trigger('change.select2');
+		}
+	}
 
 	let searchTimeout;
 	$('#product-search').on('input', function() {
@@ -636,58 +737,7 @@ $(document).ready(function() {
 
 	$('#select-item').on('change', function() {
 		let itemId = $(this).val();
-		let $snSelect = $('#select-sn');
-		
-		// Clear and disable Select2
-		$snSelect.empty().append('<option value="">Loading...</option>');
-		$snSelect.prop('disabled', true);
-		$snSelect.val(null).trigger('change.select2');
-
-		if (itemId) {
-			$.ajax({
-				url: '<?= $config->baseURL ?>sales/getUnusedSNs',
-				type: 'GET',
-				data: { item_id: itemId },
-				dataType: 'json',
-				success: function(response) {
-					// Clear existing options
-					$snSelect.empty();
-					
-					// Add placeholder option
-					$snSelect.append('<option value="">-- Pilih Nomor Seri --</option>');
-					
-					if (response.status === 'success' && response.data && response.data.length > 0) {
-						// Add options from response
-						$.each(response.data, function(i, sn) {
-							$snSelect.append(
-								$('<option>', {
-									value: sn.id,
-									'data-sn': sn.sn,
-									text: sn.sn
-								})
-							);
-						});
-					} else {
-						$snSelect.append('<option value="">Tidak ada nomor seri tersedia</option>');
-					}
-					
-					// Re-enable and update Select2
-					$snSelect.prop('disabled', false);
-					$snSelect.val(null).trigger('change.select2');
-				},
-				error: function() {
-					$snSelect.empty();
-					$snSelect.append('<option value="">Gagal memuat nomor seri</option>');
-					$snSelect.prop('disabled', false);
-					$snSelect.val(null).trigger('change.select2');
-				}
-			});
-		} else {
-			$snSelect.empty();
-			$snSelect.append('<option value="">-- Pilih Nomor Seri --</option>');
-			$snSelect.prop('disabled', false);
-			$snSelect.val(null).trigger('change.select2');
-		}
+		loadSerialNumbers(itemId);
 	});
 
 	function showToast(message, type = 'success') {
@@ -785,8 +835,16 @@ $(document).ready(function() {
 		};
 		items.push(newItem);
 		updateItemsTable();
-		$('#select-item').val('').trigger('change');
-		$('#select-sn').empty().append('<option value="">-- Pilih Nomor Seri --</option>').val(null).trigger('change.select2');
+		
+		// Refresh serial number dropdown if same product is still selected
+		let currentItemId = $('#select-item').val();
+		if (currentItemId && currentItemId === itemId) {
+			loadSerialNumbers(itemId);
+		} else {
+			$('#select-item').val('').trigger('change');
+			$('#select-sn').empty().append('<option value="">-- Pilih Nomor Seri --</option>').val(null).trigger('change.select2');
+		}
+		
 		$('#product-search').val('').focus();
 	});
 
@@ -840,8 +898,18 @@ $(document).ready(function() {
 
 	$(document).on('click', '.btn-remove-item', function() {
 		let index = $(this).closest('tr').data('index');
+		let removedItem = items[index];
 		items.splice(index, 1);
 		updateItemsTable();
+		
+		// Refresh serial number dropdown if a product is selected
+		let currentItemId = $('#select-item').val();
+		if (currentItemId) {
+			// If removed item was the same product, refresh the dropdown
+			if (removedItem && removedItem.item_id && parseInt(removedItem.item_id) === parseInt(currentItemId)) {
+				loadSerialNumbers(currentItemId);
+			}
+		}
 	});
 
 	$(document).on('input', '.item-qty, .item-price, .item-discount', function() {
@@ -937,6 +1005,26 @@ $(document).ready(function() {
 					// Check if gateway response contains QR code URL
 					if (response.data && response.data.gateway && response.data.gateway.url) {
 						let gateway = response.data.gateway;
+						
+						// Calculate totalReceive if gateway response exists (platform.gw_status = 1)
+						if (gateway.originalAmount !== undefined && gateway.chargeCustomerForPaymentGatewayFee !== undefined) {
+							let totalReceive = 0;
+							if (gateway.chargeCustomerForPaymentGatewayFee === true || gateway.chargeCustomerForPaymentGatewayFee === 'true') {
+								// Customer is charged the fee, so totalReceive = originalAmount
+								totalReceive = parseFloat(gateway.originalAmount) || 0;
+							} else {
+								// Customer is NOT charged the fee, so totalReceive = originalAmount - paymentGatewayAdminFee
+								let originalAmount = parseFloat(gateway.originalAmount) || 0;
+								let adminFee = parseFloat(gateway.paymentGatewayAdminFee) || 0;
+								totalReceive = originalAmount - adminFee;
+							}
+							
+							// Update totalReceive display
+							$('#total-receive-display').text(formatCurrency(totalReceive));
+							$('#total-receive-input').val(totalReceive);
+							$('#total-receive-group').show();
+						}
+						
 						Swal.fire({
 							title: 'QR Code Pembayaran',
 							html: `
@@ -946,6 +1034,8 @@ $(document).ready(function() {
 									<p class="text-muted small mb-2">Status: <strong>${gateway.status}</strong></p>
 									${gateway.paymentGatewayAdminFee > 0 ? 
 										'<p class="text-muted small">Biaya Admin: Rp ' + gateway.paymentGatewayAdminFee.toLocaleString('id-ID') + '</p>' : ''}
+									${gateway.totalReceive !== undefined ? 
+										'<p class="text-muted small">Total Diterima: Rp ' + parseFloat(gateway.totalReceive).toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '</p>' : ''}
 									<a href="${gateway.url}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
 										<i class="fas fa-external-link-alt"></i> Buka QR Code
 									</a>
@@ -962,6 +1052,9 @@ $(document).ready(function() {
 							}, 1500);
 						});
 					} else {
+						// No gateway response (gw_status = 0 or cash payment), hide totalReceive
+						$('#total-receive-group').hide();
+						
 						showToast(response.message || 'Penjualan berhasil disimpan.', 'success');
 						setTimeout(function() {
 							window.location.href = redirectUrl;

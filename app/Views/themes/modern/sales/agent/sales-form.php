@@ -556,6 +556,26 @@ $(document).ready(function() {
 					// Check if gateway response contains QR code URL
 					if (response.data && response.data.gateway && response.data.gateway.url) {
 						let gateway = response.data.gateway;
+						
+						// Calculate totalReceive if gateway response exists (platform.gw_status = 1)
+						let totalReceiveText = '';
+						if (gateway.originalAmount !== undefined && gateway.chargeCustomerForPaymentGatewayFee !== undefined) {
+							let totalReceive = 0;
+							if (gateway.chargeCustomerForPaymentGatewayFee === true || gateway.chargeCustomerForPaymentGatewayFee === 'true') {
+								// Customer is charged the fee, so totalReceive = originalAmount
+								totalReceive = parseFloat(gateway.originalAmount) || 0;
+							} else {
+								// Customer is NOT charged the fee, so totalReceive = originalAmount - paymentGatewayAdminFee
+								let originalAmount = parseFloat(gateway.originalAmount) || 0;
+								let adminFee = parseFloat(gateway.paymentGatewayAdminFee) || 0;
+								totalReceive = originalAmount - adminFee;
+							}
+							
+							if (totalReceive > 0) {
+								totalReceiveText = '<p class="text-muted small"><strong>Total Diterima: Rp ' + totalReceive.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '</strong></p>';
+							}
+						}
+						
 						Swal.fire({
 							title: 'QR Code Pembayaran',
 							html: `
@@ -565,6 +585,7 @@ $(document).ready(function() {
 									<p class="text-muted small mb-2">Status: <strong>${gateway.status}</strong></p>
 									${gateway.paymentGatewayAdminFee > 0 ? 
 										'<p class="text-muted small">Biaya Admin: Rp ' + gateway.paymentGatewayAdminFee.toLocaleString('id-ID') + '</p>' : ''}
+									${totalReceiveText}
 									<a href="${gateway.url}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
 										<i class="fas fa-external-link-alt"></i> Buka QR Code
 									</a>

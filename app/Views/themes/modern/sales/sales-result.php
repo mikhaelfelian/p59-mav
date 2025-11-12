@@ -13,7 +13,6 @@
 	</div>
 
 	<div class="card-body">
-
 		<?php if ($canCreate): ?>
 			<a href="<?= $config->baseURL ?>sales/create" class="btn btn-success btn-xs btn-add">
 				<i class="fa fa-plus pe-1"></i> Tambah

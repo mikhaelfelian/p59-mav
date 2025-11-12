@@ -218,10 +218,12 @@
 							</dd>
 						<?php endif; ?>
 						
-						<dt class="col-sm-5 mb-3">Agen:</dt>
-						<dd class="col-sm-7 mb-3">
-							<i class="fas fa-user-tie me-1 text-muted"></i><?= esc($sale['agent_name'] ?? '-') ?>
-						</dd>
+						<?php if (empty($sale['sale_channel']) || $sale['sale_channel'] != 1): ?>
+							<dt class="col-sm-5 mb-3">Agen:</dt>
+							<dd class="col-sm-7 mb-3">
+								<i class="fas fa-user-tie me-1 text-muted"></i><?= esc($sale['agent_name'] ?? '-') ?>
+							</dd>
+						<?php endif; ?>
 					</dl>
 				</div>
 			</div>
@@ -394,6 +396,33 @@
 										<span class="currency">Rp <?= number_format($gatewayResponse['paymentGatewayAdminFee'], 0, ',', '.') ?></span>
 									</dd>
 								<?php endif; ?>
+								
+								<?php
+								// Calculate totalReceive if gateway response exists (platform.gw_status = 1)
+								if (!empty($gatewayResponse) && isset($gatewayResponse['chargeCustomerForPaymentGatewayFee']) && isset($gatewayResponse['originalAmount'])) {
+									$chargeCustomer = $gatewayResponse['chargeCustomerForPaymentGatewayFee'];
+									$originalAmount = (float) ($gatewayResponse['originalAmount'] ?? 0);
+									$totalReceive = 0;
+									
+									if ($chargeCustomer === true || $chargeCustomer === 'true' || $chargeCustomer === 1 || $chargeCustomer === '1') {
+										// Customer is charged the fee, so totalReceive = originalAmount
+										$totalReceive = $originalAmount;
+									} else {
+										// Customer is NOT charged the fee, so totalReceive = originalAmount - paymentGatewayAdminFee
+										$adminFee = (float) ($gatewayResponse['paymentGatewayAdminFee'] ?? 0);
+										$totalReceive = $originalAmount - $adminFee;
+									}
+									
+									if ($totalReceive > 0) {
+								?>
+									<dt class="col-sm-5 mb-3">Total Diterima:</dt>
+									<dd class="col-sm-7 mb-3">
+										<span class="currency"><strong>Rp <?= number_format($totalReceive, 0, ',', '.') ?></strong></span>
+									</dd>
+								<?php
+									}
+								}
+								?>
 								
 								<?php if (!empty($gatewayResponse['expiredAt'])): ?>
 									<dt class="col-sm-5 mb-3">Kedaluwarsa:</dt>
