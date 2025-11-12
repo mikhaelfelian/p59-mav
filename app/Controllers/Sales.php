@@ -24,6 +24,8 @@ use App\Models\SalesItemsModel;
 use App\Models\SalesItemSnModel;
 use App\Models\SalesPaymentsModel;
 use App\Models\SalesDetailModel;
+use App\Models\SalesFeeModel;
+use App\Models\FeeTypeModel;
 use App\Models\ItemModel;
 use App\Models\ItemSnModel;
 use App\Models\AgentModel;
@@ -41,6 +43,8 @@ class Sales extends BaseController
     protected $salesItemSnModel;
     protected $salesPaymentsModel;
     protected $salesDetailModel;
+    protected $salesFeeModel;
+    protected $feeTypeModel;
     protected $itemModel;
     protected $itemSnModel;
     protected $agentModel;
@@ -78,6 +82,8 @@ class Sales extends BaseController
         $this->salesItemSnModel = new SalesItemSnModel();
         $this->salesPaymentsModel = new SalesPaymentsModel();
         $this->salesDetailModel = new SalesDetailModel();
+        $this->salesFeeModel = new SalesFeeModel();
+        $this->feeTypeModel = new FeeTypeModel();
         $this->itemModel = new ItemModel();
         $this->itemSnModel = new ItemSnModel();
         $this->agentModel = new AgentModel();
@@ -195,6 +201,14 @@ class Sales extends BaseController
             ->orderBy('platform', 'ASC')
             ->findAll();
 
+            // Get active fee types for fee dropdown
+        $feeTypes = $this->feeTypeModel->getActiveFeeTypes();
+
+            // Get PPN setting from settings table
+        $baseModel = new \App\Models\BaseModel();
+        $settings = $baseModel->getSettingAplikasi();
+        $ppnPercentage = (float) ($settings['ppn'] ?? 11); // Default 11%
+
             // Prepare view data
             $this->data['title'] = 'Tambah Penjualan';
         $this->data['currentModule'] = $this->currentModule;
@@ -202,6 +216,8 @@ class Sales extends BaseController
         $this->data['items'] = $items;
             $this->data['agents'] = $agents;
         $this->data['platforms'] = $platforms;
+        $this->data['feeTypes'] = $feeTypes;
+        $this->data['ppnPercentage'] = $ppnPercentage;
             $this->data['invoice_no'] = $this->model->generateInvoiceNo();
             $this->data['sale'] = [];
         $this->data['message'] = '';
@@ -469,6 +485,48 @@ class Sales extends BaseController
                 }
             }
 
+            // Calculate tax based on tax_type
+            $taxType = $postData['tax_type'] ?? '0';
+            $subtotal = (float)($postData['subtotal'] ?? 0);
+            $discountAmount = (float)($postData['discount'] ?? 0);
+            $baseAmount = $subtotal - $discountAmount;
+            
+            // Get PPN percentage from settings
+            $baseModel = new \App\Models\BaseModel();
+            $settings = $baseModel->getSettingAplikasi();
+            $ppnPercentage = (float) ($settings['ppn'] ?? 11); // Default 11%
+            
+            $taxAmount = 0;
+            $grandTotal = $baseAmount;
+            
+            if ($taxType === '1') {
+                // Include tax (PPN termasuk): tax is included in grand_total
+                // If user enters grand_total, calculate tax from it
+                $grandTotalInput = (float)($postData['grand_total'] ?? $baseAmount);
+                // Tax = grand_total - (grand_total / (1 + ppn/100))
+                $taxAmount = $grandTotalInput - ($grandTotalInput / (1 + ($ppnPercentage / 100)));
+                $grandTotal = $grandTotalInput;
+            } elseif ($taxType === '2') {
+                // Added tax (PPN ditambahkan): tax is added on top
+                $taxAmount = $baseAmount * ($ppnPercentage / 100);
+                $grandTotal = $baseAmount + $taxAmount;
+            } else {
+                // No tax (tax_type = '0')
+                $taxAmount = 0;
+                $grandTotal = $baseAmount;
+            }
+            
+            // Add total fees to grand total
+            $totalFees = 0;
+            if (!empty($postData['fees']) && is_array($postData['fees'])) {
+                foreach ($postData['fees'] as $fee) {
+                    if (!empty($fee['amount'])) {
+                        $totalFees += (float)$fee['amount'];
+                    }
+                }
+            }
+            $grandTotal += $totalFees;
+
             // Save to sales table
             $saleData = [
                 'invoice_no'     => trim($postData['invoice_no']),
@@ -476,10 +534,11 @@ class Sales extends BaseController
                 'customer_id'    => $customerId,
                 'warehouse_id'   => !empty($postData['agent_id']) ? (int)$postData['agent_id'] : null,
                 'sale_channel'   => $postData['sales_channel'] ?? self::CHANNEL_OFFLINE,
-                'total_amount'   => (float)($postData['subtotal'] ?? 0),
-                'discount_amount' => (float)($postData['discount'] ?? 0),
-                'tax_amount'     => (float)($postData['tax'] ?? 0),
-                'grand_total'    => (float)($postData['grand_total'] ?? 0),
+                'total_amount'   => $subtotal,
+                'discount_amount' => $discountAmount,
+                'tax_amount'     => $taxAmount,
+                'tax_type'       => $taxType,
+                'grand_total'    => $grandTotal,
                 'payment_status' => $paymentStatus,
             ];
 
@@ -670,6 +729,31 @@ class Sales extends BaseController
                             }
                         }
                     }
+                }
+            }
+
+            // Save fees if provided
+            if ($saleId && !empty($postData['fees']) && is_array($postData['fees'])) {
+                // Delete existing fees for this sale (in case of update)
+                $this->salesFeeModel->deleteBySale($saleId);
+                
+                // Insert new fees
+                $feesToInsert = [];
+                foreach ($postData['fees'] as $fee) {
+                    if (!empty($fee['fee_type_id']) && !empty($fee['amount']) && (float)$fee['amount'] > 0) {
+                        $feesToInsert[] = [
+                            'sale_id' => $saleId,
+                            'fee_type_id' => (int)$fee['fee_type_id'],
+                            'fee_name' => !empty($fee['fee_name']) ? trim($fee['fee_name']) : null,
+                            'amount' => (float)$fee['amount'],
+                        ];
+                    }
+                }
+                
+                if (!empty($feesToInsert)) {
+                    $this->salesFeeModel->skipValidation(true);
+                    $this->salesFeeModel->insertBatch($feesToInsert);
+                    $this->salesFeeModel->skipValidation(false);
                 }
             }
 
@@ -952,6 +1036,9 @@ class Sales extends BaseController
                     }
             }
 
+            // Get fees for this sale
+            $fees = $this->salesFeeModel->getFeesBySale($id);
+
             // Get payment information
             $payments = $this->salesPaymentsModel->getPaymentsBySale($id);
             $paymentInfo = null;
@@ -975,6 +1062,7 @@ class Sales extends BaseController
             $this->data['config'] = $this->config;
             $this->data['sale'] = $sale;
             $this->data['items'] = $items;
+            $this->data['fees'] = $fees;
             $this->data['payment'] = $paymentInfo;
             $this->data['gatewayResponse'] = $gatewayResponse;
 

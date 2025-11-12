@@ -254,6 +254,42 @@
 			</div>
 		</div>
 
+		<?php if (!empty($fees) && is_array($fees) && count($fees) > 0): ?>
+		<div class="items-section mb-4">
+			<h6><i class="fas fa-receipt me-2"></i> Biaya Tambahan</h6>
+			<div class="table-responsive">
+				<table class="table items-table">
+					<thead>
+						<tr>
+							<th style="width: 50px;">No</th>
+							<th>Jenis Biaya</th>
+							<th>Nama Biaya</th>
+							<th style="width: 150px;" class="text-end">Jumlah</th>
+						</tr>
+					</thead>
+					<tbody>
+						<?php foreach ($fees as $index => $fee): ?>
+							<tr>
+								<td class="text-center"><?= $index + 1 ?></td>
+								<td><strong><?= esc($fee['fee_type_name'] ?? $fee['fee_type_code'] ?? '-') ?></strong></td>
+								<td><?= esc($fee['fee_name'] ?? '-') ?></td>
+								<td class="text-end currency"><strong>Rp <?= number_format($fee['amount'] ?? 0, 0, ',', '.') ?></strong></td>
+							</tr>
+						<?php endforeach; ?>
+					</tbody>
+					<tfoot>
+						<tr>
+							<td colspan="3" class="text-end"><strong>Total Biaya:</strong></td>
+							<td class="text-end currency">
+								<strong>Rp <?= number_format(array_sum(array_column($fees, 'amount')), 0, ',', '.') ?></strong>
+							</td>
+						</tr>
+					</tfoot>
+				</table>
+			</div>
+		</div>
+		<?php endif; ?>
+
 		<div class="items-section mb-4">
 			<h6><i class="fas fa-box me-2"></i> Daftar Item</h6>
 			<div class="table-responsive">
@@ -320,6 +356,18 @@
 						<span class="summary-label">Pajak:</span>
 						<span class="summary-value currency">Rp <?= number_format($sale['tax_amount'] ?? $sale['tax'] ?? 0, 0, ',', '.') ?></span>
 					</div>
+					<?php 
+					$totalFees = 0;
+					if (!empty($fees) && is_array($fees)) {
+						$totalFees = array_sum(array_column($fees, 'amount'));
+					}
+					if ($totalFees > 0): 
+					?>
+					<div class="d-flex justify-content-between mb-3">
+						<span class="summary-label">Total Biaya:</span>
+						<span class="summary-value currency">Rp <?= number_format($totalFees, 0, ',', '.') ?></span>
+					</div>
+					<?php endif; ?>
 					<div class="grand-total">
 						<div class="d-flex justify-content-between">
 							<span class="grand-total-label">Total Akhir:</span>

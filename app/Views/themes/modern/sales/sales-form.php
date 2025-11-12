@@ -523,6 +523,17 @@
 							</div>
 						</div>
 						<div class="col-md-4">
+							<label class="form-label">Tipe Pajak</label>
+							<?= form_dropdown('tax_type', [
+								'0' => 'Tidak Ada Pajak',
+								'1' => 'PPN Termasuk',
+								'2' => 'PPN Ditambahkan'
+							], set_value('tax_type', '0'), [
+								'class' => 'form-control',
+								'id' => 'tax-type-input'
+							]) ?>
+						</div>
+						<div class="col-md-4">
 							<label class="form-label">Jumlah Pajak</label>
 							<div class="input-group">
 								<span class="input-group-text bg-light">Rp</span>
@@ -534,8 +545,41 @@
 									'step' => '0.01',
 									'min' => '0',
 									'id' => 'tax-input',
-									'placeholder' => '0.00'
+									'placeholder' => '0.00',
+									'readonly' => true
 								]) ?>
+							</div>
+							<small class="text-muted">Dihitung otomatis berdasarkan tipe pajak</small>
+						</div>
+					</div>
+					
+					<!-- Fee Table Section -->
+					<div class="row mt-3">
+						<div class="col-12">
+							<label class="form-label">Biaya Tambahan</label>
+							<div class="table-responsive">
+								<table class="table table-bordered" id="fee-table">
+									<thead>
+										<tr>
+											<th style="width: 30%;">Jenis Biaya</th>
+											<th style="width: 30%;">Nama Biaya (Opsional)</th>
+											<th style="width: 25%;">Jumlah</th>
+											<th style="width: 15%;">Aksi</th>
+										</tr>
+									</thead>
+									<tbody id="fee-table-body">
+										<!-- Fee rows will be added here dynamically -->
+									</tbody>
+									<tfoot>
+										<tr>
+											<td colspan="4">
+												<button type="button" class="btn btn-sm btn-primary" id="btn-add-fee">
+													<i class="fas fa-plus"></i> Tambah Biaya
+												</button>
+											</td>
+										</tr>
+									</tfoot>
+								</table>
 							</div>
 						</div>
 					</div>
@@ -561,6 +605,11 @@
 					<div class="summary-input-group">
 						<label class="form-label text-white mb-2">Pajak</label>
 						<div class="text-white" id="tax-display">Rp 0.00</div>
+					</div>
+					
+					<div class="summary-input-group">
+						<label class="form-label text-white mb-2">Total Biaya</label>
+						<div class="text-white" id="total-fees-display">Rp 0.00</div>
 					</div>
 					
 					<div class="grand-total">
@@ -612,10 +661,15 @@
 <script>
 $(document).ready(function() {
 	let items = [];
+	let fees = [];
 	let isSubmitting = false;
 	
 	// Store platform data for API check
 	let platformsData = <?= json_encode($platforms ?? []) ?>;
+	
+	// Store fee types and PPN percentage
+	let feeTypes = <?= json_encode($feeTypes ?? []) ?>;
+	let ppnPercentage = <?= floatval($ppnPercentage ?? 11) ?>;
 	
 	/**
 	 * Get all used serial number IDs from cart items
@@ -959,14 +1013,192 @@ $(document).ready(function() {
 		calculateTotals();
 	});
 
+	function calculateTax() {
+		let taxType = $('#tax-type-input').val() || '0';
+		let subtotal = 0;
+		items.forEach(function(item) {
+			subtotal += parseFloat(item.subtotal || 0);
+		});
+		let discountAmount = parseFloat($('#discount-input').val()) || 0;
+		let baseAmount = subtotal - discountAmount;
+		let taxAmount = 0;
+		
+		if (taxType === '1') {
+			// Include tax (PPN termasuk): tax is included in grand_total
+			// Tax = grand_total - (grand_total / (1 + ppn/100))
+			// For calculation, we'll calculate from baseAmount
+			// If user enters grand_total, we need to reverse calculate
+			// For now, we calculate tax from baseAmount assuming it's the amount after tax
+			// Actually, for "include", the baseAmount is the total including tax
+			// So tax = baseAmount - (baseAmount / (1 + ppn/100))
+			taxAmount = baseAmount - (baseAmount / (1 + (ppnPercentage / 100)));
+		} else if (taxType === '2') {
+			// Added tax (PPN ditambahkan): tax is added on top
+			taxAmount = baseAmount * (ppnPercentage / 100);
+		} else {
+			// No tax
+			taxAmount = 0;
+		}
+		
+		$('#tax-input').val(taxAmount.toFixed(2));
+		return taxAmount;
+	}
+	
+	function calculateTotalFees() {
+		let totalFees = 0;
+		fees.forEach(function(fee) {
+			if (fee.amount && parseFloat(fee.amount) > 0) {
+				totalFees += parseFloat(fee.amount);
+			}
+		});
+		$('#total-fees-display').text(formatCurrency(totalFees));
+		return totalFees;
+	}
+
+	// Add fee row
+	function addFeeRow() {
+		let feeIndex = fees.length;
+		let feeRow = {
+			fee_type_id: '',
+			fee_name: '',
+			amount: 0
+		};
+		fees.push(feeRow);
+		updateFeeTable();
+	}
+
+	// Remove fee row
+	function removeFeeRow(index) {
+		if (index >= 0 && index < fees.length) {
+			fees.splice(index, 1);
+			updateFeeTable();
+			calculateTotals();
+		}
+	}
+
+	// Update fee table display
+	function updateFeeTable() {
+		let tbody = $('#fee-table-body');
+		tbody.empty();
+		
+		if (fees.length === 0) {
+			tbody.append('<tr><td colspan="4" class="text-center text-muted">Belum ada biaya tambahan</td></tr>');
+			return;
+		}
+		
+		fees.forEach(function(fee, index) {
+			let row = '<tr data-fee-index="' + index + '">';
+			
+			// Fee Type dropdown
+			row += '<td>';
+			row += '<select class="form-control form-control-sm fee-type-select" data-index="' + index + '">';
+			row += '<option value="">-- Pilih Jenis Biaya --</option>';
+			feeTypes.forEach(function(feeType) {
+				let selected = (fee.fee_type_id == feeType.id) ? 'selected' : '';
+				row += '<option value="' + feeType.id + '" ' + selected + '>' + escapeHtml(feeType.name) + '</option>';
+			});
+			row += '</select>';
+			row += '</td>';
+			
+			// Fee Name (optional)
+			row += '<td>';
+			row += '<input type="text" class="form-control form-control-sm fee-name-input" data-index="' + index + '" value="' + escapeHtml(fee.fee_name || '') + '" placeholder="Nama biaya (opsional)">';
+			row += '</td>';
+			
+			// Amount
+			row += '<td>';
+			row += '<div class="input-group input-group-sm">';
+			row += '<span class="input-group-text">Rp</span>';
+			row += '<input type="number" class="form-control fee-amount-input" data-index="' + index + '" value="' + (fee.amount || 0) + '" step="0.01" min="0" placeholder="0.00">';
+			row += '</div>';
+			row += '</td>';
+			
+			// Actions
+			row += '<td>';
+			row += '<button type="button" class="btn btn-sm btn-danger btn-remove-fee" data-index="' + index + '">';
+			row += '<i class="fas fa-trash"></i>';
+			row += '</button>';
+			row += '</td>';
+			
+			row += '</tr>';
+			tbody.append(row);
+		});
+	}
+
+	// Event handlers for fee table
+	$(document).on('click', '#btn-add-fee', function() {
+		addFeeRow();
+	});
+
+	$(document).on('click', '.btn-remove-fee', function() {
+		let index = parseInt($(this).data('index'));
+		removeFeeRow(index);
+	});
+
+	$(document).on('change', '.fee-type-select', function() {
+		let index = parseInt($(this).data('index'));
+		let feeTypeId = $(this).val();
+		if (fees[index]) {
+			fees[index].fee_type_id = feeTypeId;
+			// Auto-fill fee name from fee type if not already set
+			if (!fees[index].fee_name && feeTypeId) {
+				let selectedFeeType = feeTypes.find(function(ft) {
+					return ft.id == feeTypeId;
+				});
+				if (selectedFeeType) {
+					fees[index].fee_name = selectedFeeType.name;
+					$('input.fee-name-input[data-index="' + index + '"]').val(selectedFeeType.name);
+				}
+			}
+		}
+	});
+
+	$(document).on('input', '.fee-name-input', function() {
+		let index = parseInt($(this).data('index'));
+		let feeName = $(this).val();
+		if (fees[index]) {
+			fees[index].fee_name = feeName;
+		}
+	});
+
+	$(document).on('input', '.fee-amount-input', function() {
+		let index = parseInt($(this).data('index'));
+		let amount = parseFloat($(this).val()) || 0;
+		if (fees[index]) {
+			fees[index].amount = amount;
+			calculateTotals();
+		}
+	});
+
 	function calculateTotals() {
 		let subtotal = 0;
 		items.forEach(function(item) {
 			subtotal += parseFloat(item.subtotal || 0);
 		});
 		let discountAmount = parseFloat($('#discount-input').val()) || 0;
-		let taxAmount = parseFloat($('#tax-input').val()) || 0;
-		let grandTotal = subtotal - discountAmount + taxAmount;
+		let baseAmount = subtotal - discountAmount;
+		
+		// Calculate tax based on tax_type
+		let taxAmount = calculateTax();
+		
+		// Calculate total fees
+		let totalFees = calculateTotalFees();
+		
+		// Calculate grand total
+		let taxType = $('#tax-type-input').val() || '0';
+		let grandTotal = baseAmount;
+		
+		if (taxType === '1') {
+			// Include tax: grand_total = baseAmount (tax already included)
+			grandTotal = baseAmount;
+		} else if (taxType === '2') {
+			// Added tax: grand_total = baseAmount + tax
+			grandTotal = baseAmount + taxAmount;
+		}
+		
+		// Add fees to grand total
+		grandTotal += totalFees;
+		
 		$('#subtotal-display').text(formatCurrency(subtotal));
 		$('#subtotal-input').val(subtotal);
 		$('#discount-display').text(formatCurrency(discountAmount));
@@ -975,7 +1207,7 @@ $(document).ready(function() {
 		$('#grand-total-input').val(grandTotal);
 	}
 
-	$('#discount-input, #tax-input').on('input', function() {
+	$('#discount-input, #tax-type-input').on('input change', function() {
 		calculateTotals();
 	});
 
@@ -1013,6 +1245,29 @@ $(document).ready(function() {
 		$submitBtn.prop('disabled', true).html('<span class="loading-spinner"></span> Menyimpan...');
 		$('#discount-input').val($('#discount-input').val() || '0');
 		$('#tax-input').val($('#tax-input').val() || '0');
+		
+		// Add fees to form data
+		// Remove any existing fee hidden inputs first
+		$('#form-sales input[name^="fees["]').remove();
+		fees.forEach(function(fee, index) {
+			if (fee.fee_type_id && fee.amount && parseFloat(fee.amount) > 0) {
+				$('<input>').attr({
+					type: 'hidden',
+					name: 'fees[' + index + '][fee_type_id]',
+					value: fee.fee_type_id
+				}).appendTo('#form-sales');
+				$('<input>').attr({
+					type: 'hidden',
+					name: 'fees[' + index + '][fee_name]',
+					value: fee.fee_name || ''
+				}).appendTo('#form-sales');
+				$('<input>').attr({
+					type: 'hidden',
+					name: 'fees[' + index + '][amount]',
+					value: fee.amount
+				}).appendTo('#form-sales');
+			}
+		});
 		
 		// Submit form - API call is handled in PHP
 		let formData = $('#form-sales').serialize();
@@ -1112,6 +1367,7 @@ $(document).ready(function() {
 	});
 
 	updateItemsTable();
+	updateFeeTable();
 	$('#product-search').focus();
 
 	$(document).on('keydown', function(e) {

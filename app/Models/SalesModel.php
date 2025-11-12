@@ -31,6 +31,7 @@ class SalesModel extends Model
         'total_amount',
         'discount_amount',
         'tax_amount',
+        'tax_type',
         'grand_total',
         'payment_status',
         'settlement_time',
@@ -54,6 +55,7 @@ class SalesModel extends Model
         'total_amount' => 'permit_empty|decimal',
         'discount_amount' => 'permit_empty|decimal',
         'tax_amount' => 'permit_empty|decimal',
+        'tax_type' => 'permit_empty|in_list[0,1,2]',
         'grand_total' => 'permit_empty|decimal',
         'payment_status' => 'permit_empty|in_list[0,1,2]',
         'status' => 'permit_empty|in_list[0,1,2]'
