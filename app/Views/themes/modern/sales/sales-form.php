@@ -260,6 +260,12 @@
 	margin: 0.125rem;
 	color: #495057;
 }
+
+.item-qty[readonly] {
+	background-color: #e9ecef !important;
+	color: #6c757d;
+	cursor: not-allowed;
+}
 </style>
 
 <!-- Select2 CSS -->
