@@ -134,6 +134,11 @@ class Sales extends BaseController
             ->orderBy('platform', 'ASC')
             ->findAll();
         
+        // Get PPN setting from settings table
+        $baseModel = new \App\Models\BaseModel();
+        $settings = $baseModel->getSettingAplikasi();
+        $ppnPercentage = (float) ($settings['ppn'] ?? 11); // Default 11%
+        
         // Prepare view data
         $this->data['title'] = 'Keranjang & Checkout';
         $this->data['currentModule'] = $this->currentModule;
@@ -142,6 +147,7 @@ class Sales extends BaseController
         $this->data['agentId'] = $agentId;
         $this->data['agents'] = $agents;
         $this->data['platforms'] = $platforms;
+        $this->data['ppnPercentage'] = $ppnPercentage;
         $this->data['invoice_no'] = $this->model->generateInvoiceNo();
         $this->data['message'] = $this->session->getFlashdata('message');
         
@@ -150,6 +156,66 @@ class Sales extends BaseController
         
         // Render view
         $this->view('sales/agent/sales-form', $this->data);
+    }
+    
+    /**
+     * Search product by SKU/barcode (AJAX endpoint)
+     * 
+     * @return ResponseInterface
+     */
+    public function searchProductBySku(): ResponseInterface
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Request tidak valid.'
+            ]);
+        }
+        
+        try {
+            $sku = trim($this->request->getPost('sku') ?? $this->request->getGet('sku') ?? '');
+            
+            if (empty($sku)) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'SKU tidak boleh kosong.'
+                ]);
+            }
+            
+            // Search product by SKU
+            $item = $this->itemModel->where('status', '1')->where('sku', $sku)->first();
+            
+            if (!$item) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Produk dengan SKU "' . esc($sku) . '" tidak ditemukan.'
+                ]);
+            }
+            
+            // Convert to array if object
+            $itemData = is_object($item) ? (array)$item : $item;
+            
+            return $this->response->setJSON([
+                'status' => 'success',
+                'data' => [
+                    'id' => $itemData['id'],
+                    'name' => $itemData['name'],
+                    'sku' => $itemData['sku'] ?? '',
+                    'price' => (float)($itemData['price'] ?? 0),
+                    'agent_price' => (float)($itemData['agent_price'] ?? 0),
+                    'image' => $itemData['image'] ?? ''
+                ],
+                'csrf_hash' => csrf_hash()
+            ]);
+            
+        } catch (\Exception $e) {
+            log_message('error', 'Agent\Sales::searchProductBySku error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Gagal mencari produk: ' . $e->getMessage(),
+                'csrf_hash' => csrf_hash()
+            ]);
+        }
     }
     
     /**
@@ -461,8 +527,33 @@ class Sales extends BaseController
             }
             
             $discount = (float)($postData['discount'] ?? 0);
-            $tax = (float)($postData['tax'] ?? 0);
-            $grandTotal = $subtotal - $discount + $tax;
+            $baseAmount = $subtotal - $discount;
+            
+            // Calculate tax based on tax_type
+            $taxType = $postData['tax_type'] ?? '0';
+            
+            // Get PPN percentage from settings
+            $baseModel = new \App\Models\BaseModel();
+            $settings = $baseModel->getSettingAplikasi();
+            $ppnPercentage = (float) ($settings['ppn'] ?? 11); // Default 11%
+            
+            $taxAmount = 0;
+            $grandTotal = $baseAmount;
+            
+            if ($taxType === '1') {
+                // Include tax (PPN termasuk): tax is included in baseAmount
+                // Tax = baseAmount - (baseAmount / (1 + ppn/100))
+                $taxAmount = $baseAmount - ($baseAmount / (1 + ($ppnPercentage / 100)));
+                $grandTotal = $baseAmount; // Grand total is baseAmount (tax already included)
+            } elseif ($taxType === '2') {
+                // Added tax (PPN ditambahkan): tax is added on top
+                $taxAmount = $baseAmount * ($ppnPercentage / 100);
+                $grandTotal = $baseAmount + $taxAmount;
+            } else {
+                // No tax (tax_type = '0')
+                $taxAmount = 0;
+                $grandTotal = $baseAmount;
+            }
             
             // Handle payment gateway API call if platform is selected
             $gatewayResponse = null;
@@ -618,7 +709,8 @@ class Sales extends BaseController
                 'sale_channel' 		=> self::CHANNEL_ONLINE,
                 'total_amount' 		=> (float)($postData['subtotal'] ?? $subtotal),
                 'discount_amount' 	=> (float)($postData['discount'] ?? $discount),
-                'tax_amount' 		=> (float)($postData['tax'] ?? $tax),
+                'tax_amount' 		=> $taxAmount,
+                'tax_type' 			=> $taxType,
                 'grand_total' 		=> (float)($postData['grand_total'] ?? $grandTotal),
                 'payment_status' 	=> $paymentStatus
             ];

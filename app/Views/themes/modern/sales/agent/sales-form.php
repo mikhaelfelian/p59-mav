@@ -300,6 +300,31 @@
 			</div>
 		</div>
 
+		<!-- Barcode Search Section -->
+		<div class="sales-form-section">
+			<div class="section-title">
+				<i class="fas fa-barcode"></i>
+				<span>Cari Produk dengan Barcode</span>
+			</div>
+			
+			<div class="row g-3">
+				<div class="col-md-12">
+					<div class="product-search-wrapper" style="position: relative;">
+						<i class="fas fa-barcode" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #6c757d; z-index: 10;"></i>
+						<?= form_input([
+							'name' => 'barcode_search',
+							'type' => 'text',
+							'class' => 'form-control form-control-lg',
+							'id' => 'barcode-search',
+							'placeholder' => 'Scan barcode atau ketik SKU produk...',
+							'style' => 'padding-left: 45px;'
+						]) ?>
+					</div>
+					<small class="text-muted"><i class="fas fa-info-circle"></i> Scan barcode atau ketik SKU produk untuk menambahkan ke keranjang</small>
+				</div>
+			</div>
+		</div>
+
 		<!-- Cart Items Section -->
 		<div class="sales-form-section">
 			<div class="section-title">
@@ -427,6 +452,17 @@
 							</div>
 						</div>
 						<div class="col-md-4">
+							<label class="form-label">Tipe Pajak</label>
+							<?= form_dropdown('tax_type', [
+								'0' => 'Tidak Ada Pajak',
+								'1' => 'PPN Termasuk',
+								'2' => 'PPN Ditambahkan'
+							], set_value('tax_type', '0'), [
+								'class' => 'form-control',
+								'id' => 'tax-type-input'
+							]) ?>
+						</div>
+						<div class="col-md-4">
 							<label class="form-label">Jumlah Pajak</label>
 							<div class="input-group">
 								<span class="input-group-text bg-light">Rp</span>
@@ -438,9 +474,11 @@
 									'step' => '0.01',
 									'min' => '0',
 									'id' => 'tax-input',
-									'placeholder' => '0.00'
+									'placeholder' => '0.00',
+									'readonly' => true
 								]) ?>
 							</div>
+							<small class="text-muted"><i class="fas fa-info-circle"></i> Dihitung otomatis berdasarkan tipe pajak</small>
 						</div>
 					</div>
 				</div>
@@ -690,14 +728,40 @@ function calculateTotals() {
 	});
 	
 	var discount = parseFloat($('#discount-input').val()) || 0;
-	var tax = parseFloat($('#tax-input').val()) || 0;
-	var grandTotal = subtotal - discount + tax;
+	var baseAmount = subtotal - discount;
+	
+	// Calculate tax based on tax_type
+	var taxType = $('#tax-type-input').val() || '0';
+	var taxAmount = 0;
+	var ppnPercentage = <?= floatval($ppnPercentage ?? 11) ?>;
+	
+	if (taxType === '1') {
+		// Include tax (PPN termasuk): tax is included in baseAmount
+		// Tax = baseAmount - (baseAmount / (1 + ppn/100))
+		taxAmount = baseAmount - (baseAmount / (1 + (ppnPercentage / 100)));
+	} else if (taxType === '2') {
+		// Added tax (PPN ditambahkan): tax is added on top
+		taxAmount = baseAmount * (ppnPercentage / 100);
+	} else {
+		// No tax (tax_type = '0')
+		taxAmount = 0;
+	}
+	
+	var grandTotal = baseAmount;
+	if (taxType === '2') {
+		// For added tax, add tax to grand total
+		grandTotal = baseAmount + taxAmount;
+	} else if (taxType === '1') {
+		// For include tax, grand total is baseAmount (tax already included)
+		grandTotal = baseAmount;
+	}
 	
 	// Update displays
 	$('#subtotal-display').text(formatCurrency(subtotal));
 	$('#subtotal-input').val(subtotal);
 	$('#discount-display').text(formatCurrency(discount));
-	$('#tax-display').text(formatCurrency(tax));
+	$('#tax-display').text(formatCurrency(taxAmount));
+	$('#tax-input').val(taxAmount.toFixed(2));
 	$('#grand-total-display').text(formatCurrency(grandTotal));
 	$('#grand-total-input').val(grandTotal);
 }

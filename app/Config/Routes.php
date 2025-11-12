@@ -119,6 +119,7 @@ $routes->group('agent', function($routes) {
     $routes->post('sales/activateSN/(:num)', 'Agent\Sales::activateSN/$1');
     $routes->post('sales/store', 'Agent\Sales::store');
     $routes->post('sales/addToCart', 'Agent\Sales::addToCart');
+    $routes->post('sales/searchProductBySku', 'Agent\Sales::searchProductBySku');
     $routes->post('sales/updateCart', 'Agent\Sales::updateCart');
     $routes->post('sales/removeFromCart', 'Agent\Sales::removeFromCart');
     $routes->get('sales/clearCart', 'Agent\Sales::clearCart');
