@@ -859,6 +859,10 @@ $(document).ready(function() {
 		}
 		items.forEach(function(item, index) {
 			let hasSN = item.sns && item.sns.length > 0;
+			// If SN exists, force qty to 1 and make it readonly
+			if (hasSN) {
+				item.qty = 1;
+			}
 			let qtyReadonly = hasSN ? 'readonly' : '';
 			let qtyValue = hasSN ? '1' : item.qty;
 			let row = '<tr data-index="' + index + '">';
@@ -916,10 +920,24 @@ $(document).ready(function() {
 		let row = $(this).closest('tr');
 		let index = row.data('index');
 		let qtyInput = row.find('.item-qty');
+		
+		// Check if item has serial number - if yes, qty must be 1 and readonly
+		let hasSN = items[index].sns && items[index].sns.length > 0;
+		if (hasSN) {
+			qtyInput.prop('readonly', true);
+			qtyInput.val('1');
+		}
+		
 		if (qtyInput.prop('readonly')) {
 			qtyInput.val('1');
 		}
 		let qty = parseFloat(qtyInput.val()) || 1;
+		
+		// If SN exists, force qty to 1
+		if (hasSN) {
+			qty = 1;
+		}
+		
 		let price = parseFloat(row.find('.item-price').val()) || 0;
 		let discount = parseFloat(row.find('.item-discount').val()) || 0;
 		let subtotal = (qty * price) - discount;
