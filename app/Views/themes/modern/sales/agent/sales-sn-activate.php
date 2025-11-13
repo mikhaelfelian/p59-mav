@@ -150,6 +150,14 @@ html[data-bs-theme="dark"] .activation-header h5 {
 							<input type="text" class="form-control activation-form-input" value="<?= esc($sn['sn'] ?? '') ?>" readonly>
 						</div>
 
+						<!-- No HP -->
+						<div class="mb-3">
+							<label class="activation-form-label">No HP</label>
+							<input type="text" class="form-control activation-form-input" name="no_hp" id="no_hp" 
+								value="<?= set_value('no_hp', $sn['no_hp'] ?? '') ?>" 
+								placeholder="Masukkan nomor HP" maxlength="20">
+						</div>
+
 						<!-- No Plat (Segmented) -->
 						<div class="mb-3">
 							<label class="activation-form-label">No Plat</label>

@@ -1549,6 +1549,7 @@ class Sales extends BaseController
                 'data'   => [
                     'id' => $snRecord['id'],
                     'sn' => $snRecord['sn'],
+                    'no_hp' => $snRecord['no_hp'] ?? '',
                     'plat_code' => $snRecord['plat_code'] ?? '',
                     'plat_number' => $snRecord['plat_number'] ?? '',
                     'plat_last' => $snRecord['plat_last'] ?? '',
@@ -1977,6 +1978,7 @@ class Sales extends BaseController
             }
 
             // Get form data
+            $noHp = trim($this->request->getPost('no_hp') ?? '');
             $platCode = $this->request->getPost('plat_code') ?? '';
             $platNumber = $this->request->getPost('plat_number') ?? '';
             $platLast = $this->request->getPost('plat_last') ?? '';
@@ -2041,6 +2043,7 @@ class Sales extends BaseController
 
             // Prepare update data
             $updateData = [
+                'no_hp' => $noHp,
                 'plat_code' => $platCode,
                 'plat_number' => $platNumber,
                 'plat_last' => $platLast,
