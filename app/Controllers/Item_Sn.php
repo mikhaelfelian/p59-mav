@@ -139,7 +139,6 @@ class Item_Sn extends BaseController
 
         $itemId = $this->request->getPost('item_id');
         $variantId = $this->request->getPost('variant_id') ?: null;
-        $agentId = 0;
         $snList = $this->request->getPost('sn_list');
         // Always default to '0' - these fields cannot be set via form for security
         $isSell = '0';
@@ -522,7 +521,9 @@ class Item_Sn extends BaseController
         $query = $this->model->select('item_sn.*, agent.name as agent_name, agent.code as agent_code, item_variant.variant_name, item_variant.sku_variant')
                             ->join('agent', 'agent.id = item_sn.agent_id', 'left')
                             ->join('item_variant', 'item_variant.id = item_sn.variant_id', 'left')
-                            ->where('item_sn.item_id', $itemId);
+                            ->where('item_sn.item_id', $itemId)
+                            ->where('item_sn.agent_id', '0')
+                            ->where('item_sn.is_sell', '0');
 
         // Filter by agent if user is agent (can only see own SNs)
         if (in_array('read_own', $this->userPermission) && !in_array('read_all', $this->userPermission)) {

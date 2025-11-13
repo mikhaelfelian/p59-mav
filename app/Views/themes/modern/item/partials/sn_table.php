@@ -11,13 +11,11 @@
             <tr>
                 <th>No</th>
                 <th>SN</th>
-                <th>Variant</th>
                 <th>Agen</th>
-                <th>Is Sell</th>
-                <th>Is Activated</th>
-                <th>Activated At</th>
-                <th>Expired At</th>
-                <th>Updated At</th>
+                <th>Terjual</th>
+                <th>Status</th>
+                <th>Garansi</th>
+                <th>Kadaluarsa</th>
                 <th class="text-center">Aksi</th>
             </tr>
         </thead>
@@ -55,9 +53,6 @@
                     return meta.row + 1;
                 }},
                 { data: 'sn' },
-                { data: 'variant_name', render: function(data, type, row) {
-                    return data ? '<span class="badge bg-info">' + (data || '-') + '</span>' : '<span class="text-muted">-</span>';
-                }},
                 { data: 'agent_name', render: function(data, type, row) {
                     return (row.agent_code || '') + ' ' + (data || '-');
                 }},
@@ -71,9 +66,6 @@
                     return data ? new Date(data).toLocaleString('id-ID') : '-';
                 }},
                 { data: 'expired_at', render: function(data) {
-                    return data ? new Date(data).toLocaleString('id-ID') : '-';
-                }},
-                { data: 'updated_at', render: function(data) {
                     return data ? new Date(data).toLocaleString('id-ID') : '-';
                 }},
                 { data: null, orderable: false, render: function(data, type, row) {
