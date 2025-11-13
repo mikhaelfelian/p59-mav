@@ -12,6 +12,7 @@
     <div class="card-body">
         <form id="sn-form">
             <input type="hidden" name="item_id" value="<?= esc($item_id) ?>">
+            <input type="hidden" name="agent_id" value="0">
             <?php if (!empty($variant_id)): ?>
                 <input type="hidden" name="variant_id" value="<?= esc($variant_id) ?>">
                 <?php if (!empty($variant_info)): ?>
@@ -24,35 +25,21 @@
                 <?php endif; ?>
             <?php endif; ?>
             
-            <!-- Row 1: Agent Selection -->
+            <!-- Row 1: Information & Template Download -->
             <div class="row g-3 mb-3">
-                <div class="col-md-6">
-                    <label class="form-label fw-semibold">
-                        Agen <span class="text-danger">*</span>
-                    </label>
-                    <select name="agent_id" id="agent_id" class="form-select" <?= $is_agent_locked ? 'disabled' : '' ?> required>
-                        <option value="">-- Pilih Agen --</option>
-                        <?php foreach ($agents as $agent): ?>
-                            <option value="<?= $agent->id ?>" <?= ($locked_agent_id && $agent->id == $locked_agent_id) ? 'selected' : '' ?>>
-                                <?= esc($agent->code ?? '') ?> - <?= esc($agent->name ?? '') ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                    <?php if ($is_agent_locked): ?>
-                        <input type="hidden" name="agent_id" value="<?= $locked_agent_id ?>">
+                <div class="col-md-12 d-flex flex-column flex-md-row align-items-md-center justify-content-between">
+                    <div class="mb-2 mb-md-0">
+                        <div class="fw-semibold text-secondary">
+                            Seluruh SN yang diinput dimiliki oleh pusat.
+                        </div>
                         <small class="text-muted">
                             <i class="fas fa-info-circle me-1"></i>
-                            Agen terkunci ke akun Anda
+                            SN akan otomatis dialihkan ke agen saat transaksi penjualan berlangsung.
                         </small>
-                    <?php endif; ?>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label fw-semibold">&nbsp;</label>
-                    <div>
-                        <a href="<?= rtrim($config->baseURL, '/') ?>/item-sn/downloadTemplate" class="btn btn-info btn-sm">
-                            <i class="fas fa-download me-1"></i> Download Template Excel
-                        </a>
                     </div>
+                    <a href="<?= rtrim($config->baseURL, '/') ?>/item-sn/downloadTemplate" class="btn btn-info btn-sm">
+                        <i class="fas fa-download me-1"></i> Download Template Excel
+                    </a>
                 </div>
             </div>
 
@@ -129,24 +116,10 @@
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const agentId = form.querySelector('[name="agent_id"]').value;
             const hasSnList = snList && snList.value.trim();
             const hasExcelFile = excelFile && excelFile.files.length > 0;
 
             // Validation
-            if (!agentId) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Validasi Gagal',
-                        text: 'Pilih Agen harus diisi'
-                    });
-                } else {
-                    alert('Pilih Agen harus diisi');
-                }
-                return;
-            }
-
             if (!hasSnList && !hasExcelFile) {
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({

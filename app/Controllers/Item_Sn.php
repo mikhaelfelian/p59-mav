@@ -139,7 +139,7 @@ class Item_Sn extends BaseController
 
         $itemId = $this->request->getPost('item_id');
         $variantId = $this->request->getPost('variant_id') ?: null;
-        $agentId = $this->request->getPost('agent_id');
+        $agentId = 0;
         $snList = $this->request->getPost('sn_list');
         // Always default to '0' - these fields cannot be set via form for security
         $isSell = '0';
@@ -147,28 +147,10 @@ class Item_Sn extends BaseController
         $activatedAt = null;
         $expiredAt = null;
 
-        // Validate agent selection (lock agents to their own account)
-        if (in_array('read_own', $this->userPermission) && !in_array('read_all', $this->userPermission)) {
-            // Agent user - verify they can only use their own agent
-            $db = \Config\Database::connect();
-            $userRoleAgent = $db->table('user_role_agent')
-                                ->where('user_id', $this->user['id_user'])
-                                ->where('agent_id', $agentId)
-                                ->get()
-                                ->getRow();
-            
-            if (!$userRoleAgent) {
-                return $this->response->setJSON([
-                    'status' => 'error',
-                    'message' => 'Anda tidak memiliki akses ke agen yang dipilih.'
-                ]);
-            }
-        }
-
-        if (empty($itemId) || empty($agentId) || empty($snList)) {
+        if (empty($itemId) || empty($snList)) {
             return $this->response->setJSON([
                 'status' => 'error',
-                'message' => 'Item, Agen, dan Serial Number harus diisi.'
+                'message' => 'Item dan Serial Number harus diisi.'
             ]);
         }
 
@@ -204,7 +186,7 @@ class Item_Sn extends BaseController
             $data = [
                 'item_id' => $itemId,
                 'variant_id' => $variantId,
-                'agent_id' => $agentId,
+                'agent_id' => 0,
                 'user_id' => $this->user['id_user'],
                 'sn' => $sn,
                 'is_sell' => $isSell,
@@ -256,7 +238,7 @@ class Item_Sn extends BaseController
         $file = $this->request->getFile('excel_file');
         $itemId = $this->request->getPost('item_id');
         $variantId = $this->request->getPost('variant_id') ?: null;
-        $agentId = $this->request->getPost('agent_id');
+        $agentId = 0;
 
         if (!$file || !$file->isValid() || $file->hasMoved()) {
             return $this->response->setJSON([
@@ -271,23 +253,6 @@ class Item_Sn extends BaseController
                 'status' => 'error',
                 'message' => 'File harus berupa Excel (.xlsx atau .xls).'
             ]);
-        }
-
-        // Validate agent selection (lock agents to their own account)
-        if (in_array('read_own', $this->userPermission) && !in_array('read_all', $this->userPermission)) {
-            $db = \Config\Database::connect();
-            $userRoleAgent = $db->table('user_role_agent')
-                                ->where('user_id', $this->user['id_user'])
-                                ->where('agent_id', $agentId)
-                                ->get()
-                                ->getRow();
-            
-            if (!$userRoleAgent) {
-                return $this->response->setJSON([
-                    'status' => 'error',
-                    'message' => 'Anda tidak memiliki akses ke agen yang dipilih.'
-                ]);
-            }
         }
 
         // If variant_id is provided, validate it belongs to the item
@@ -339,7 +304,7 @@ class Item_Sn extends BaseController
                 $data[] = [
                     'item_id' => $itemId,
                     'variant_id' => $variantId,
-                    'agent_id' => $agentId,
+                    'agent_id' => 0,
                     'user_id' => $this->user['id_user'],
                     'sn' => $sn,
                     'sn_replaced' => $snReplaced,
