@@ -144,13 +144,19 @@ $totalPages = $pagerInfo['totalPages'] ?? 1;
                                         <div class="mb-3">
                                             <div class="text-primary fw-bold fs-5"><?= format_angka_rp($displayPrice) ?></div>
                                         </div>
-                                        <button type="button"
-                                                class="btn btn-primary btn-lg rounded-pill w-100 btn-add-cart"
-                                                data-item-id="<?= esc($itemId) ?>"
-                                                data-item-name="<?= esc($itemName) ?>"
-                                                data-item-price="<?= esc($displayPrice) ?>">
-                                            <i class="fas fa-shopping-cart me-2"></i>Tambah
-                                        </button>
+                                        <div class="d-flex flex-column gap-2">
+                                            <button type="button"
+                                                    class="btn btn-primary btn-lg rounded-pill w-100 btn-add-cart"
+                                                    data-item-id="<?= esc($itemId) ?>"
+                                                    data-item-name="<?= esc($itemName) ?>"
+                                                    data-item-price="<?= esc($displayPrice) ?>">
+                                                <i class="fas fa-shopping-cart me-2"></i>Tambah
+                                            </button>
+                                            <a href="<?= $config->baseURL ?>agent/item/detail/<?= esc($itemId) ?>"
+                                               class="btn btn-outline-secondary rounded-pill w-100">
+                                                <i class="fas fa-info-circle me-2"></i>Detail
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -199,13 +205,19 @@ $totalPages = $pagerInfo['totalPages'] ?? 1;
                                         </div>
 
                                         <div class="mt-auto">
-                                            <button type="button"
-                                                    class="btn btn-primary w-100 rounded-pill btn-add-cart"
-                                                    data-item-id="<?= esc($itemId) ?>"
-                                                    data-item-name="<?= esc($itemName) ?>"
-                                                    data-item-price="<?= esc($displayPrice) ?>">
-                                                <i class="fas fa-shopping-cart me-2"></i>Tambah
-                                            </button>
+                                            <div class="d-flex flex-column gap-2">
+                                                <button type="button"
+                                                        class="btn btn-primary w-100 rounded-pill btn-add-cart"
+                                                        data-item-id="<?= esc($itemId) ?>"
+                                                        data-item-name="<?= esc($itemName) ?>"
+                                                        data-item-price="<?= esc($displayPrice) ?>">
+                                                    <i class="fas fa-shopping-cart me-2"></i>Tambah
+                                                </button>
+                                                <a href="<?= $config->baseURL ?>agent/item/detail/<?= esc($itemId) ?>"
+                                                   class="btn btn-outline-secondary rounded-pill w-100">
+                                                    <i class="fas fa-info-circle me-2"></i>Detail
+                                                </a>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -599,6 +611,7 @@ $(document).ready(function () {
             button.html(originalText);
         });
     });
+
 });
 </script>
 
@@ -695,13 +708,13 @@ $(document).ready(function () {
     transform: scale(1.05);
 }
 
-.agent-catalog-page .btn-add-cart {
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: .4px;
-}
+    .agent-catalog-page .btn-add-cart {
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+    }
 
-@media (max-width: 991.98px) {
+    @media (max-width: 991.98px) {
     .btn-floating-filter {
         bottom: 15px;
         right: 15px;

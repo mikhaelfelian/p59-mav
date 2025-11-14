@@ -107,6 +107,7 @@ $routes->group('agent', function($routes) {
 
     // Agent Item (POS View)
     $routes->get('item', 'Agent\Item::index');
+    $routes->get('item/detail/(:num)', 'Agent\Item::detail/$1');
 
     // Agent Sales (Cart & Checkout)
     $routes->get('sales', 'Agent\Sales::index');

@@ -695,8 +695,9 @@ class Sales extends BaseController
                 if ($gwStatus === '1') {
                     
                     // Prepare API request data
+                    // Use calculated grandTotal instead of POST data to ensure consistency
                     $invoiceNo = trim($postData['invoice_no']);
-                    $grandTotal = (float)($postData['grand_total'] ?? 0);
+                    // Don't overwrite calculated grandTotal - use it directly
                     
                     // Get customer email and phone from form data
                     $customerEmail = !empty($postData['customer_email']) ? trim($postData['customer_email']) : '';
@@ -729,7 +730,8 @@ class Sales extends BaseController
                     $firstName = $nameParts[0] ?? 'Customer';
                     $lastName = $nameParts[1] ?? $firstName;
                     
-                    // Prepare API payload matching Midtrans custom middleware format
+                    // Prepare API payload matching API specification
+                    // Ensure amount is integer (not float) as per API spec
                     $apiData = [
                         'code'     => $platform['gw_code'] ?? 'QRIS',
                         'orderId'  => $invoiceNo,

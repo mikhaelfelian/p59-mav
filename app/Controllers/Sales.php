@@ -326,6 +326,48 @@ class Sales extends BaseController
             $customerId = (int) $postData['customer_id'];
         }
 
+        // Calculate grandTotal before payment gateway call (needed for API payload)
+        $taxType = $postData['tax_type'] ?? '0';
+        $subtotal = (float)($postData['subtotal'] ?? 0);
+        $discountAmount = (float)($postData['discount'] ?? 0);
+        $baseAmount = $subtotal - $discountAmount;
+        
+        // Get PPN percentage from settings
+        $baseModel = new \App\Models\BaseModel();
+        $settings = $baseModel->getSettingAplikasi();
+        $ppnPercentage = (float) ($settings['ppn'] ?? 11); // Default 11%
+        
+        $taxAmount = 0;
+        $grandTotal = $baseAmount;
+        
+        if ($taxType === '1') {
+            // Include tax (PPN termasuk): tax is included in grand_total
+            // If user enters grand_total, calculate tax from it
+            $grandTotalInput = (float)($postData['grand_total'] ?? $baseAmount);
+            // Tax = grand_total - (grand_total / (1 + ppn/100))
+            $taxAmount = $grandTotalInput - ($grandTotalInput / (1 + ($ppnPercentage / 100)));
+            $grandTotal = $grandTotalInput;
+        } elseif ($taxType === '2') {
+            // Added tax (PPN ditambahkan): tax is added on top
+            $taxAmount = $baseAmount * ($ppnPercentage / 100);
+            $grandTotal = $baseAmount + $taxAmount;
+        } else {
+            // No tax (tax_type = '0')
+            $taxAmount = 0;
+            $grandTotal = $baseAmount;
+        }
+        
+        // Add total fees to grand total
+        $totalFees = 0;
+        if (!empty($postData['fees']) && is_array($postData['fees'])) {
+            foreach ($postData['fees'] as $fee) {
+                if (!empty($fee['amount'])) {
+                    $totalFees += (float)$fee['amount'];
+                }
+            }
+        }
+        $grandTotal += $totalFees;
+
         // Handle payment gateway API call if platform is selected
         $gatewayResponse = null;
         $platformId = !empty($postData['platform_id']) ? (int) $postData['platform_id'] : null;
@@ -340,8 +382,9 @@ class Sales extends BaseController
             $gwStatus = (string) $gwStatus;
             if ($platform && $gwStatus === '1') {
                 // Prepare API request data
+                // Use calculated grandTotal instead of POST data to ensure consistency
                 $invoiceNo  = trim($postData['invoice_no']);
-                $grandTotal = (float) ($postData['grand_total'] ?? 0);
+                // Use calculated grandTotal (already calculated above)
 
                 // Get customer email and phone from existing customer or form data
                 $customerEmail = !empty($postData['customer_email']) ? trim($postData['customer_email']) : '';
@@ -373,7 +416,8 @@ class Sales extends BaseController
                 $firstName = $nameParts[0] ?? 'Customer';
                 $lastName  = $nameParts[1] ?? $firstName;
 
-                // Prepare API payload matching Midtrans custom middleware format
+                // Prepare API payload matching API specification
+                // Ensure amount is integer (not float) as per API spec
                 $apiData = [
                     'code'     => $platform['gw_code'] ?? 'QRIS',
                     'orderId'  => $invoiceNo,
@@ -486,47 +530,8 @@ class Sales extends BaseController
                 }
             }
 
-            // Calculate tax based on tax_type
-            $taxType = $postData['tax_type'] ?? '0';
-            $subtotal = (float)($postData['subtotal'] ?? 0);
-            $discountAmount = (float)($postData['discount'] ?? 0);
-            $baseAmount = $subtotal - $discountAmount;
-            
-            // Get PPN percentage from settings
-            $baseModel = new \App\Models\BaseModel();
-            $settings = $baseModel->getSettingAplikasi();
-            $ppnPercentage = (float) ($settings['ppn'] ?? 11); // Default 11%
-            
-            $taxAmount = 0;
-            $grandTotal = $baseAmount;
-            
-            if ($taxType === '1') {
-                // Include tax (PPN termasuk): tax is included in grand_total
-                // If user enters grand_total, calculate tax from it
-                $grandTotalInput = (float)($postData['grand_total'] ?? $baseAmount);
-                // Tax = grand_total - (grand_total / (1 + ppn/100))
-                $taxAmount = $grandTotalInput - ($grandTotalInput / (1 + ($ppnPercentage / 100)));
-                $grandTotal = $grandTotalInput;
-            } elseif ($taxType === '2') {
-                // Added tax (PPN ditambahkan): tax is added on top
-                $taxAmount = $baseAmount * ($ppnPercentage / 100);
-                $grandTotal = $baseAmount + $taxAmount;
-            } else {
-                // No tax (tax_type = '0')
-                $taxAmount = 0;
-                $grandTotal = $baseAmount;
-            }
-            
-            // Add total fees to grand total
-            $totalFees = 0;
-            if (!empty($postData['fees']) && is_array($postData['fees'])) {
-                foreach ($postData['fees'] as $fee) {
-                    if (!empty($fee['amount'])) {
-                        $totalFees += (float)$fee['amount'];
-                    }
-                }
-            }
-            $grandTotal += $totalFees;
+            // Use already calculated grandTotal (calculated before payment gateway call)
+            // Tax calculation and grandTotal are already done above
 
             // Save to sales table
             $saleData = [

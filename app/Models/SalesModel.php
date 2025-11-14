@@ -85,35 +85,48 @@ class SalesModel extends Model
 
     /**
      * Generate unique invoice number
-     * Format: INVyyyymmddXXX, with incremental XXX per day/prefix
+     * Format: XXXXXXYYYYMMDD (6-digit sequence + date), numeric-only
      * 
-     * @param string $prefix Prefix for invoice (default: 'INV')
+     * @param string $prefix Prefix for invoice (deprecated, kept for backward compatibility)
      * @return string Unique invoice number
      */
-    public function generateInvoiceNo($prefix = 'INV')
+    public function generateInvoiceNo($prefix = '')
     {
-        $date = date('Ymd');
-        $base = $prefix . $date;
-
+        $date = date('Ymd'); // YYYYMMDD format
+        
+        // Find last invoice for current date (ending with YYYYMMDD)
+        // Match pattern: XXXXXXYYYYMMDD where XXXXXX is 6-digit sequence
+        // Find invoices that end with current date and are exactly 14 characters (6 digits + 8 date)
         $lastInvoice = $this->select('invoice_no')
-            ->like('invoice_no', $base, 'after')
+            ->where('invoice_no LIKE', '%' . $date)
+            ->where('LENGTH(invoice_no)', 14) // Ensure it's exactly 14 characters (6 digits + 8 date)
             ->orderBy('id', 'DESC')
             ->first();
 
-        if ($lastInvoice) {
-            $matches = [];
-            // Extract last 3-4 digits at the end of the invoice string
-            if (preg_match('/(\d{3,4})$/', $lastInvoice['invoice_no'], $matches)) {
-                $lastNumber = (int) $matches[1];
+        if ($lastInvoice && !empty($lastInvoice['invoice_no'])) {
+            $invoiceNo = $lastInvoice['invoice_no'];
+            // Check if invoice ends with current date
+            if (substr($invoiceNo, -8) === $date) {
+                // Extract 6-digit sequence from beginning
+                $sequence = substr($invoiceNo, 0, 6);
+                if (preg_match('/^\d{6}$/', $sequence)) {
+                    $lastNumber = (int) $sequence;
+                    $newNumber = $lastNumber + 1;
+                } else {
+                    // If format doesn't match, start from 1
+                    $newNumber = 1;
+                }
             } else {
-                $lastNumber = 0;
+                // Invoice doesn't match current date format, start from 1
+                $newNumber = 1;
             }
-            $newNumber = $lastNumber + 1;
         } else {
+            // No invoice found for current date, start from 1
             $newNumber = 1;
         }
 
-        $newInvoice = $base . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
+        // Format: 6-digit sequence + YYYYMMDD
+        $newInvoice = str_pad($newNumber, 6, '0', STR_PAD_LEFT) . $date;
         return $newInvoice;
     }
 

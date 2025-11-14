@@ -11,14 +11,7 @@
 		<h5 class="card-title">Data Penjualan (Online)</h5>
 	</div>
 
-	<div class="card-body">
-		<?php if ($canCreate): ?>
-		<a href="<?= $config->baseURL ?>agent/sales/cart" class="btn btn-success btn-xs btn-add">
-			<i class="fa fa-plus pe-1"></i> Tambah
-		</a>
-		<hr />
-		<?php endif; ?>
-		
+	<div class="card-body">	
 		<?php
 		if (!empty($msg)) {
 			show_alert($msg);

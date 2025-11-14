@@ -19,6 +19,7 @@ use App\Controllers\BaseController;
 use App\Models\ItemModel;
 use App\Models\ItemCategoryModel;
 use App\Models\ItemBrandModel;
+use App\Models\ItemSpecIdModel;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class Item extends BaseController
@@ -26,6 +27,7 @@ class Item extends BaseController
     protected $itemModel;
     protected $categoryModel;
     protected $brandModel;
+    protected $itemSpecIdModel;
     
     /**
      * Initialize models
@@ -36,6 +38,7 @@ class Item extends BaseController
         $this->itemModel = new ItemModel();
         $this->categoryModel = new ItemCategoryModel();
         $this->brandModel = new ItemBrandModel();
+        $this->itemSpecIdModel = new ItemSpecIdModel();
     }
     
     /**
@@ -339,6 +342,61 @@ class Item extends BaseController
         }
 
         return [];
+    }
+
+    /**
+     * Display product detail page
+     * 
+     * @param int $id Item ID
+     * @return string|ResponseInterface
+     */
+    public function detail($id)
+    {
+        helper(['form', 'angka']);
+
+        try {
+            // Get item details
+            $item = $this->itemModel
+                ->select('item.*, item_category.category as category_name, item_brand.name as brand_name')
+                ->join('item_category', 'item_category.id = item.category_id', 'left')
+                ->join('item_brand', 'item_brand.id = item.brand_id', 'left')
+                ->where('item.id', $id)
+                ->where('item.status', '1')
+                ->first();
+
+            if (!$item) {
+                $this->session->setFlashdata('message', 'Produk tidak ditemukan.');
+                return redirect()->to('agent/item');
+            }
+
+            // Convert to array
+            $itemData = is_array($item) ? $item : (array) $item;
+
+            // Get specifications
+            $specifications = $this->itemSpecIdModel->getSpecsForItem($id);
+            $specsData = [];
+            foreach ($specifications as $spec) {
+                $specsData[] = [
+                    'name' => $spec->spec_name ?? '',
+                    'value' => $spec->value ?? ''
+                ];
+            }
+
+            // Prepare view data
+            $this->data['title'] = ($itemData['name'] ?? 'Detail Produk') . ' - Katalog Produk Agen';
+            $this->data['currentModule'] = $this->currentModule;
+            $this->data['config'] = $this->config;
+            $this->data['item'] = $itemData;
+            $this->data['specifications'] = $specsData;
+
+            // Render view
+            return $this->view('sales/agent/item-detail', $this->data);
+
+        } catch (\Exception $e) {
+            log_message('error', 'Agent\Item::detail error: ' . $e->getMessage());
+            $this->session->setFlashdata('message', 'Gagal memuat detail produk: ' . $e->getMessage());
+            return redirect()->to('agent/item');
+        }
     }
 }
 
