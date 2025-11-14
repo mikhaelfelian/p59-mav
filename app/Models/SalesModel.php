@@ -5,7 +5,7 @@
  * Date: 2025-11-01
  * Github: github.com/mikhaelfelian
  * Description: Model for managing sales transactions with CRUD operations
- * This file represents the Model for SalesModel.
+ * This file maps to table `sales`.
  */
 
 namespace App\Models;
@@ -22,6 +22,7 @@ class SalesModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
+
     protected $allowedFields    = [
         'invoice_no',
         'user_id',
@@ -29,38 +30,43 @@ class SalesModel extends Model
         'warehouse_id',
         'sale_channel',
         'total_amount',
+        'total_payment',
+        'balance_due',
         'discount_amount',
         'tax_amount',
         'tax_type',
         'grand_total',
-        'payment_status',
-        'settlement_time',
         'delivery_address',
         'note',
-        'status'
+        'payment_status',
+        'settlement_time'
     ];
 
     // Dates
-    protected $useTimestamps = true;
+    protected $useTimestamps = false;
+    // DB columns: created_at and updated_at are TIMESTAMP type
     protected $dateFormat    = 'datetime';
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
-    protected $deletedField  = 'deleted_at';
 
     // Validation
     protected $validationRules      = [
-        'invoice_no' => 'required|max_length[50]|is_unique[sales.invoice_no,id,{id}]',
-        'user_id' => 'required|integer',
-        'customer_id' => 'permit_empty|integer',
-        'warehouse_id' => 'permit_empty|integer',
-        'sale_channel' => 'required|in_list[1,2]',
-        'total_amount' => 'permit_empty|decimal',
-        'discount_amount' => 'permit_empty|decimal',
-        'tax_amount' => 'permit_empty|decimal',
-        'tax_type' => 'permit_empty|in_list[0,1,2]',
-        'grand_total' => 'permit_empty|decimal',
-        'payment_status' => 'permit_empty|in_list[0,1,2]',
-        'status' => 'permit_empty|in_list[0,1,2]'
+        'invoice_no'      => 'required|max_length[50]|is_unique[sales.invoice_no,id,{id}]',
+        'user_id'         => 'required|integer',
+        'customer_id'     => 'permit_empty|integer',
+        'warehouse_id'    => 'permit_empty|integer',
+        'sale_channel'    => 'required|in_list[1,2]',
+        'total_amount'    => 'required|decimal',
+        'total_payment'   => 'required|decimal',
+        'balance_due'     => 'required|decimal',
+        'discount_amount' => 'required|decimal',
+        'tax_amount'      => 'required|decimal',
+        'tax_type'        => 'required|in_list[0,1,2]',
+        'grand_total'     => 'required|decimal',
+        'delivery_address'=> 'permit_empty|string',
+        'note'            => 'permit_empty|string',
+        'payment_status'  => 'required|in_list[0,1,2]',
+        'settlement_time' => 'permit_empty|valid_date'
     ];
     protected $validationMessages   = [];
     protected $skipValidation       = false;
@@ -79,28 +85,36 @@ class SalesModel extends Model
 
     /**
      * Generate unique invoice number
+     * Format: INVyyyymmddXXX, with incremental XXX per day/prefix
      * 
      * @param string $prefix Prefix for invoice (default: 'INV')
      * @return string Unique invoice number
      */
     public function generateInvoiceNo($prefix = 'INV')
     {
-        $prefix = strval(rand(100, 999));
-
         $date = date('Ymd');
+        $base = $prefix . $date;
+
         $lastInvoice = $this->select('invoice_no')
-            ->like('invoice_no', $prefix . $date)
+            ->like('invoice_no', $base, 'after')
             ->orderBy('id', 'DESC')
             ->first();
 
         if ($lastInvoice) {
-            $lastNumber = (int) substr($lastInvoice['invoice_no'], -4);
+            $matches = [];
+            // Extract last 3-4 digits at the end of the invoice string
+            if (preg_match('/(\d{3,4})$/', $lastInvoice['invoice_no'], $matches)) {
+                $lastNumber = (int) $matches[1];
+            } else {
+                $lastNumber = 0;
+            }
             $newNumber = $lastNumber + 1;
         } else {
             $newNumber = 1;
         }
 
-        return str_pad($newNumber, 3, '0', STR_PAD_LEFT).$prefix . $date;
+        $newInvoice = $base . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
+        return $newInvoice;
     }
 
     /**
