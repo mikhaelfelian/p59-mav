@@ -35,7 +35,7 @@ $isModal = $isModal ?? false;
 					<a class="nav-link" data-bs-toggle="tab" href="#tab-product-rule" role="tab">Product & Promo Rules</a>
 				</li>
 					<li class="nav-item" role="presentation">
-						<a class="nav-link" data-bs-toggle="tab" href="#tab-input-sn" role="tab">Input SN</a>
+						<a class="nav-link" data-bs-toggle="tab" href="#tab-input-sn" role="tab">SN</a>
 					</li>
 			</ul>
 

@@ -564,4 +564,257 @@ class Item_Sn extends BaseController
         
         return $userRoleAgent ? $userRoleAgent->agent_id : null;
     }
+
+    /**
+     * Get sold SN list - handles both GET (view) and POST (DataTable) requests
+     * 
+     * @param int $item_id Item ID
+     * @return string|\CodeIgniter\HTTP\ResponseInterface View HTML or JSON response
+     */
+    public function getSoldSnList($item_id)
+    {
+        // Check if this is a DataTable POST request (has 'draw' parameter)
+        $isDataTableRequest = $this->request->getMethod() === 'POST' || $this->request->getPost('draw') !== null;
+        
+        // Handle POST request (DataTable server-side processing) - must return JSON
+        if ($isDataTableRequest) {
+            // Ensure JSON response
+            $this->response->setContentType('application/json');
+            
+            // Check permission
+            if (!$this->hasPermissionPrefix('read', true)) {
+                return $this->response->setJSON([
+                    'draw' => (int) ($this->request->getPost('draw') ?? 0),
+                    'recordsTotal' => 0,
+                    'recordsFiltered' => 0,
+                    'data' => [],
+                    'error' => 'Tidak memiliki izin untuk melihat data.'
+                ]);
+            }
+            
+            try {
+                return $this->getSoldSnDataTable($item_id);
+            } catch (\Exception $e) {
+                log_message('error', 'Item_Sn::getSoldSnList POST error: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString());
+                return $this->response->setJSON([
+                    'draw' => (int) ($this->request->getPost('draw') ?? 0),
+                    'recordsTotal' => 0,
+                    'recordsFiltered' => 0,
+                    'data' => [],
+                    'error' => 'Terjadi kesalahan: ' . $e->getMessage()
+                ]);
+            }
+        }
+
+        // Handle GET request (return view) - only if NOT a DataTable request
+        // Check permission
+        if (!$this->hasPermissionPrefix('read', true)) {
+            if ($this->request->isAJAX() || $this->request->getHeader('X-Requested-With')) {
+                return '<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>Tidak memiliki izin untuk melihat data SN terjual.</div>';
+            }
+            return redirect()->back()->with('message', ['status' => 'error', 'message' => 'Tidak memiliki izin untuk melihat data.']);
+        }
+
+        try {
+            $data = [
+                'item_id' => $item_id,
+                'config' => $this->config
+            ];
+
+            $html = view('themes/modern/item/sold_sn_table', $data);
+            
+            if ($this->request->isAJAX() || $this->request->getHeader('X-Requested-With')) {
+                return $html;
+            }
+            
+            return $html;
+        } catch (\Exception $e) {
+            log_message('error', 'Item_Sn::getSoldSnList GET error: ' . $e->getMessage());
+            if ($this->request->isAJAX() || $this->request->getHeader('X-Requested-With')) {
+                return '<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>Error loading sold SN list: ' . esc($e->getMessage()) . '</div>';
+            }
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Error loading sold SN list: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Get sold SN data for DataTable (server-side processing)
+     * 
+     * @param int $item_id Item ID
+     * @return \CodeIgniter\HTTP\ResponseInterface JSON response
+     */
+    private function getSoldSnDataTable($item_id)
+    {
+        try {
+            $draw = (int) ($this->request->getPost('draw') ?? 0);
+            $start = (int) ($this->request->getPost('start') ?? 0);
+            $length = (int) ($this->request->getPost('length') ?? 10);
+
+            // Defensive bounds for pagination
+            if ($start < 0) {
+                $start = 0;
+            }
+            if ($length < 1 || $length > 100) {
+                $length = 10;
+            }
+
+            // Retrieve search value from DataTables
+            $search = $this->request->getPost('search');
+            $searchValue = '';
+            if (is_array($search) && isset($search['value'])) {
+                $searchValue = trim($search['value']);
+            } elseif (is_string($search)) {
+                $searchValue = trim($search);
+            }
+
+            // Get order column and direction
+            $order = $this->request->getPost('order');
+            $orderColumn = 0;
+            $orderDir = 'desc';
+            if (!empty($order) && is_array($order) && isset($order[0])) {
+                $orderColumn = (int) ($order[0]['column'] ?? 0);
+                $orderDir = strtolower($order[0]['dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+            }
+
+            $db = \Config\Database::connect();
+            
+            // Build base query for counting total records (before filtering)
+            $countBuilder = $db->table('item_sn')
+                ->join('sales_item_sn', 'sales_item_sn.item_sn_id = item_sn.id', 'inner')
+                ->join('sales_detail', 'sales_detail.id = sales_item_sn.sales_item_id', 'inner')
+                ->join('sales', 'sales.id = sales_detail.sale_id', 'inner')
+                ->where('item_sn.item_id', $item_id)
+                ->where('item_sn.is_sell', '1');
+            
+            $recordsTotal = $countBuilder->countAllResults();
+            
+            // Build main query for data retrieval
+            $builder = $db->table('item_sn')
+                ->select('item_sn.id,
+                    item_sn.sn,
+                    item_sn.barcode,
+                    agent.name as agent_name,
+                    sales.created_at as sale_date,
+                    sales.invoice_no,
+                    sales_item_sn.no_hp,
+                    sales_item_sn.plat_code,
+                    sales_item_sn.plat_number,
+                    customer.name as customer_name,
+                    customer.phone as customer_phone')
+                ->join('sales_item_sn', 'sales_item_sn.item_sn_id = item_sn.id', 'inner')
+                ->join('sales_detail', 'sales_detail.id = sales_item_sn.sales_item_id', 'inner')
+                ->join('sales', 'sales.id = sales_detail.sale_id', 'inner')
+                ->join('agent', 'agent.id = sales.warehouse_id', 'left')
+                ->join('customer', 'customer.id = sales.customer_id', 'left')
+                ->where('item_sn.item_id', $item_id)
+                ->where('item_sn.is_sell', '1');
+
+            // Apply search filter
+            if (!empty($searchValue)) {
+                $builder->groupStart()
+                    ->like('item_sn.sn', $searchValue)
+                    ->orLike('item_sn.barcode', $searchValue)
+                    ->orLike('agent.name', $searchValue)
+                    ->orLike('sales.invoice_no', $searchValue)
+                    ->orLike('customer.name', $searchValue)
+                    ->orLike('sales_item_sn.no_hp', $searchValue)
+                    ->groupEnd();
+            }
+
+            // Get filtered count
+            $filteredBuilder = $db->table('item_sn')
+                ->join('sales_item_sn', 'sales_item_sn.item_sn_id = item_sn.id', 'inner')
+                ->join('sales_detail', 'sales_detail.id = sales_item_sn.sales_item_id', 'inner')
+                ->join('sales', 'sales.id = sales_detail.sale_id', 'inner')
+                ->join('agent', 'agent.id = sales.warehouse_id', 'left')
+                ->join('customer', 'customer.id = sales.customer_id', 'left')
+                ->where('item_sn.item_id', $item_id)
+                ->where('item_sn.is_sell', '1');
+            
+            if (!empty($searchValue)) {
+                $filteredBuilder->groupStart()
+                    ->like('item_sn.sn', $searchValue)
+                    ->orLike('item_sn.barcode', $searchValue)
+                    ->orLike('agent.name', $searchValue)
+                    ->orLike('sales.invoice_no', $searchValue)
+                    ->orLike('customer.name', $searchValue)
+                    ->orLike('sales_item_sn.no_hp', $searchValue)
+                    ->groupEnd();
+            }
+            
+            $recordsFiltered = $filteredBuilder->countAllResults();
+
+            // Apply ordering
+            $orderColumns = [
+                1 => 'item_sn.sn',
+                2 => 'item_sn.barcode',
+                3 => 'agent.name',
+                4 => 'sales.created_at',
+                6 => 'sales.invoice_no'
+            ];
+            
+            if (isset($orderColumns[$orderColumn])) {
+                $builder->orderBy($orderColumns[$orderColumn], $orderDir);
+            } else {
+                $builder->orderBy('sales.created_at', 'desc'); // Default order
+            }
+
+            // Apply pagination
+            $builder->limit($length, $start);
+
+            // Execute query
+            $results = $builder->get()->getResultArray();
+
+            // Format data for DataTable
+            $data = [];
+            foreach ($results as $row) {
+                // Format customer info
+                $customerInfo = [];
+                if (!empty($row['customer_name'])) {
+                    $customerInfo[] = $row['customer_name'];
+                }
+                if (!empty($row['customer_phone'])) {
+                    $customerInfo[] = '<i class="fas fa-phone me-1"></i>' . $row['customer_phone'];
+                }
+                if (!empty($row['no_hp'])) {
+                    $customerInfo[] = '<i class="fas fa-mobile-alt me-1"></i>' . $row['no_hp'];
+                }
+                if (!empty($row['plat_code']) && !empty($row['plat_number'])) {
+                    $customerInfo[] = '<i class="fas fa-car me-1"></i>' . $row['plat_code'] . ' ' . $row['plat_number'];
+                }
+                
+                $customerInfoStr = !empty($customerInfo) ? implode('<br>', $customerInfo) : '-';
+
+                $data[] = [
+                    'sn' => $row['sn'] ?? '-',
+                    'barcode' => !empty($row['barcode']) ? $row['barcode'] : '-',
+                    'agent_name' => $row['agent_name'] ?? '-',
+                    'sale_date' => $row['sale_date'] ?? null,
+                    'customer_info' => $customerInfoStr,
+                    'invoice_no' => $row['invoice_no'] ?? '-'
+                ];
+            }
+
+            return $this->response->setJSON([
+                'draw' => $draw,
+                'recordsTotal' => $recordsTotal,
+                'recordsFiltered' => $recordsFiltered,
+                'data' => $data
+            ]);
+
+        } catch (\Exception $e) {
+            log_message('error', 'Item_Sn::getSoldSnDataTable error: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString());
+            
+            return $this->response->setJSON([
+                'draw' => (int) ($this->request->getPost('draw') ?? 0),
+                'recordsTotal' => 0,
+                'recordsFiltered' => 0,
+                'data' => [],
+                'error' => 'Terjadi kesalahan saat memuat data: ' . $e->getMessage()
+            ]);
+        }
+    }
 }

@@ -163,6 +163,7 @@ $routes->post('item-sn/store', 'Item_Sn::store');
 $routes->post('item-sn/importExcel', 'Item_Sn::importExcel');
 $routes->get('item-sn/downloadTemplate', 'Item_Sn::downloadTemplate');
 $routes->post('item-sn/getSnList', 'Item_Sn::getSnList');
+$routes->match(['get', 'post'], 'item-sn/getSoldSnList/(:num)', 'Item_Sn::getSoldSnList/$1');
 $routes->get('item-sn/delete/(:num)', 'Item_Sn::delete/$1');
 
 # Item Variant Management
