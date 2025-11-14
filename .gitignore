@@ -128,3 +128,4 @@ example/
 public/uploads/*
 /template
 # *.sql
+*.rar
