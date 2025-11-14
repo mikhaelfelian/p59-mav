@@ -217,6 +217,7 @@ html[data-bs-theme="dark"] .activation-header h5 {
 							<input type="date" class="form-control activation-form-input" name="activated_at" id="activated_at" 
 								value="<?= set_value('activated_at', !empty($sn['activated_at']) ? date('Y-m-d', strtotime($sn['activated_at'])) : '') ?>" 
 								required>
+							<small class="text-muted">Maksimal backdate 2 minggu dari hari ini, tidak bisa future</small>
 						</div>
 
 						<!-- Tanggal Exp -->
@@ -224,6 +225,7 @@ html[data-bs-theme="dark"] .activation-header h5 {
 							<label class="activation-form-label">Tanggal Exp</label>
 							<input type="date" class="form-control activation-form-input" name="expired_at" id="expired_at" 
 								value="<?= set_value('expired_at', !empty($sn['expired_at']) ? date('Y-m-d', strtotime($sn['expired_at'])) : '') ?>">
+							<small class="text-muted">Otomatis dihitung dari Tanggal Aktif + garansi (<?= $itemWarrantyDays ?? 0 ?> hari)</small>
 						</div>
 					</div>
 				</div>
@@ -344,12 +346,156 @@ function formatFileSize(bytes) {
 	return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
 }
 
+// Date validation: Set min (2 weeks ago) and max (today) for activated_at
+// Auto-calculate expired_at from activated_at + warranty days
+$(document).ready(function() {
+	var activatedAtInput = document.getElementById('activated_at');
+	var expiredAtInput = document.getElementById('expired_at');
+	var warrantyDays = <?= $itemWarrantyDays ?? 0 ?>;
+	
+	if (activatedAtInput && expiredAtInput) {
+		var today = new Date();
+		var twoWeeksAgo = new Date();
+		twoWeeksAgo.setDate(today.getDate() - 14);
+		
+		// Format dates as YYYY-MM-DD
+		var todayStr = today.toISOString().split('T')[0];
+		var twoWeeksAgoStr = twoWeeksAgo.toISOString().split('T')[0];
+		
+		// Set min and max attributes
+		activatedAtInput.setAttribute('max', todayStr);
+		activatedAtInput.setAttribute('min', twoWeeksAgoStr);
+		
+		// Function to calculate expired date
+		function calculateExpiredDate(activatedDate) {
+			if (!activatedDate || !warrantyDays || warrantyDays <= 0) {
+				return '';
+			}
+			
+			var activated = new Date(activatedDate + 'T00:00:00'); // Add time to avoid timezone issues
+			activated.setDate(activated.getDate() + warrantyDays);
+			return activated.toISOString().split('T')[0];
+		}
+		
+		// Function to handle date validation and calculation
+		function handleDateChange() {
+			if (!this.value) {
+				return;
+			}
+			
+			var selectedDate = new Date(this.value + 'T00:00:00');
+			var today = new Date();
+			today.setHours(0, 0, 0, 0);
+			var twoWeeksAgo = new Date();
+			twoWeeksAgo.setDate(today.getDate() - 14);
+			twoWeeksAgo.setHours(0, 0, 0, 0);
+			
+			if (selectedDate > today) {
+				this.setCustomValidity('Tanggal tidak boleh lebih dari hari ini');
+				if (typeof Swal !== 'undefined') {
+					Swal.fire({
+						icon: 'error',
+						title: 'Tanggal Tidak Valid',
+						text: 'Tanggal aktif tidak boleh lebih dari hari ini'
+					});
+				} else {
+					alert('Tanggal aktif tidak boleh lebih dari hari ini');
+				}
+				this.value = todayStr;
+				// Recalculate after setting to today
+				if (warrantyDays > 0 && expiredAtInput) {
+					var expiredDate = calculateExpiredDate(this.value);
+					if (expiredDate) {
+						expiredAtInput.value = expiredDate;
+					}
+				}
+				return;
+			} else if (selectedDate < twoWeeksAgo) {
+				this.setCustomValidity('Tanggal tidak boleh lebih dari 2 minggu yang lalu');
+				if (typeof Swal !== 'undefined') {
+					Swal.fire({
+						icon: 'error',
+						title: 'Tanggal Tidak Valid',
+						text: 'Tanggal aktif maksimal backdate 2 minggu dari hari ini'
+					});
+				} else {
+					alert('Tanggal aktif maksimal backdate 2 minggu dari hari ini');
+				}
+				this.value = twoWeeksAgoStr;
+				// Recalculate after setting to two weeks ago
+				if (warrantyDays > 0 && expiredAtInput) {
+					var expiredDate = calculateExpiredDate(this.value);
+					if (expiredDate) {
+						expiredAtInput.value = expiredDate;
+					}
+				}
+				return;
+			} else {
+				this.setCustomValidity('');
+			}
+			
+			// Auto-calculate expired date if warranty exists
+			if (warrantyDays > 0 && expiredAtInput) {
+				var expiredDate = calculateExpiredDate(this.value);
+				if (expiredDate) {
+					expiredAtInput.value = expiredDate;
+				}
+			}
+		}
+		
+		// Add event listeners for both change and input events
+		activatedAtInput.addEventListener('change', handleDateChange);
+		activatedAtInput.addEventListener('input', handleDateChange);
+	}
+});
+
 // Form validation
 (function() {
 	'use strict';
 	var form = document.getElementById('formActivateSN');
 	if (form) {
 		form.addEventListener('submit', function(event) {
+			// Validate activated_at date range
+			var activatedAtInput = document.getElementById('activated_at');
+			if (activatedAtInput && activatedAtInput.value) {
+				var selectedDate = new Date(activatedAtInput.value);
+				var today = new Date();
+				today.setHours(0, 0, 0, 0);
+				var twoWeeksAgo = new Date();
+				twoWeeksAgo.setDate(today.getDate() - 14);
+				twoWeeksAgo.setHours(0, 0, 0, 0);
+				
+				if (selectedDate > today) {
+					event.preventDefault();
+					event.stopPropagation();
+					activatedAtInput.setCustomValidity('Tanggal tidak boleh lebih dari hari ini');
+					if (typeof Swal !== 'undefined') {
+						Swal.fire({
+							icon: 'error',
+							title: 'Tanggal Tidak Valid',
+							text: 'Tanggal aktif tidak boleh lebih dari hari ini'
+						});
+					} else {
+						alert('Tanggal aktif tidak boleh lebih dari hari ini');
+					}
+					return false;
+				} else if (selectedDate < twoWeeksAgo) {
+					event.preventDefault();
+					event.stopPropagation();
+					activatedAtInput.setCustomValidity('Tanggal tidak boleh lebih dari 2 minggu yang lalu');
+					if (typeof Swal !== 'undefined') {
+						Swal.fire({
+							icon: 'error',
+							title: 'Tanggal Tidak Valid',
+							text: 'Tanggal aktif maksimal backdate 2 minggu dari hari ini'
+						});
+					} else {
+						alert('Tanggal aktif maksimal backdate 2 minggu dari hari ini');
+					}
+					return false;
+				}
+			}
+			
 			if (!form.checkValidity()) {
 				event.preventDefault();
 				event.stopPropagation();

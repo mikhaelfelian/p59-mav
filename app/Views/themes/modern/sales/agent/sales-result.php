@@ -30,12 +30,13 @@
 			'invoice_no'            => 'No Nota',
 			'customer_name'         => 'Pelanggan',
 			'grand_total'           => 'Total',
+			'balance_due'           => 'Kurang Bayar',
 			'payment_status'        => 'Status',
 			'created_at'            => 'Tanggal',
 			'ignore_search_action'  => '#'
 		];
 
-		$settings['order'] = [6, 'desc']; // Order by created_at descending
+		$settings['order'] = [7, 'desc']; // Order by created_at descending
 		$index = 0;
 		$th = '';
 		

@@ -1275,7 +1275,8 @@ class Sales extends BaseController
         
         return $builder->select('sales.*, 
             customer.name as customer_name,
-            user.nama as user_name')
+            user.nama as user_name,
+            COALESCE(sales.balance_due, sales.grand_total - COALESCE(sales.total_payment, 0)) as balance_due')
             ->join('customer', 'customer.id = sales.customer_id', 'left')
             ->join('user', 'user.id_user = sales.user_id', 'left');
     }
@@ -1371,12 +1372,23 @@ class Sales extends BaseController
             $actionButtons .= '<i class="fas fa-eye"></i></a>';
             $actionButtons .= '</div>';
 
+            // Calculate balance_due
+            $balanceDue = 0;
+            if (isset($row['balance_due'])) {
+                $balanceDue = (float)$row['balance_due'];
+            } else {
+                $grandTotal = (float)($row['grand_total'] ?? 0);
+                $totalPayment = (float)($row['total_payment'] ?? 0);
+                $balanceDue = $grandTotal - $totalPayment;
+            }
+
             $result[] = [
                 'ignore_search_urut'    => $no,
                 'invoice_no'            => esc($row['invoice_no'] ?? ''),
                 'customer_name'         => esc($row['customer_name'] ?? '-'),
                 'agent_name'            => esc($row['agent_name'] ?? '-'),
                 'grand_total'           => format_angka((float) ($row['grand_total'] ?? 0), 2),
+                'balance_due'           => format_angka($balanceDue, 2),
                 'status'                => $statusDisplay,
                 'created_at'            => !empty($row['created_at'])
                                             ? date('d/m/Y H:i', strtotime($row['created_at']))

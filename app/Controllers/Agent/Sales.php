@@ -1606,8 +1606,16 @@ class Sales extends BaseController
         }
 
         try {
-            // Get SN record
-            $snRecord = $this->salesItemSnModel->find($id);
+            // Get SN record with item warranty
+            $db = \Config\Database::connect();
+            $snRecord = $db->table('sales_item_sn')
+                ->select('sales_item_sn.*, item.warranty as item_warranty')
+                ->join('sales_detail', 'sales_detail.id = sales_item_sn.sales_item_id', 'left')
+                ->join('item', 'item.id = sales_detail.item_id', 'left')
+                ->where('sales_item_sn.id', $id)
+                ->get()
+                ->getRowArray();
+            
             if (!$snRecord) {
                 return redirect()->to($this->config->baseURL . 'agent/sales/sn')->with('message', [
                     'status' => 'error',
@@ -1623,10 +1631,15 @@ class Sales extends BaseController
                 ]);
             }
 
+            // Get warranty in months (convert to days for JavaScript)
+            $itemWarranty = isset($snRecord['item_warranty']) ? (int)$snRecord['item_warranty'] : 0;
+            $itemWarrantyDays = $itemWarranty * 30; // Convert months to days (1 month = 30 days)
+
             $this->data['title'] = 'Form Aktivasi SN';
             $this->data['currentModule'] = $this->currentModule;
             $this->data['config'] = $this->config;
             $this->data['sn'] = $snRecord;
+            $this->data['itemWarrantyDays'] = $itemWarrantyDays;
             $this->data['msg'] = $this->session->getFlashdata('message');
 
             $this->view('sales/agent/sales-sn-activate', $this->data);
@@ -1999,7 +2012,8 @@ class Sales extends BaseController
         return $builder->select('sales.*, 
             customer.name as customer_name,
             user.nama as user_name,
-            agent.name as agent_name')
+            agent.name as agent_name,
+            COALESCE(sales.balance_due, sales.grand_total - COALESCE(sales.total_payment, 0)) as balance_due')
             ->join('customer', 'customer.id = sales.customer_id', 'left')
             ->join('user', 'user.id_user = sales.user_id', 'left')
             ->join('agent', 'agent.id = sales.warehouse_id', 'left')
@@ -2049,6 +2063,16 @@ class Sales extends BaseController
 
             $actionButtons .= '</div>';
 
+            // Calculate balance_due
+            $balanceDue = 0;
+            if (isset($row['balance_due'])) {
+                $balanceDue = (float)$row['balance_due'];
+            } else {
+                $grandTotal = (float)($row['grand_total'] ?? 0);
+                $totalPayment = (float)($row['total_payment'] ?? 0);
+                $balanceDue = $grandTotal - $totalPayment;
+            }
+
             $result[] = [
                 'ignore_search_urut'    => $no,
                 'id'                    => $row['id'] ?? 0,
@@ -2056,6 +2080,7 @@ class Sales extends BaseController
                 'customer_name'         => esc($row['customer_name'] ?? '-'),
                 'agent_name'            => esc($row['agent_name'] ?? '-'),
                 'grand_total'           => format_angka((float) ($row['grand_total'] ?? 0), 2),
+                'balance_due'           => format_angka($balanceDue, 2),
                 'payment_status'        => $statusDisplay,
                 'created_at'            => !empty($row['created_at'])
                                             ? date('d/m/Y H:i', strtotime($row['created_at']))
@@ -2160,6 +2185,23 @@ class Sales extends BaseController
                 $filePath = $snRecord['file'];
             }
 
+            // Get item warranty if expired_at is empty
+            $itemWarranty = 0;
+            if (empty($expiredAt)) {
+                $db = \Config\Database::connect();
+                $itemData = $db->table('sales_item_sn')
+                    ->select('item.warranty')
+                    ->join('sales_detail', 'sales_detail.id = sales_item_sn.sales_item_id', 'left')
+                    ->join('item', 'item.id = sales_detail.item_id', 'left')
+                    ->where('sales_item_sn.id', $id)
+                    ->get()
+                    ->getRowArray();
+                
+                if ($itemData && isset($itemData['warranty'])) {
+                    $itemWarranty = (int)$itemData['warranty'];
+                }
+            }
+
             // Prepare update data
             $updateData = [
                 'no_hp' => $noHp,
@@ -2169,8 +2211,15 @@ class Sales extends BaseController
                 'activated_at' => date('Y-m-d H:i:s', strtotime($activatedAt)),
             ];
 
+            // Set expired_at: use provided value, or calculate from warranty if empty
             if (!empty($expiredAt)) {
                 $updateData['expired_at'] = date('Y-m-d H:i:s', strtotime($expiredAt));
+            } elseif ($itemWarranty > 0) {
+                // Calculate expired_at: activated_at + (warranty months * 30 days)
+                $activatedDateTime = new \DateTime($activatedAt);
+                $warrantyDays = $itemWarranty * 30; // Convert months to days
+                $activatedDateTime->modify('+' . $warrantyDays . ' days');
+                $updateData['expired_at'] = $activatedDateTime->format('Y-m-d H:i:s');
             }
 
             if (!empty($filePath)) {
