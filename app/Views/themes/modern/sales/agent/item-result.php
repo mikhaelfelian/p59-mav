@@ -57,6 +57,18 @@ $totalPages = $pagerInfo['totalPages'] ?? 1;
                             </div>
                         </div>
                         <div class="d-flex flex-wrap align-items-center gap-2">
+                            <?php 
+                            $cart = $_SESSION['agent_cart'] ?? [];
+                            $cartCount = count($cart);
+                            ?>
+                            <a class="btn btn-outline-primary position-relative" href="<?=$config->baseURL?>agent/sales/cart" title="Keranjang">
+                                <i class="fas fa-shopping-cart"></i>
+                                <?php if ($cartCount > 0): ?>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="page-cart-count">
+                                    <?= $cartCount ?>
+                                </span>
+                                <?php endif; ?>
+                            </a>
                             <div class="btn-group" role="group" aria-label="View mode">
                                 <button type="button" class="btn btn-outline-secondary view-toggle<?= $viewMode === 'grid' ? ' active' : '' ?>" data-view="grid" title="Tampilan Grid">
                                     <i class="fas fa-th-large"></i>
