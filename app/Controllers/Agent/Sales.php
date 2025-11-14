@@ -744,11 +744,69 @@ class Sales extends BaseController
                         ],
                     ];
                     
-                    // Log the payload being sent (for debugging)
-                    log_message('error', 'Agent\Sales::store - Gateway API Payload: ' . json_encode($apiData, JSON_PRETTY_PRINT));
+                    // Check if payment already exists for this invoice number to avoid duplicate orderId error
+                    $existingSale = $this->model->where('invoice_no', $invoiceNo)->first();
+                    $existingPayment = null;
+                    $existingGatewayResponse = null;
                     
-                    // Call payment gateway API
-                    $gatewayResponse = $this->callPaymentGateway($apiData);
+                    if ($existingSale) {
+                        // Check if payment record exists for this sale
+                        $existingPayment = $this->salesPaymentsModel
+                            ->where('sale_id', $existingSale['id'])
+                            ->where('platform_id', $platformId)
+                            ->first();
+                        
+                        if ($existingPayment && !empty($existingPayment['response'])) {
+                            // Decode existing gateway response
+                            $existingGatewayResponse = json_decode($existingPayment['response'], true);
+                            if (json_last_error() !== JSON_ERROR_NONE) {
+                                $existingGatewayResponse = null;
+                            }
+                        }
+                        
+                        // If payment exists, check gateway status first (GET request)
+                        if ($existingPayment) {
+                            log_message('info', 'Agent\Sales::store - Existing payment found for invoice: ' . $invoiceNo . ', checking gateway status');
+                            $gatewayStatusResponse = $this->getPaymentStatusFromGateway($invoiceNo);
+                            
+                            if ($gatewayStatusResponse !== null) {
+                                // Payment exists in gateway, reuse it
+                                log_message('info', 'Agent\Sales::store - Payment exists in gateway for invoice: ' . $invoiceNo . ', reusing existing payment');
+                                $gatewayResponse = $gatewayStatusResponse;
+                            } else {
+                                // Payment doesn't exist in gateway but we have a record, generate new invoice number
+                                log_message('warning', 'Agent\Sales::store - Payment record exists but not found in gateway for invoice: ' . $invoiceNo . ', generating new invoice number');
+                                $invoiceNo = $this->model->generateInvoiceNo();
+                                $apiData['orderId'] = $invoiceNo;
+                                log_message('info', 'Agent\Sales::store - New invoice number generated: ' . $invoiceNo);
+                            }
+                        } else {
+                            // Sale exists but no payment record, check gateway status anyway
+                            log_message('info', 'Agent\Sales::store - Sale exists but no payment record for invoice: ' . $invoiceNo . ', checking gateway status');
+                            $gatewayStatusResponse = $this->getPaymentStatusFromGateway($invoiceNo);
+                            
+                            if ($gatewayStatusResponse !== null) {
+                                // Payment exists in gateway, reuse it
+                                log_message('info', 'Agent\Sales::store - Payment exists in gateway for invoice: ' . $invoiceNo . ', reusing existing payment');
+                                $gatewayResponse = $gatewayStatusResponse;
+                            } else {
+                                // Payment doesn't exist in gateway, generate new invoice number to avoid duplicate orderId error
+                                log_message('warning', 'Agent\Sales::store - Sale exists but payment not found in gateway for invoice: ' . $invoiceNo . ', generating new invoice number');
+                                $invoiceNo = $this->model->generateInvoiceNo();
+                                $apiData['orderId'] = $invoiceNo;
+                                log_message('info', 'Agent\Sales::store - New invoice number generated: ' . $invoiceNo);
+                            }
+                        }
+                    }
+                    
+                    // Only call gateway API if we don't have a response yet
+                    if ($gatewayResponse === null) {
+                        // Log the payload being sent (for debugging)
+                        log_message('error', 'Agent\Sales::store - Gateway API Payload: ' . json_encode($apiData, JSON_PRETTY_PRINT));
+                        
+                        // Call payment gateway API
+                        $gatewayResponse = $this->callPaymentGateway($apiData);
+                    }
                     
                     if ($gatewayResponse === null) {
                         $logFile = WRITEPATH . 'logs/log-' . date('Y-m-d') . '.log';
@@ -820,8 +878,10 @@ class Sales extends BaseController
             $note = !empty($postData['note']) ? trim($postData['note']) : '';
             
             // Save to sales table
+            // Use $invoiceNo variable which may have been updated if duplicate orderId was detected
+            $finalInvoiceNo = isset($invoiceNo) ? $invoiceNo : trim($postData['invoice_no']);
             $saleData = [
-                'invoice_no' 		=> trim($postData['invoice_no']),
+                'invoice_no' 		=> $finalInvoiceNo,
                 'user_id' 			=> $userId,
                 'customer_id' 		=> $customerId,
                 'warehouse_id' 		=> !empty($postData['agent_id']) ? (int)$postData['agent_id'] : null,
@@ -898,39 +958,9 @@ class Sales extends BaseController
                     }
                 }
 
-                // Validate: For stockable items, qty must equal serial number count (1 SN = 1 Qty)
-                $qty = (int)($item['qty'] ?? 1);
-                if ($isStockable === '1') {
-                    // Count serial numbers
-                    $snCount = 0;
-                    if (!empty($item['sns'])) {
-                        if (is_array($item['sns'])) {
-                            $sns = $item['sns'];
-                        } else {
-                            $sns = json_decode($item['sns'], true);
-                        }
-                        if (is_array($sns)) {
-                            // Count valid serial numbers (those with item_sn_id and sn)
-                            foreach ($sns as $sn) {
-                                if (!empty($sn['item_sn_id']) && !empty($sn['sn'])) {
-                                    $snCount++;
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Validate qty matches serial number count
-                    if ($snCount !== $qty) {
-                        $message = "Untuk item stok '{$itemName}', jumlah serial number harus sama dengan quantity (1 SN = 1 Qty). Quantity: {$qty}, Serial Number: {$snCount}";
-                        if ($isAjax) {
-                            return $this->response->setJSON(['status' => 'error', 'message' => $message]);
-                        }
-                        return redirect()->back()->withInput()->with('message', [
-                            'status' => 'error',
-                            'message' => $message
-                        ]);
-                    }
-                }
+                // Note: SN validation removed for agent transactions
+                // Agents can complete transactions without SN - SN will be assigned later by admin in SalesConfirm
+                // The validation in SalesConfirm::assignSN() still enforces 1 SN = 1 Qty when admin assigns SNs
 
                 // Insert to sales_detail - ensure sn is a string
                 $snValue = null;
@@ -1110,8 +1140,9 @@ class Sales extends BaseController
                 // Auto-fetch latest payment status from gateway if payment was created with gateway
                 if ($saleId && $platformId && $gatewayResponse) {
                     try {
-                        $invoiceNo = trim($postData['invoice_no']);
-                        $latestGatewayResponse = $this->getPaymentStatusFromGateway($invoiceNo);
+                        // Use final invoice number (may have been regenerated)
+                        $checkInvoiceNo = isset($finalInvoiceNo) ? $finalInvoiceNo : trim($postData['invoice_no']);
+                        $latestGatewayResponse = $this->getPaymentStatusFromGateway($checkInvoiceNo);
                         
                         if ($latestGatewayResponse !== null) {
                             // Update payment record with latest gateway response
@@ -1143,9 +1174,11 @@ class Sales extends BaseController
                 // Clear cart
                 $this->session->remove('agent_cart');
                 
-                log_message('info', "Agent Sales transaction created: ID {$saleId}, Invoice: {$postData['invoice_no']}");
+                // Use final invoice number (may have been regenerated)
+                $finalInvoiceNoForMessage = isset($finalInvoiceNo) ? $finalInvoiceNo : trim($postData['invoice_no']);
+                log_message('info', "Agent Sales transaction created: ID {$saleId}, Invoice: {$finalInvoiceNoForMessage}");
                 
-                $message = 'Penjualan berhasil disimpan. Invoice: ' . $postData['invoice_no'];
+                $message = 'Penjualan berhasil disimpan. Invoice: ' . $finalInvoiceNoForMessage;
                 $responseData = ['id' => $saleId];
                 
                 // Include gateway response data (QR code URL) if available

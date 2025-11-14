@@ -430,11 +430,69 @@ class Sales extends BaseController
                     ],
                 ];
 
-                // Log the payload being sent (for debugging)
-                log_message('error', 'Sales::store - Gateway API Payload: ' . json_encode($apiData, JSON_PRETTY_PRINT));
+                // Check if payment already exists for this invoice number to avoid duplicate orderId error
+                $existingSale = $this->model->where('invoice_no', $invoiceNo)->first();
+                $existingPayment = null;
+                $existingGatewayResponse = null;
+                
+                if ($existingSale) {
+                    // Check if payment record exists for this sale
+                    $existingPayment = $this->salesPaymentsModel
+                        ->where('sale_id', $existingSale['id'])
+                        ->where('platform_id', $platformId)
+                        ->first();
+                    
+                    if ($existingPayment && !empty($existingPayment['response'])) {
+                        // Decode existing gateway response
+                        $existingGatewayResponse = json_decode($existingPayment['response'], true);
+                        if (json_last_error() !== JSON_ERROR_NONE) {
+                            $existingGatewayResponse = null;
+                        }
+                    }
+                    
+                    // If payment exists, check gateway status first (GET request)
+                    if ($existingPayment) {
+                        log_message('info', 'Sales::store - Existing payment found for invoice: ' . $invoiceNo . ', checking gateway status');
+                        $gatewayStatusResponse = $this->getPaymentStatusFromGateway($invoiceNo);
+                        
+                        if ($gatewayStatusResponse !== null) {
+                            // Payment exists in gateway, reuse it
+                            log_message('info', 'Sales::store - Payment exists in gateway for invoice: ' . $invoiceNo . ', reusing existing payment');
+                            $gatewayResponse = $gatewayStatusResponse;
+                        } else {
+                            // Payment doesn't exist in gateway but we have a record, generate new invoice number
+                            log_message('warning', 'Sales::store - Payment record exists but not found in gateway for invoice: ' . $invoiceNo . ', generating new invoice number');
+                            $invoiceNo = $this->model->generateInvoiceNo();
+                            $apiData['orderId'] = $invoiceNo;
+                            log_message('info', 'Sales::store - New invoice number generated: ' . $invoiceNo);
+                        }
+                    } else {
+                        // Sale exists but no payment record, check gateway status anyway
+                        log_message('info', 'Sales::store - Sale exists but no payment record for invoice: ' . $invoiceNo . ', checking gateway status');
+                        $gatewayStatusResponse = $this->getPaymentStatusFromGateway($invoiceNo);
+                        
+                        if ($gatewayStatusResponse !== null) {
+                            // Payment exists in gateway, reuse it
+                            log_message('info', 'Sales::store - Payment exists in gateway for invoice: ' . $invoiceNo . ', reusing existing payment');
+                            $gatewayResponse = $gatewayStatusResponse;
+                        } else {
+                            // Payment doesn't exist in gateway, generate new invoice number to avoid duplicate orderId error
+                            log_message('warning', 'Sales::store - Sale exists but payment not found in gateway for invoice: ' . $invoiceNo . ', generating new invoice number');
+                            $invoiceNo = $this->model->generateInvoiceNo();
+                            $apiData['orderId'] = $invoiceNo;
+                            log_message('info', 'Sales::store - New invoice number generated: ' . $invoiceNo);
+                        }
+                    }
+                }
 
-                // Call payment gateway API
-                $gatewayResponse = $this->callPaymentGateway($apiData);
+                // Only call gateway API if we don't have a response yet
+                if ($gatewayResponse === null) {
+                    // Log the payload being sent (for debugging)
+                    log_message('error', 'Sales::store - Gateway API Payload: ' . json_encode($apiData, JSON_PRETTY_PRINT));
+
+                    // Call payment gateway API
+                    $gatewayResponse = $this->callPaymentGateway($apiData);
+                }
 
                 if ($gatewayResponse === null) {
                     // Get debug file content if it exists
@@ -534,8 +592,10 @@ class Sales extends BaseController
             // Tax calculation and grandTotal are already done above
 
             // Save to sales table
+            // Use $invoiceNo variable which may have been updated if duplicate orderId was detected
+            $finalInvoiceNo = isset($invoiceNo) ? $invoiceNo : trim($postData['invoice_no']);
             $saleData = [
-                'invoice_no'     => trim($postData['invoice_no']),
+                'invoice_no'     => $finalInvoiceNo,
                 'user_id'        => $userId,
                 'customer_id'    => $customerId,
                 'warehouse_id'   => $saleAgentId > 0 ? $saleAgentId : null,
@@ -844,8 +904,9 @@ class Sales extends BaseController
             // Auto-fetch latest payment status from gateway if payment was created with gateway
             if ($saleId && $platformId && $gatewayResponse) {
                 try {
-                    $invoiceNo = trim($postData['invoice_no']);
-                    $latestGatewayResponse = $this->getPaymentStatusFromGateway($invoiceNo);
+                    // Use final invoice number (may have been regenerated)
+                    $checkInvoiceNo = isset($finalInvoiceNo) ? $finalInvoiceNo : trim($postData['invoice_no']);
+                    $latestGatewayResponse = $this->getPaymentStatusFromGateway($checkInvoiceNo);
 
                     if ($latestGatewayResponse !== null) {
                         // Update payment record with latest gateway response

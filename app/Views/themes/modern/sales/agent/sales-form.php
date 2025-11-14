@@ -440,7 +440,7 @@
 						<i class="fas fa-trash"></i> Kosongkan
 					</a>
 					<button type="submit" class="btn btn-success btn-action" id="btn-pay" <?= empty($cart) ? 'disabled' : '' ?>>
-						<i class="fas fa-check"></i> Simpan Transaksi
+						<i class="fas fa-check"></i> Simpan
 					</button>
 				</div>
 			</div>
