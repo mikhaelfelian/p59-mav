@@ -28,6 +28,10 @@ use App\Models\CustomerModel;
 use App\Models\UserRoleAgentModel;
 use App\Models\PlatformModel;
 use App\Models\SalesPaymentLogModel;
+use App\Models\WilayahPropinsiModel;
+use App\Models\WilayahKabupatenModel;
+use App\Models\WilayahKecamatanModel;
+use App\Models\WilayahKelurahanModel;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class Sales extends BaseController
@@ -126,13 +130,106 @@ class Sales extends BaseController
                 ->findAll();
         }
         
+        // Get agent's registered address if agentId exists
+        $agentAddress = '';
+        $agentCreditLimit = 0;
+        $hasCreditLimit = false;
+        
+        if ($agentId) {
+            $agent = $this->agentModel->find($agentId);
+            if ($agent) {
+                $agentCreditLimit = (float) ($agent->credit_limit ?? 0);
+                $hasCreditLimit = $agentCreditLimit > 0;
+                
+                // Format agent address
+                $addressParts = [];
+                if (!empty($agent->address)) {
+                    $addressParts[] = $agent->address;
+                }
+                
+                // Get location names using Wilayah models
+                $provinceName = '';
+                $regencyName = '';
+                $districtName = '';
+                $villageName = '';
+                
+                if (!empty($agent->village_id)) {
+                    $villageModel = new WilayahKelurahanModel();
+                    $village = $villageModel->find($agent->village_id);
+                    if ($village) {
+                        $villageName = $village->nama_kelurahan ?? '';
+                    }
+                }
+                
+                if (!empty($agent->district_id)) {
+                    $districtModel = new WilayahKecamatanModel();
+                    $district = $districtModel->find($agent->district_id);
+                    if ($district) {
+                        $districtName = $district->nama_kecamatan ?? '';
+                    }
+                }
+                
+                if (!empty($agent->regency_id)) {
+                    $regencyModel = new WilayahKabupatenModel();
+                    $regency = $regencyModel->find($agent->regency_id);
+                    if ($regency) {
+                        $regencyName = $regency->nama_kabupaten ?? '';
+                    }
+                }
+                
+                if (!empty($agent->province_id)) {
+                    $provinceModel = new WilayahPropinsiModel();
+                    $province = $provinceModel->find($agent->province_id);
+                    if ($province) {
+                        $provinceName = $province->nama_propinsi ?? '';
+                    }
+                }
+                
+                // Build address lines
+                if ($villageName || $districtName) {
+                    $locationLine = trim($villageName . ($villageName && $districtName ? ', ' : '') . $districtName);
+                    if ($locationLine) {
+                        $addressParts[] = $locationLine;
+                    }
+                }
+                
+                if ($regencyName || $provinceName) {
+                    $cityLine = trim($regencyName . ($regencyName && $provinceName ? ', ' : '') . $provinceName);
+                    if ($cityLine) {
+                        if (!empty($agent->postal_code)) {
+                            $cityLine .= ' ' . $agent->postal_code;
+                        }
+                        $addressParts[] = $cityLine;
+                    }
+                }
+                
+                $country = $agent->country ?? 'Indonesia';
+                $addressParts[] = $country;
+                
+                $agentAddress = implode("\n", array_filter($addressParts));
+            }
+        }
+        
         // Get platforms with status_agent='1' (include status_pos, gw_status, gw_code for API check)
-        $platforms = $this->platformModel
+        $allPlatforms = $this->platformModel
             ->select('platform.*, platform.status_pos, platform.gw_status, platform.gw_code')
             ->where('status', '1')
             ->where('status_agent', '1')
             ->orderBy('platform', 'ASC')
             ->findAll();
+        
+        // Separate platforms by gw_status
+        $platformsManualTransfer = []; // gw_status = 0
+        $platformsPaymentGateway = []; // gw_status = 1
+        
+        foreach ($allPlatforms as $platform) {
+            $gwStatus = (string) ($platform->gw_status ?? '0');
+            if ($gwStatus === '0') {
+                $platformsManualTransfer[] = $platform;
+            } elseif ($gwStatus === '1') {
+                $platformsPaymentGateway[] = $platform;
+            }
+        }
         
         // Get PPN setting from settings table
         $baseModel = new \App\Models\BaseModel();
@@ -146,7 +243,12 @@ class Sales extends BaseController
         $this->data['cart'] = $cart;
         $this->data['agentId'] = $agentId;
         $this->data['agents'] = $agents;
-        $this->data['platforms'] = $platforms;
+        $this->data['platforms'] = $allPlatforms; // All platforms for backward compatibility
+        $this->data['platformsManualTransfer'] = $platformsManualTransfer;
+        $this->data['platformsPaymentGateway'] = $platformsPaymentGateway;
+        $this->data['agentAddress'] = $agentAddress;
+        $this->data['hasCreditLimit'] = $hasCreditLimit;
+        $this->data['agentCreditLimit'] = $agentCreditLimit;
         $this->data['ppnPercentage'] = $ppnPercentage;
         $this->data['invoice_no'] = $this->model->generateInvoiceNo();
         $this->data['message'] = $this->session->getFlashdata('message');
@@ -555,12 +657,20 @@ class Sales extends BaseController
                 $grandTotal = $baseAmount;
             }
             
-            // Handle payment gateway API call if platform is selected
+            // Handle payment type
+            $paymentType = $postData['payment_type'] ?? 'paynow';
+            
+            // Handle payment gateway API call if platform is selected and payment type is paynow
             $gatewayResponse = null;
             $isOfflinePlatform = false;
             $settlementTime = null;
-            $platformId = !empty($postData['platform_id']) ? (int)$postData['platform_id'] : null;
+            $platformId = null;
             $platform = null;
+            
+            // Only process platform if payment type is paynow
+            if ($paymentType === 'paynow') {
+                $platformId = !empty($postData['platform_id']) ? (int)$postData['platform_id'] : null;
+            }
             
             if ($platformId) {
                 // Get platform details
@@ -686,10 +796,13 @@ class Sales extends BaseController
                 $customerId = $this->customerModel->getInsertID();
                 $this->customerModel->skipValidation(false);
             }
-            // Determine payment status based on gateway response
-            $paymentStatus = $postData['payment_status'] ?? '0';
-            if ($isOfflinePlatform) {
-                $paymentStatus = '2';
+            // Determine payment status based on payment type and gateway response
+            $paymentStatus = '0'; // Default: unpaid
+            if ($paymentType === 'paylater') {
+                // Pay Later: set as unpaid (will be paid later)
+                $paymentStatus = '0'; // unpaid
+            } elseif ($isOfflinePlatform) {
+                $paymentStatus = '2'; // paid (for offline platforms like cash)
             }
             if ($gatewayResponse && isset($gatewayResponse['status'])) {
                 $gatewayStatus = strtoupper($gatewayResponse['status']);
@@ -699,6 +812,10 @@ class Sales extends BaseController
                     $paymentStatus = '0'; // unpaid
                 }
             }
+            
+            // Get delivery address and note
+            $deliveryAddress = !empty($postData['delivery_address']) ? trim($postData['delivery_address']) : '';
+            $note = !empty($postData['note']) ? trim($postData['note']) : '';
             
             // Save to sales table
             $saleData = [
@@ -712,7 +829,9 @@ class Sales extends BaseController
                 'tax_amount' 		=> $taxAmount,
                 'tax_type' 			=> $taxType,
                 'grand_total' 		=> (float)($postData['grand_total'] ?? $grandTotal),
-                'payment_status' 	=> $paymentStatus
+                'payment_status' 	=> $paymentStatus,
+                'delivery_address' 	=> $deliveryAddress,
+                'note' 				=> $note
             ];
             
             // Add settlement_time if gateway response has it and status is PAID

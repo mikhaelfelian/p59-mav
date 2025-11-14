@@ -35,6 +35,8 @@ class SalesModel extends Model
         'grand_total',
         'payment_status',
         'settlement_time',
+        'delivery_address',
+        'note',
         'status'
     ];
 

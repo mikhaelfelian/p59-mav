@@ -127,6 +127,38 @@
 	box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
+.checkout-panel {
+	background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
+	border: 1px solid #e3e8ef;
+	border-radius: 12px;
+	padding: 1.35rem;
+	box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+	min-height: 100%;
+}
+
+.checkout-title {
+	font-size: 0.95rem;
+	font-weight: 600;
+	color: #1f2937;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-bottom: 1rem;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.checkout-title i {
+	color: #4e73df;
+	font-size: 1.05rem;
+}
+
+.checkout-field-hint {
+	font-size: 0.75rem;
+	color: #6c757d;
+	margin-top: 0.35rem;
+}
+
 .empty-state {
 	padding: 3rem 1rem;
 	text-align: center;
@@ -174,162 +206,19 @@
 
 	<form method="post" action="<?= $config->baseURL ?>agent/sales/store" id="form-sales" novalidate>
 		<?= form_hidden('sales_channel', '1') ?>
-		
-		<!-- Sale Information Section -->
-		<div class="sales-form-section">
-			<div class="section-title">
-				<i class="fas fa-receipt"></i>
-				<span>Informasi Penjualan</span>
-			</div>
-			
-			<div class="alert-validation" id="validation-alert"></div>
-			
-			<div class="row g-3">
-				<div class="col-md-3">
-					<label class="form-label">Nomor Invoice <span class="text-danger">*</span></label>
-					<div class="input-group">
-						<span class="input-group-text bg-light"><i class="fas fa-file-invoice"></i></span>
-						<?= form_input([
-							'name' => 'invoice_no',
-							'class' => 'form-control',
-							'value' => set_value('invoice_no', @$invoice_no ?? ''),
-							'readonly' => 'readonly',
-							'id' => 'invoice_no'
-						]) ?>
-					</div>
-					<small class="text-muted"><i class="fas fa-info-circle"></i> Dibuat otomatis oleh sistem</small>
-				</div>
-				
-				<div class="col-md-3">
-					<label class="form-label">Agen <span class="text-danger">*</span></label>
-					<div class="input-group">
-						<span class="input-group-text bg-light"><i class="fas fa-user-tie"></i></span>
-						<?php
-						$agentOptions = ['' => '-- Pilih Agen --'];
-						$defaultAgentId = $agentId ?? '';
-						foreach ($agents ?? [] as $agentData) {
-							$optionId = is_object($agentData) ? $agentData->id : ($agentData['id'] ?? null);
-							$optionName = is_object($agentData) ? $agentData->name : ($agentData['name'] ?? '');
-							if ($optionId === null) {
-								continue;
-							}
-							$agentOptions[$optionId] = esc($optionName);
-						}
-						$selectedAgent = set_value('agent_id', $defaultAgentId);
-						echo form_dropdown('agent_id', $agentOptions, $selectedAgent, [
-							'class' => 'form-control',
-							'id' => 'agent_id',
-							'required' => 'required'
-						]);
-						?>
-					</div>
-				</div>
-				
-				<div class="col-md-3">
-					<label class="form-label">Nama Pelanggan <span class="text-danger">*</span></label>
-					<div class="input-group">
-						<span class="input-group-text bg-light"><i class="fas fa-user"></i></span>
-						<?= form_input([
-							'name' => 'customer_name',
-							'type' => 'text',
-							'class' => 'form-control',
-							'id' => 'customer_name',
-							'value' => set_value('customer_name', ''),
-							'placeholder' => 'Masukkan nama pelanggan',
-							'required' => 'required'
-						]) ?>
-					</div>
-					<small class="text-muted"><i class="fas fa-info-circle"></i> Customer akan dibuat otomatis saat menyimpan</small>
-					<input type="hidden" name="customer_id" id="customer_id" value="">
-				</div>
-				
-				<div class="col-md-3">
-					<label class="form-label d-block">Plat Kendaraan <span class="text-danger">*</span></label>
-					<div class="row g-2 align-items-center">
-						<div class="col-4">
-							<div class="input-group">
-								<span class="input-group-text bg-light"><i class="fas fa-car"></i></span>
-								<?= form_input([
-									'name' => 'plate_code',
-									'type' => 'text',
-									'class' => 'form-control rounded-0 text-uppercase',
-									'id' => 'plate_code',
-									'value' => set_value('plate_code', ''),
-									'placeholder' => 'B',
-									'maxlength' => 2,
-									'required' => 'required',
-									'style' => 'text-transform:uppercase'
-								]) ?>
-							</div>
-						</div>
-						<div class="col-4">
-							<div class="input-group">
-								<?= form_input([
-									'name' => 'plate_number',
-									'type' => 'text',
-									'class' => 'form-control rounded-0',
-									'id' => 'plate_number',
-									'value' => set_value('plate_number', ''),
-									'placeholder' => '4575',
-									'maxlength' => 5,
-									'required' => 'required'
-								]) ?>
-							</div>
-						</div>
-						<div class="col-4">
-							<div class="input-group">
-								<?= form_input([
-									'name' => 'plate_suffix',
-									'type' => 'text',
-									'class' => 'form-control rounded-0 text-uppercase',
-									'id' => 'plate_suffix',
-									'value' => set_value('plate_suffix', ''),
-									'placeholder' => 'PBP',
-									'maxlength' => 4,
-									'style' => 'text-transform:uppercase'
-								]) ?>
-							</div>
-						</div>
-					</div>
-					<div class="text-muted mt-1">
-						<small>
-							<i class="fas fa-info-circle"></i> Format: <strong>kode</strong> - <strong>nomor</strong> - <strong>kode akhir</strong> (Contoh: H-4575-PBP)
-						</small>
-					</div>
-				</div>
-			</div>
-		</div>
-
-		<!-- Barcode Search Section -->
-		<div class="sales-form-section">
-			<div class="section-title">
-				<i class="fas fa-barcode"></i>
-				<span>Cari Produk dengan Barcode</span>
-			</div>
-			
-			<div class="row g-3">
-				<div class="col-md-12">
-					<div class="product-search-wrapper" style="position: relative;">
-						<i class="fas fa-barcode" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #6c757d; z-index: 10;"></i>
-						<?= form_input([
-							'name' => 'barcode_search',
-							'type' => 'text',
-							'class' => 'form-control form-control-lg',
-							'id' => 'barcode-search',
-							'placeholder' => 'Scan barcode atau ketik SKU produk...',
-							'style' => 'padding-left: 45px;'
-						]) ?>
-					</div>
-					<small class="text-muted"><i class="fas fa-info-circle"></i> Scan barcode atau ketik SKU produk untuk menambahkan ke keranjang</small>
-				</div>
-			</div>
-		</div>
+		<?= form_hidden('agent_id', $agentId ?? '') ?>
+		<?= form_hidden('invoice_no', $invoice_no ?? '') ?>
 
 		<!-- Cart Items Section -->
 		<div class="sales-form-section">
-			<div class="section-title">
-				<i class="fas fa-shopping-cart"></i>
-				<span>Keranjang Belanja <span class="badge bg-primary ms-2" id="cart-count"><?= count($cart ?? []) ?></span></span>
+			<div class="d-flex justify-content-between align-items-center mb-3">
+				<div class="section-title mb-0">
+					<i class="fas fa-shopping-cart"></i>
+					<span>Keranjang Belanja <span class="badge bg-primary ms-2" id="cart-count"><?= count($cart ?? []) ?></span></span>
+				</div>
+				<a href="<?= $config->baseURL ?>agent/item" class="btn btn-outline-primary">
+					<i class="fas fa-arrow-left me-1"></i> Lanjut Belanja
+				</a>
 			</div>
 			
 			<div id="cart-items">
@@ -415,14 +304,38 @@
 						<span>Ringkasan Pembayaran</span>
 					</div>
 					
-					<div class="row g-3">
-						<div class="col-md-4">
+					<!-- Payment Selection -->
+					<div class="row g-3 mb-3">
+						<div class="col-12">
+							<label class="form-label fw-semibold">Pilihan Pembayaran</label>
+							<div class="d-flex gap-3">
+								<div class="form-check">
+									<input class="form-check-input" type="radio" name="payment_type" id="payment_paynow" value="paynow" checked>
+									<label class="form-check-label" for="payment_paynow">
+										Pay Now
+									</label>
+								</div>
+								<?php if ($hasCreditLimit ?? false): ?>
+								<div class="form-check">
+									<input class="form-check-input" type="radio" name="payment_type" id="payment_paylater" value="paylater">
+									<label class="form-check-label" for="payment_paylater">
+										Pay Later
+									</label>
+								</div>
+								<?php endif; ?>
+							</div>
+						</div>
+						
+						<!-- Platform Selection (shown when Pay Now selected) -->
+						<div class="col-12" id="platform-selection-wrapper">
 							<label class="form-label">Platform Pembayaran</label>
 							<div class="input-group">
 								<span class="input-group-text bg-light"><i class="fas fa-store"></i></span>
 								<?php
 								$platformOptions = ['' => '-- Pilih Platform --'];
-								foreach ($platforms ?? [] as $platform) {
+								// Combine manual transfer and payment gateway platforms
+								$allPlatformsForDropdown = array_merge($platformsManualTransfer ?? [], $platformsPaymentGateway ?? []);
+								foreach ($allPlatformsForDropdown as $platform) {
 									$platformId = is_object($platform) ? $platform->id : $platform['id'];
 									$platformName = is_object($platform) ? $platform->platform : $platform['platform'];
 									$platformOptions[$platformId] = esc($platformName);
@@ -435,50 +348,55 @@
 							</div>
 							<small class="text-muted"><i class="fas fa-info-circle"></i> Opsional</small>
 						</div>
-						<div class="col-md-4">
-							<label class="form-label">Jumlah Diskon</label>
-							<div class="input-group">
-								<span class="input-group-text bg-light">Rp</span>
-								<?= form_input([
-									'name' => 'discount',
-									'type' => 'number',
-									'class' => 'form-control',
-									'value' => set_value('discount', '0'),
-									'step' => '0.01',
-									'min' => '0',
-									'id' => 'discount-input',
-									'placeholder' => '0.00'
-								]) ?>
+					</div>
+					
+					<!-- Address Selection -->
+					<div class="row g-3 mb-3">
+						<div class="col-12">
+							<label class="form-label fw-semibold">Alamat Pengiriman</label>
+							<div class="mb-2">
+								<div class="form-check">
+									<input class="form-check-input" type="radio" name="address_type" id="address_current" value="current" checked>
+									<label class="form-check-label" for="address_current">
+										Gunakan Alamat saat ini
+									</label>
+								</div>
+								<div class="form-check">
+									<input class="form-check-input" type="radio" name="address_type" id="address_other" value="other">
+									<label class="form-check-label" for="address_other">
+										Alamat lain
+									</label>
+								</div>
 							</div>
-						</div>
-						<div class="col-md-4">
-							<label class="form-label">Tipe Pajak</label>
-							<?= form_dropdown('tax_type', [
-								'0' => 'Tidak Ada Pajak',
-								'1' => 'PPN Termasuk',
-								'2' => 'PPN Ditambahkan'
-							], set_value('tax_type', '0'), [
-								'class' => 'form-control',
-								'id' => 'tax-type-input'
-							]) ?>
-						</div>
-						<div class="col-md-4">
-							<label class="form-label">Jumlah Pajak</label>
-							<div class="input-group">
-								<span class="input-group-text bg-light">Rp</span>
-								<?= form_input([
-									'name' => 'tax',
-									'type' => 'number',
-									'class' => 'form-control',
-									'value' => set_value('tax', '0'),
-									'step' => '0.01',
-									'min' => '0',
-									'id' => 'tax-input',
-									'placeholder' => '0.00',
-									'readonly' => true
-								]) ?>
+							
+							<!-- Current Address Display -->
+							<div id="current-address-display" class="mb-2">
+								<?php if (!empty($agentAddress)): ?>
+								<textarea class="form-control" rows="4" readonly><?= esc($agentAddress) ?></textarea>
+								<input type="hidden" id="delivery_address_current" value="<?= esc($agentAddress) ?>">
+								<?php else: ?>
+								<div class="alert alert-warning">
+									<i class="fas fa-exclamation-triangle me-2"></i>Alamat agen belum terdaftar. Silakan pilih "Alamat lain" atau lengkapi data agen terlebih dahulu.
+								</div>
+								<input type="hidden" id="delivery_address_current" value="">
+								<?php endif; ?>
 							</div>
-							<small class="text-muted"><i class="fas fa-info-circle"></i> Dihitung otomatis berdasarkan tipe pajak</small>
+							
+							<!-- Other Address Input -->
+							<div id="other-address-input" class="mb-2" style="display: none;">
+								<textarea class="form-control" id="delivery_address_other" rows="4" placeholder="Masukkan alamat pengiriman"></textarea>
+							</div>
+							
+							<!-- Hidden field for form submission -->
+							<input type="hidden" name="delivery_address" id="delivery_address_hidden" value="<?= esc($agentAddress ?? '') ?>">
+						</div>
+					</div>
+					
+					<!-- Note Field -->
+					<div class="row g-3">
+						<div class="col-12">
+							<label class="form-label fw-semibold">Catatan</label>
+							<textarea class="form-control" name="note" id="note" rows="3" placeholder="Tambahkan catatan untuk pesanan ini (opsional)"><?= set_value('note', '') ?></textarea>
 						</div>
 					</div>
 				</div>
@@ -495,17 +413,9 @@
 						'value' => '0'
 					]) ?>
 					
-					<div class="summary-input-group mt-3">
-						<label class="form-label text-white mb-2">Diskon</label>
-						<div class="text-white" id="discount-display">Rp 0.00</div>
-					</div>
+					<!-- Diskon dan Pajak dihapus dari ringkasan -->
 					
-					<div class="summary-input-group">
-						<label class="form-label text-white mb-2">Pajak</label>
-						<div class="text-white" id="tax-display">Rp 0.00</div>
-					</div>
-					
-					<div class="grand-total">
+					<div class="grand-total mt-4">
 						<div class="summary-label">Grand Total</div>
 						<div class="summary-value" id="grand-total-display">Rp 0.00</div>
 						<?= form_input([
@@ -523,7 +433,7 @@
 		<div class="action-buttons mt-4">
 			<div class="d-flex justify-content-between align-items-center">
 				<a href="<?= $config->baseURL ?>agent/item" class="btn btn-secondary btn-action">
-					<i class="fas fa-arrow-left"></i> Kembali ke Produk
+					<i class="fas fa-arrow-left"></i> Kembali
 				</a>
 				<div class="d-flex gap-2">
 					<a href="<?= $config->baseURL ?>agent/sales/clearCart" class="btn btn-warning btn-action" onclick="return confirm('Yakin ingin mengosongkan keranjang?')">
@@ -547,6 +457,42 @@ $(document).ready(function() {
 	
 	// Calculate initial totals
 	calculateTotals();
+	
+	// Handle payment type selection
+	$('input[name="payment_type"]').on('change', function() {
+		var paymentType = $(this).val();
+		if (paymentType === 'paynow') {
+			$('#platform-selection-wrapper').show();
+		} else if (paymentType === 'paylater') {
+			$('#platform-selection-wrapper').hide();
+			$('#platform_id').val('');
+		}
+	});
+	
+	// Handle address type selection
+	$('input[name="address_type"]').on('change', function() {
+		var addressType = $(this).val();
+		if (addressType === 'current') {
+			$('#current-address-display').show();
+			$('#other-address-input').hide();
+			$('#delivery_address_other').val('');
+			// Update hidden field with current address
+			var currentAddress = $('#delivery_address_current').val() || '';
+			$('#delivery_address_hidden').val(currentAddress);
+		} else if (addressType === 'other') {
+			$('#current-address-display').hide();
+			$('#other-address-input').show();
+			// Clear hidden field, will be updated from textarea
+			$('#delivery_address_hidden').val('');
+		}
+	});
+	
+	// Update delivery_address hidden field when other address changes
+	$('#delivery_address_other').on('input', function() {
+		if ($('#address_other').is(':checked')) {
+			$('#delivery_address_hidden').val($(this).val());
+		}
+	});
 	
 	// Update totals when discount or tax changes
 	$('#discount-input, #tax-input').on('input', function() {
@@ -581,6 +527,18 @@ $(document).ready(function() {
 		// Ensure discount and tax have values
 		$('#discount-input').val($('#discount-input').val() || '0');
 		$('#tax-input').val($('#tax-input').val() || '0');
+		
+		// Handle delivery address based on selection
+		var addressType = $('input[name="address_type"]:checked').val();
+		var deliveryAddress = '';
+		if (addressType === 'current') {
+			deliveryAddress = $('#delivery_address_current').val() || '';
+		} else if (addressType === 'other') {
+			deliveryAddress = $('#delivery_address_other').val() || '';
+		}
+		
+		// Update hidden field with selected address
+		$('#delivery_address_hidden').val(deliveryAddress);
 		
 		// Submit form - API call is handled in PHP
 		let formData = $('#form-sales').serialize();
@@ -787,6 +745,8 @@ function updateCartQty(itemId, qty) {
 		},
 		success: function(response) {
 			if (response.status === 'success') {
+				// Update header cart count
+				updateHeaderCartCount(response.cart_count || 0);
 				// Reload page to update cart display
 				location.reload();
 			} else {
@@ -816,6 +776,8 @@ function removeFromCart(itemId) {
 		},
 		success: function(response) {
 			if (response.status === 'success') {
+				// Update header cart count
+				updateHeaderCartCount(response.cart_count || 0);
 				// Reload page to update cart display
 				location.reload();
 			} else {
@@ -826,6 +788,20 @@ function removeFromCart(itemId) {
 			alert('Terjadi kesalahan saat menghapus item');
 		}
 	});
+}
+
+function updateHeaderCartCount(count) {
+	var headerCartBadge = $('#header-cart-count');
+	if (count > 0) {
+		if (headerCartBadge.length) {
+			headerCartBadge.text(count);
+		} else {
+			// Create badge if it doesn't exist
+			$('.icon-link[href*="agent/sales/cart"]').append('<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="header-cart-count">' + count + '</span>');
+		}
+	} else {
+		headerCartBadge.remove();
+	}
 }
 
 function formatCurrency(amount) {

@@ -223,28 +223,6 @@ $totalPages = $pagerInfo['totalPages'] ?? 1;
                                     <i class="fas fa-list"></i>
                                 </button>
                             </div>
-
-                            <div class="input-group input-group-sm" style="min-width: 180px;">
-                                <label class="input-group-text" for="sortSelect"><i class="fas fa-sort-amount-down"></i></label>
-                                <select id="sortSelect" name="sort" class="form-select auto-submit" form="agentCatalogFilter">
-                                    <?php foreach ($sortOptions as $value => $label): ?>
-                                        <option value="<?= esc($value) ?>" <?= ($filters['sort'] ?? 'popular') === $value ? 'selected' : '' ?>>
-                                            <?= esc($label) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-
-                            <div class="input-group input-group-sm" style="min-width: 160px;">
-                                <label class="input-group-text" for="perPageSelect"><i class="fas fa-layer-group"></i></label>
-                                <select id="perPageSelect" name="per_page" class="form-select auto-submit" form="agentCatalogFilter">
-                                    <?php foreach ($perPageOptions as $option): ?>
-                                        <option value="<?= esc($option) ?>" <?= (int) ($filters['per_page'] ?? 12) === (int) $option ? 'selected' : '' ?>>
-                                            <?= $option ?> / halaman
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
                         </div>
                     </div>
 
@@ -291,13 +269,11 @@ $totalPages = $pagerInfo['totalPages'] ?? 1;
                                         <div class="d-flex align-items-center gap-2 mb-2">
                                             <span class="badge bg-secondary-subtle text-secondary fw-semibold"><?= esc($categoryName) ?></span>
                                             <span class="badge bg-info-subtle text-info fw-semibold"><?= esc($brandName) ?></span>
-                                            <?php if ($isStockable): ?>
-                                                <span class="badge bg-success-subtle text-success fw-semibold"><i class="fas fa-barcode me-1"></i>Serial</span>
-                                            <?php else: ?>
-                                                <span class="badge bg-warning-subtle text-warning fw-semibold"><i class="fas fa-box-open me-1"></i>Non-Serial</span>
-                                            <?php endif; ?>
                                         </div>
                                         <h5 class="mb-2 text-dark fw-semibold"><?= esc($itemName) ?></h5>
+                                        <?php if (!empty($item['sku'])): ?>
+                                            <p class="text-primary fw-semibold mb-2"><i class="fas fa-hashtag me-1"></i>Kode: <?= esc($item['sku']) ?></p>
+                                        <?php endif; ?>
                                         <?php if (!empty($item['short_description'])): ?>
                                             <p class="text-muted small mb-2"><?= esc($item['short_description']) ?></p>
                                         <?php elseif (!empty($item['description'])): ?>
@@ -308,9 +284,6 @@ $totalPages = $pagerInfo['totalPages'] ?? 1;
                                                 : $plainDescription;
                                             ?>
                                             <p class="text-muted small mb-2"><?= esc($shortDescription) ?></p>
-                                        <?php endif; ?>
-                                        <?php if (!empty($item['sku'])): ?>
-                                            <p class="text-muted small mb-0"><i class="fas fa-hashtag me-1"></i>SKU: <?= esc($item['sku']) ?></p>
                                         <?php endif; ?>
                                     </div>
                                     <div class="col-12 col-md-3 text-md-end">
@@ -367,21 +340,13 @@ $totalPages = $pagerInfo['totalPages'] ?? 1;
                                     <div class="card-body d-flex flex-column">
                                         <h6 class="card-title fw-semibold text-truncate"><?= esc($itemName) ?></h6>
                                         <?php if (!empty($item['sku'])): ?>
-                                            <p class="text-muted small mb-2"><i class="fas fa-hashtag me-1"></i><?= esc($item['sku']) ?></p>
+                                            <p class="text-primary fw-semibold mb-2"><i class="fas fa-hashtag me-1"></i>Kode: <?= esc($item['sku']) ?></p>
                                         <?php endif; ?>
 
                                         <div class="mb-3">
                                             <div class="text-primary fw-bold fs-5"><?= format_angka_rp($price) ?></div>
                                             <?php if ($agentPrice > 0 && $agentPrice !== $price): ?>
                                                 <div class="text-success small fw-semibold">Harga Agen <?= format_angka_rp($agentPrice) ?></div>
-                                            <?php endif; ?>
-                                        </div>
-
-                                        <div class="d-flex align-items-center gap-2 mb-3">
-                                            <?php if ($isStockable): ?>
-                                                <span class="badge bg-success-subtle text-success"><i class="fas fa-barcode me-1"></i>Serial</span>
-                                            <?php else: ?>
-                                                <span class="badge bg-warning-subtle text-warning"><i class="fas fa-box-open me-1"></i>Non-Serial</span>
                                             <?php endif; ?>
                                         </div>
 
@@ -405,53 +370,65 @@ $totalPages = $pagerInfo['totalPages'] ?? 1;
                 <?php if (isset($pager) && ($pagerInfo['totalPages'] ?? 1) > 1): ?>
                     <div class="card border-0 shadow-sm">
                         <div class="card-body">
-                            <nav aria-label="Navigasi halaman katalog">
-                                <ul class="pagination justify-content-center mb-0">
-                                    <?php if ($pager->hasPrevious()): ?>
-                                        <li class="page-item">
-                                            <a class="page-link" href="<?= $pager->getFirst() ?>" aria-label="Halaman pertama">
-                                                <span aria-hidden="true">&laquo;&laquo;</span>
-                                            </a>
-                                        </li>
-                                        <li class="page-item">
-                                            <a class="page-link" href="<?= $pager->getPrevious() ?>" aria-label="Halaman sebelumnya">
-                                                <span aria-hidden="true">&laquo;</span>
-                                            </a>
-                                        </li>
-                                    <?php else: ?>
-                                        <li class="page-item disabled"><span class="page-link">&laquo;&laquo;</span></li>
-                                        <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
-                                    <?php endif; ?>
+                            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                                <nav aria-label="Navigasi halaman katalog" class="flex-grow-1">
+                                    <ul class="pagination justify-content-center mb-0">
+                                        <?php if ($pager->hasPrevious()): ?>
+                                            <li class="page-item">
+                                                <a class="page-link" href="<?= $pager->getFirst() ?>" aria-label="Halaman pertama">
+                                                    <span aria-hidden="true">&laquo;&laquo;</span>
+                                                </a>
+                                            </li>
+                                            <li class="page-item">
+                                                <a class="page-link" href="<?= $pager->getPrevious() ?>" aria-label="Halaman sebelumnya">
+                                                    <span aria-hidden="true">&laquo;</span>
+                                                </a>
+                                            </li>
+                                        <?php else: ?>
+                                            <li class="page-item disabled"><span class="page-link">&laquo;&laquo;</span></li>
+                                            <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                                        <?php endif; ?>
 
-                                    <?php
-                                    $pager->setSurroundCount(2);
-                                    foreach ($pager->links() as $link): ?>
-                                        <li class="page-item <?= $link['active'] ? 'active' : '' ?>">
-                                            <?php if ($link['active']): ?>
-                                                <span class="page-link"><?= esc($link['title']) ?></span>
-                                            <?php else: ?>
-                                                <a class="page-link" href="<?= esc($link['uri']) ?>"><?= esc($link['title']) ?></a>
-                                            <?php endif; ?>
-                                        </li>
-                                    <?php endforeach; ?>
+                                        <?php
+                                        $pager->setSurroundCount(2);
+                                        foreach ($pager->links() as $link): ?>
+                                            <li class="page-item <?= $link['active'] ? 'active' : '' ?>">
+                                                <?php if ($link['active']): ?>
+                                                    <span class="page-link"><?= esc($link['title']) ?></span>
+                                                <?php else: ?>
+                                                    <a class="page-link" href="<?= esc($link['uri']) ?>"><?= esc($link['title']) ?></a>
+                                                <?php endif; ?>
+                                            </li>
+                                        <?php endforeach; ?>
 
-                                    <?php if ($pager->hasNext()): ?>
-                                        <li class="page-item">
-                                            <a class="page-link" href="<?= $pager->getNext() ?>" aria-label="Halaman selanjutnya">
-                                                <span aria-hidden="true">&raquo;</span>
-                                            </a>
-                                        </li>
-                                        <li class="page-item">
-                                            <a class="page-link" href="<?= $pager->getLast() ?>" aria-label="Halaman terakhir">
-                                                <span aria-hidden="true">&raquo;&raquo;</span>
-                                            </a>
-                                        </li>
-                                    <?php else: ?>
-                                        <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
-                                        <li class="page-item disabled"><span class="page-link">&raquo;&raquo;</span></li>
-                                    <?php endif; ?>
-                                </ul>
-                            </nav>
+                                        <?php if ($pager->hasNext()): ?>
+                                            <li class="page-item">
+                                                <a class="page-link" href="<?= $pager->getNext() ?>" aria-label="Halaman selanjutnya">
+                                                    <span aria-hidden="true">&raquo;</span>
+                                                </a>
+                                            </li>
+                                            <li class="page-item">
+                                                <a class="page-link" href="<?= $pager->getLast() ?>" aria-label="Halaman terakhir">
+                                                    <span aria-hidden="true">&raquo;&raquo;</span>
+                                                </a>
+                                            </li>
+                                        <?php else: ?>
+                                            <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                                            <li class="page-item disabled"><span class="page-link">&raquo;&raquo;</span></li>
+                                        <?php endif; ?>
+                                    </ul>
+                                </nav>
+                                <div class="input-group input-group-sm" style="min-width: 160px;">
+                                    <label class="input-group-text" for="perPageSelectPagination"><i class="fas fa-layer-group"></i></label>
+                                    <select id="perPageSelectPagination" name="per_page" class="form-select auto-submit" form="agentCatalogFilter">
+                                        <?php foreach ($perPageOptions as $option): ?>
+                                            <option value="<?= esc($option) ?>" <?= (int) ($filters['per_page'] ?? 12) === (int) $option ? 'selected' : '' ?>>
+                                                <?= $option ?> / halaman
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 <?php endif; ?>

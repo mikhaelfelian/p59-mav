@@ -257,6 +257,7 @@ class Sales extends BaseController
         $userId = $userSession['id_user'];
 
         $postData = $this->request->getPost();
+        $saleAgentId = !empty($postData['agent_id']) ? (int) $postData['agent_id'] : 0;
         $id = $postData['id'] ?? null;
 
         // Parse items from POST
@@ -532,7 +533,7 @@ class Sales extends BaseController
                 'invoice_no'     => trim($postData['invoice_no']),
                 'user_id'        => $userId,
                 'customer_id'    => $customerId,
-                'warehouse_id'   => !empty($postData['agent_id']) ? (int)$postData['agent_id'] : null,
+                'warehouse_id'   => $saleAgentId > 0 ? $saleAgentId : null,
                 'sale_channel'   => $postData['sales_channel'] ?? self::CHANNEL_OFFLINE,
                 'total_amount'   => $subtotal,
                 'discount_amount' => $discountAmount,
@@ -716,6 +717,8 @@ class Sales extends BaseController
                                         'is_activated' => '1',
                                         'activated_at' => $activatedAt,
                                     ];
+
+                                    $updateData['agent_id'] = $saleAgentId > 0 ? $saleAgentId : 0;
 
                                     // Add expired_at if warranty is set
                                     if ($expiredAt) {

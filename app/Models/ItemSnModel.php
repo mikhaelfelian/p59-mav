@@ -43,7 +43,7 @@ class ItemSnModel extends Model
     // Validation
     protected $validationRules = [
         'item_id' => 'required|integer|is_natural_no_zero',
-        'agent_id' => 'required|integer|is_natural_no_zero',
+        'agent_id' => 'required|integer|greater_than_equal_to[0]',
         'user_id' => 'required|integer|is_natural_no_zero',
         'sn' => 'required|max_length[100]|is_unique[item_sn.sn,id,{id}]',
         'sn_replaced' => 'permit_empty|max_length[100]',
@@ -63,7 +63,7 @@ class ItemSnModel extends Model
         'agent_id' => [
             'required' => 'Agent ID harus diisi',
             'integer' => 'Agent ID harus berupa angka',
-            'is_natural_no_zero' => 'Agent ID harus berupa angka positif'
+            'greater_than_equal_to' => 'Agent ID harus berupa angka 0 atau lebih'
         ],
         'user_id' => [
             'required' => 'User ID harus diisi',
@@ -180,6 +180,10 @@ class ItemSnModel extends Model
         $errors = [];
         
         foreach ($data as $index => $row) {
+            if (!array_key_exists('agent_id', $row) || $row['agent_id'] === null || $row['agent_id'] === '') {
+                $row['agent_id'] = 0;
+            }
+
             // Check if SN already exists
             if ($this->snExists($row['sn'])) {
                 $errors[] = [
@@ -191,7 +195,12 @@ class ItemSnModel extends Model
             }
             
             // Validate required fields
-            if (empty($row['item_id']) || empty($row['agent_id']) || empty($row['user_id']) || empty($row['sn'])) {
+            if (
+                (!array_key_exists('item_id', $row) || $row['item_id'] === null || $row['item_id'] === '') ||
+                (!array_key_exists('agent_id', $row) || $row['agent_id'] === null || $row['agent_id'] === '') ||
+                (!array_key_exists('user_id', $row) || $row['user_id'] === null || $row['user_id'] === '') ||
+                (empty($row['sn']))
+            ) {
                 $errors[] = [
                     'row' => $index + 1,
                     'sn' => $row['sn'] ?? '',

@@ -132,6 +132,22 @@ $user = $_SESSION['user'];
 		</div>
 		<div class="pull-right nav-header nav-header-right">
 			<ul class="d-flex align-items-center">
+				<?php if ($is_agent_module): ?>
+				<li class="nav-item">
+					<?php 
+					$cart = $_SESSION['agent_cart'] ?? [];
+					$cartCount = count($cart);
+					?>
+					<a class="icon-link position-relative" href="<?=$config->baseURL?>agent/sales/cart" title="Keranjang">
+						<i class="fas fa-shopping-cart"></i>
+						<?php if ($cartCount > 0): ?>
+						<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="header-cart-count">
+							<?= $cartCount ?>
+						</span>
+						<?php endif; ?>
+					</a>
+				</li>
+				<?php endif; ?>
 				<li class="nav-item dropdown nav-theme-option">
 					<a class="icon-link nav-link" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
 						<?php
