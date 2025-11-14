@@ -573,8 +573,11 @@ class Item_Sn extends BaseController
      */
     public function getSoldSnList($item_id)
     {
-        // Check if this is a DataTable POST request (has 'draw' parameter)
-        $isDataTableRequest = $this->request->getMethod() === 'POST' || $this->request->getPost('draw') !== null;
+        // Check if this is a DataTable POST request
+        // DataTables always sends 'draw' parameter in POST requests
+        $hasDrawParam = $this->request->getPost('draw') !== null;
+        $isPostMethod = strtoupper($this->request->getMethod()) === 'POST';
+        $isDataTableRequest = $isPostMethod && $hasDrawParam;
         
         // Handle POST request (DataTable server-side processing) - must return JSON
         if ($isDataTableRequest) {
