@@ -40,166 +40,8 @@ $totalPages = $pagerInfo['totalPages'] ?? 1;
 
 <div class="container-fluid py-4 agent-catalog-page">
     <div class="row g-4">
-        <!-- Sidebar Filters -->
-        <div class="col-12 col-xl-3">
-            <form id="agentCatalogFilter" class="card shadow-sm border-0 sticky-top filter-card" style="top: 92px;" method="get" action="<?= $config->baseURL ?>agent/item">
-                <div class="card-header bg-white border-0 pb-0">
-                    <h5 class="card-title mb-1 d-flex align-items-center justify-content-between">
-                        <span><i class="fas fa-filter me-2 text-primary"></i>Filter Produk</span>
-                        <?php if ($hasActiveFilters): ?>
-                            <span class="badge bg-primary rounded-pill"><?= $appliedFilterCount ?></span>
-                        <?php endif; ?>
-                    </h5>
-                    <p class="text-muted small mb-0">Sesuaikan pencarian produk sesuai kebutuhan Anda.</p>
-                </div>
-
-                <div class="card-body">
-                    <input type="hidden" name="view" id="viewModeInput" value="<?= esc($viewMode) ?>">
-
-                    <!-- Search -->
-                    <div class="mb-4">
-                        <label for="catalogSearch" class="form-label fw-semibold text-uppercase small text-muted">Pencarian Kata Kunci</label>
-                        <div class="input-group input-group-lg rounded-pill shadow-sm">
-                            <span class="input-group-text bg-transparent border-0"><i class="fas fa-search text-primary"></i></span>
-                            <input type="text"
-                                   id="catalogSearch"
-                                   name="q"
-                                   value="<?= esc($searchValue) ?>"
-                                   class="form-control border-0"
-                                   placeholder="Cari nama, SKU, deskripsi..."
-                                   autocomplete="off">
-                        </div>
-                    </div>
-
-                    <!-- Categories -->
-                    <div class="mb-4">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <label class="form-label fw-semibold text-uppercase small text-muted mb-0">Kategori</label>
-                            <?php if (!empty($categories)): ?>
-                                <button type="button" class="btn btn-sm btn-link text-decoration-none text-muted clear-section" data-target="category">
-                                    Reset
-                                </button>
-                            <?php endif; ?>
-                        </div>
-                        <?php if (!empty($categories)): ?>
-                            <div class="filter-checkbox-list">
-                                <?php foreach ($categories as $category): ?>
-                                    <?php
-                                    $categoryId = $category['id'] ?? null;
-                                    if (!$categoryId) {
-                                        continue;
-                                    }
-                                    $isChecked = in_array((int) $categoryId, $selectedCategories, true);
-                                    ?>
-                                    <div class="form-check">
-                                        <input class="form-check-input auto-submit" type="checkbox" name="category[]" value="<?= esc($categoryId) ?>" id="cat-<?= esc($categoryId) ?>" <?= $isChecked ? 'checked' : '' ?>>
-                                        <label class="form-check-label" for="cat-<?= esc($categoryId) ?>">
-                                            <?= esc($category['category'] ?? 'Kategori') ?>
-                                        </label>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php else: ?>
-                            <p class="text-muted small fst-italic mb-0">Kategori belum tersedia.</p>
-                        <?php endif; ?>
-                    </div>
-
-                    <!-- Brands -->
-                    <div class="mb-4">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <label class="form-label fw-semibold text-uppercase small text-muted mb-0">Brand</label>
-                            <?php if (!empty($brands)): ?>
-                                <button type="button" class="btn btn-sm btn-link text-decoration-none text-muted clear-section" data-target="brand">
-                                    Reset
-                                </button>
-                            <?php endif; ?>
-                        </div>
-                        <?php if (!empty($brands)): ?>
-                            <div class="filter-checkbox-list">
-                                <?php foreach ($brands as $brand): ?>
-                                    <?php
-                                    $brandId = $brand['id'] ?? null;
-                                    if (!$brandId) {
-                                        continue;
-                                    }
-                                    $isChecked = in_array((int) $brandId, $selectedBrands, true);
-                                    ?>
-                                    <div class="form-check">
-                                        <input class="form-check-input auto-submit" type="checkbox" name="brand[]" value="<?= esc($brandId) ?>" id="brand-<?= esc($brandId) ?>" <?= $isChecked ? 'checked' : '' ?>>
-                                        <label class="form-check-label" for="brand-<?= esc($brandId) ?>">
-                                            <?= esc($brand['name'] ?? 'Brand') ?>
-                                        </label>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php else: ?>
-                            <p class="text-muted small fst-italic mb-0">Brand belum tersedia.</p>
-                        <?php endif; ?>
-                    </div>
-
-                    <!-- Price Range -->
-                    <div class="mb-4">
-                        <label class="form-label fw-semibold text-uppercase small text-muted">Rentang Harga (Rp)</label>
-                        <div class="row g-2">
-                            <div class="col-6">
-                                <div class="form-floating">
-                                    <input type="number"
-                                           min="0"
-                                           step="1000"
-                                           class="form-control"
-                                           id="priceMin"
-                                           name="price_min"
-                                           value="<?= $priceMinValue !== null ? esc((int) $priceMinValue) : '' ?>"
-                                           placeholder="Min">
-                                    <label for="priceMin">Minimal</label>
-                                </div>
-                                <small class="text-muted d-block mt-1">≥ <?= format_angka_rp($priceRange['min'] ?? 0) ?></small>
-                            </div>
-                            <div class="col-6">
-                                <div class="form-floating">
-                                    <input type="number"
-                                           min="0"
-                                           step="1000"
-                                           class="form-control"
-                                           id="priceMax"
-                                           name="price_max"
-                                           value="<?= $priceMaxValue !== null ? esc((int) $priceMaxValue) : '' ?>"
-                                           placeholder="Max">
-                                    <label for="priceMax">Maksimal</label>
-                                </div>
-                                <small class="text-muted d-block mt-1">≤ <?= format_angka_rp($priceRange['max'] ?? 0) ?></small>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Availability -->
-                    <div class="mb-4">
-                        <label class="form-label fw-semibold text-uppercase small text-muted">Ketersediaan</label>
-                        <select class="form-select auto-submit" name="availability">
-                            <option value="all" <?= $availability === 'all' ? 'selected' : '' ?>>Semua Produk</option>
-                            <option value="stockable" <?= $availability === 'stockable' ? 'selected' : '' ?>>Produk Stok / Serial</option>
-                            <option value="non_stock" <?= $availability === 'non_stock' ? 'selected' : '' ?>>Produk Non-Stok</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="card-footer bg-light border-0 d-flex flex-column gap-2">
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary rounded-pill">
-                            <i class="fas fa-filter me-2"></i>Terapkan Filter
-                        </button>
-                    </div>
-                    <div class="d-grid">
-                        <a href="<?= $config->baseURL ?>agent/item" class="btn btn-outline-secondary rounded-pill<?= $hasActiveFilters ? '' : ' disabled' ?>">
-                            <i class="fas fa-undo me-2"></i>Reset Filter
-                        </a>
-                    </div>
-                </div>
-            </form>
-        </div>
-
         <!-- Product Catalogue -->
-        <div class="col-12 col-xl-9">
+        <div class="col-12">
             <div class="card shadow-sm border-0 mb-4">
                 <div class="card-body pb-2">
                     <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
@@ -254,7 +96,7 @@ $totalPages = $pagerInfo['totalPages'] ?? 1;
                                     <div class="col-12 col-md-3">
                                         <div class="product-thumb ratio ratio-4x3 rounded-3 overflow-hidden bg-light d-flex align-items-center justify-content-center">
                                             <?php if (!empty($item['image'])): ?>
-                                                <img src="<?= $config->baseURL ?>public/images/item/<?= esc($item['image']) ?>"
+                                                <img src="<?= $config->baseURL ?>/uploads/<?= esc($item['image']) ?>"
                                                      alt="<?= esc($itemName) ?>"
                                                      class="img-fluid">
                                             <?php else: ?>
@@ -318,7 +160,7 @@ $totalPages = $pagerInfo['totalPages'] ?? 1;
                                 <div class="card h-100 border-0 shadow-sm product-card">
                                     <div class="ratio ratio-4x3 rounded-top overflow-hidden bg-light position-relative">
                                         <?php if (!empty($item['image'])): ?>
-                                            <img src="<?= $config->baseURL ?>public/images/item/<?= esc($item['image']) ?>"
+                                            <img src="<?= $config->baseURL ?>/uploads/<?= esc($item['image']) ?>"
                                                  alt="<?= esc($itemName) ?>"
                                                  class="img-fluid product-image">
                                         <?php else: ?>
@@ -442,127 +284,368 @@ $totalPages = $pagerInfo['totalPages'] ?? 1;
     </div>
 </div>
 
+<!-- Floating Filter Button -->
+<button type="button" 
+        class="btn btn-primary btn-floating-filter" 
+        id="btnOpenFilterModal"
+        title="Filter Produk">
+    <i class="fas fa-search"></i>
+    <?php if ($hasActiveFilters): ?>
+        <span class="badge bg-danger position-absolute top-0 start-100 translate-middle rounded-pill filter-badge">
+            <?= $appliedFilterCount ?>
+        </span>
+    <?php endif; ?>
+</button>
+
+<!-- Filter form HTML stored in hidden div for Bootbox -->
+<div id="filterFormHtml" style="display:none;">
+    <form id="agentCatalogFilter" method="get" action="<?= $config->baseURL ?>agent/item">
+        <p class="text-muted small mb-4">Sesuaikan pencarian produk sesuai kebutuhan Anda.</p>
+        
+        <input type="hidden" name="view" id="viewModeInput" value="<?= esc($viewMode) ?>">
+
+        <!-- Search -->
+        <div class="mb-4">
+            <label for="catalogSearch" class="form-label fw-semibold text-uppercase small text-muted">Pencarian Kata Kunci</label>
+            <div class="input-group input-group-lg rounded-pill shadow-sm">
+                <span class="input-group-text bg-transparent border-0"><i class="fas fa-search text-primary"></i></span>
+                <input type="text"
+                       id="catalogSearch"
+                       name="q"
+                       value="<?= esc($searchValue) ?>"
+                       class="form-control border-0"
+                       placeholder="Cari nama, SKU, deskripsi..."
+                       autocomplete="off">
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Categories -->
+            <div class="col-md-6 mb-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <label class="form-label fw-semibold text-uppercase small text-muted mb-0">Kategori</label>
+                    <?php if (!empty($categories)): ?>
+                        <button type="button" class="btn btn-sm btn-link text-decoration-none text-muted clear-section" data-target="category">
+                            Reset
+                        </button>
+                    <?php endif; ?>
+                </div>
+                <?php if (!empty($categories)): ?>
+                    <div class="filter-checkbox-list">
+                        <?php foreach ($categories as $category): ?>
+                            <?php
+                            $categoryId = $category['id'] ?? null;
+                            if (!$categoryId) {
+                                continue;
+                            }
+                            $isChecked = in_array((int) $categoryId, $selectedCategories, true);
+                            ?>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="category[]" value="<?= esc($categoryId) ?>" id="cat-<?= esc($categoryId) ?>" <?= $isChecked ? 'checked' : '' ?>>
+                                <label class="form-check-label" for="cat-<?= esc($categoryId) ?>">
+                                    <?= esc($category['category'] ?? 'Kategori') ?>
+                                </label>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php else: ?>
+                    <p class="text-muted small fst-italic mb-0">Kategori belum tersedia.</p>
+                <?php endif; ?>
+            </div>
+
+            <!-- Brands -->
+            <div class="col-md-6 mb-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <label class="form-label fw-semibold text-uppercase small text-muted mb-0">Brand</label>
+                    <?php if (!empty($brands)): ?>
+                        <button type="button" class="btn btn-sm btn-link text-decoration-none text-muted clear-section" data-target="brand">
+                            Reset
+                        </button>
+                    <?php endif; ?>
+                </div>
+                <?php if (!empty($brands)): ?>
+                    <div class="filter-checkbox-list">
+                        <?php foreach ($brands as $brand): ?>
+                            <?php
+                            $brandId = $brand['id'] ?? null;
+                            if (!$brandId) {
+                                continue;
+                            }
+                            $isChecked = in_array((int) $brandId, $selectedBrands, true);
+                            ?>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="brand[]" value="<?= esc($brandId) ?>" id="brand-<?= esc($brandId) ?>" <?= $isChecked ? 'checked' : '' ?>>
+                                <label class="form-check-label" for="brand-<?= esc($brandId) ?>">
+                                    <?= esc($brand['name'] ?? 'Brand') ?>
+                                </label>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php else: ?>
+                    <p class="text-muted small fst-italic mb-0">Brand belum tersedia.</p>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Price Range -->
+        <div class="mb-4">
+            <label class="form-label fw-semibold text-uppercase small text-muted">Rentang Harga (Rp)</label>
+            <div class="row g-2">
+                <div class="col-6">
+                    <div class="form-floating">
+                        <input type="number"
+                               min="0"
+                               step="1000"
+                               class="form-control"
+                               id="priceMin"
+                               name="price_min"
+                               value="<?= $priceMinValue !== null ? esc((int) $priceMinValue) : '' ?>"
+                               placeholder="Min">
+                        <label for="priceMin">Minimal</label>
+                    </div>
+                    <small class="text-muted d-block mt-1">≥ <?= format_angka_rp($priceRange['min'] ?? 0) ?></small>
+                </div>
+                <div class="col-6">
+                    <div class="form-floating">
+                        <input type="number"
+                               min="0"
+                               step="1000"
+                               class="form-control"
+                               id="priceMax"
+                               name="price_max"
+                               value="<?= $priceMaxValue !== null ? esc((int) $priceMaxValue) : '' ?>"
+                               placeholder="Max">
+                        <label for="priceMax">Maksimal</label>
+                    </div>
+                    <small class="text-muted d-block mt-1">≤ <?= format_angka_rp($priceRange['max'] ?? 0) ?></small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Availability -->
+        <div class="mb-4">
+            <label class="form-label fw-semibold text-uppercase small text-muted">Ketersediaan</label>
+            <select class="form-select" name="availability">
+                <option value="all" <?= $availability === 'all' ? 'selected' : '' ?>>Semua Produk</option>
+                <option value="stockable" <?= $availability === 'stockable' ? 'selected' : '' ?>>Produk Stok / Serial</option>
+                <option value="non_stock" <?= $availability === 'non_stock' ? 'selected' : '' ?>>Produk Non-Stok</option>
+            </select>
+        </div>
+    </form>
+</div>
+
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const filterForm = document.getElementById('agentCatalogFilter');
+$(document).ready(function () {
+    // Function to show filter modal using Bootbox
+    function showFilterModal() {
+        var filterFormHtml = $('#filterFormHtml').html();
+        var modalTitle = '<i class="fas fa-filter me-2"></i>Filter Produk<?php if ($hasActiveFilters): ?> <span class="badge bg-primary rounded-pill ms-2"><?= $appliedFilterCount ?></span><?php endif; ?>';
+        
+        var $bootbox = bootbox.dialog({
+            title: modalTitle,
+            message: filterFormHtml,
+            size: 'large',
+            buttons: {
+                cancel: {
+                    label: 'Batal',
+                    className: 'btn-secondary'
+                },
+                reset: {
+                    label: '<i class="fas fa-undo me-2"></i>Reset Filter',
+                    className: 'btn-outline-secondary<?= $hasActiveFilters ? '' : ' disabled' ?>',
+                    callback: function() {
+                        window.location.href = '<?= $config->baseURL ?>agent/item';
+                        return false;
+                    }
+                },
+                success: {
+                    label: '<i class="fas fa-filter me-2"></i>Terapkan Filter',
+                    className: 'btn-primary submit',
+                    callback: function() {
+                        var form = $bootbox.find('form#agentCatalogFilter')[0];
+                        if (form) {
+                            form.submit();
+                        }
+                        return false; // Prevent modal from closing automatically
+                    }
+                }
+            }
+        });
+        
+        // Set modal dialog max width for better UX
+        $bootbox.find('.modal-dialog').css('max-width', '90%');
+        
+        // Re-initialize form event handlers inside the modal
+        var $modalForm = $bootbox.find('form#agentCatalogFilter');
+        
+        // Clear section buttons
+        $bootbox.find('.clear-section').on('click', function() {
+            var target = $(this).data('target');
+            $modalForm.find('[name="' + target + '[]"]').prop('checked', false);
+        });
+    }
+    
+    // Open modal when FAB button is clicked
+    $('#btnOpenFilterModal').on('click', function() {
+        showFilterModal();
+    });
+    
     const csrfTokenName = '<?= csrf_token() ?>';
     let csrfHash = '<?= csrf_hash() ?>';
 
-    // Auto-submit on change
-    document.querySelectorAll('#agentCatalogFilter .auto-submit').forEach(function (element) {
-        element.addEventListener('change', function () {
-            filterForm.submit();
-        });
-    });
-
-    // Clear specific filter section
-    document.querySelectorAll('#agentCatalogFilter .clear-section').forEach(function (button) {
-        button.addEventListener('click', function () {
-            const target = button.getAttribute('data-target');
-            filterForm.querySelectorAll(`[name="${target}[]"]`).forEach(function (checkbox) {
-                checkbox.checked = false;
-            });
-            filterForm.submit();
-        });
-    });
-
     // View mode toggle
-    const viewInput = document.getElementById('viewModeInput');
-    document.querySelectorAll('.view-toggle').forEach(function (button) {
-        button.addEventListener('click', function () {
-            const selectedView = button.getAttribute('data-view');
-            if (viewInput.value !== selectedView) {
-                viewInput.value = selectedView;
-                filterForm.submit();
+    $('.view-toggle').on('click', function () {
+        var selectedView = $(this).data('view');
+        var viewInput = $('#viewModeInput');
+        if (viewInput.length && viewInput.val() !== selectedView) {
+            viewInput.val(selectedView);
+            // Submit form if exists on page, otherwise redirect
+            var form = $('#agentCatalogFilter');
+            if (form.length) {
+                form.submit();
             }
-        });
+        }
     });
 
     // Handle add-to-cart buttons
-    document.querySelectorAll('.btn-add-cart').forEach(function (button) {
-        button.addEventListener('click', function () {
-            const itemId = button.getAttribute('data-item-id');
-            const itemName = button.getAttribute('data-item-name');
-            const itemPrice = button.getAttribute('data-item-price');
-            const originalText = button.innerHTML;
+    $(document).on('click', '.btn-add-cart', function() {
+        var button = $(this);
+        var itemId = button.data('item-id');
+        var itemName = button.data('item-name');
+        var itemPrice = button.data('item-price');
+        var originalText = button.html();
 
-            button.disabled = true;
-            button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Memproses...';
+        button.prop('disabled', true);
+        button.html('<i class="fas fa-spinner fa-spin me-2"></i>Memproses...');
 
-            const payload = new URLSearchParams({
-                item_id: itemId,
-                item_name: itemName,
-                item_price: itemPrice,
-                qty: 1
-            });
+        var payload = new URLSearchParams({
+            item_id: itemId,
+            item_name: itemName,
+            item_price: itemPrice,
+            qty: 1
+        });
 
-            if (csrfTokenName) {
-                payload.append(csrfTokenName, csrfHash);
+        if (csrfTokenName) {
+            payload.append(csrfTokenName, csrfHash);
+        }
+
+        fetch('<?= $config->baseURL ?>agent/sales/addToCart', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: payload.toString()
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.csrf_hash) {
+                csrfHash = data.csrf_hash;
             }
 
-            fetch('<?= $config->baseURL ?>agent/sales/addToCart', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: payload.toString()
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.csrf_hash) {
-                    csrfHash = data.csrf_hash;
-                }
-
-                if (data.status === 'success') {
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Berhasil',
-                            text: data.message || 'Produk ditambahkan ke keranjang.',
-                            showCancelButton: true,
-                            confirmButtonText: 'Lihat Keranjang',
-                            cancelButtonText: 'Lanjut Belanja',
-                            confirmButtonColor: '#2563eb',
-                            cancelButtonColor: '#6b7280'
-                        }).then(result => {
-                            if (result.isConfirmed) {
-                                window.location.href = '<?= $config->baseURL ?>agent/sales/cart';
-                            }
-                        });
-                    } else {
-                        if (confirm((data.message || 'Produk ditambahkan ke keranjang.') + '\n\nBuka keranjang sekarang?')) {
+            if (data.status === 'success') {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil',
+                        text: data.message || 'Produk ditambahkan ke keranjang.',
+                        showCancelButton: true,
+                        confirmButtonText: 'Lihat Keranjang',
+                        cancelButtonText: 'Lanjut Belanja',
+                        confirmButtonColor: '#2563eb',
+                        cancelButtonColor: '#6b7280'
+                    }).then(result => {
+                        if (result.isConfirmed) {
                             window.location.href = '<?= $config->baseURL ?>agent/sales/cart';
                         }
-                    }
+                    });
                 } else {
-                    const errorMessage = data.message || 'Gagal menambahkan produk. Silakan coba lagi.';
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({ icon: 'error', title: 'Error', text: errorMessage });
-                    } else {
-                        alert(errorMessage);
+                    if (confirm((data.message || 'Produk ditambahkan ke keranjang.') + '\n\nBuka keranjang sekarang?')) {
+                        window.location.href = '<?= $config->baseURL ?>agent/sales/cart';
                     }
                 }
-            })
-            .catch(error => {
-                const message = 'Terjadi kesalahan koneksi. Silakan coba lagi.';
+            } else {
+                var errorMessage = data.message || 'Gagal menambahkan produk. Silakan coba lagi.';
                 if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'error', title: 'Error', text: message });
+                    Swal.fire({ icon: 'error', title: 'Error', text: errorMessage });
                 } else {
-                    alert(message);
+                    alert(errorMessage);
                 }
-                console.error('Add to cart error:', error);
-            })
-            .finally(() => {
-                button.disabled = false;
-                button.innerHTML = originalText;
-            });
+            }
+        })
+        .catch(error => {
+            var message = 'Terjadi kesalahan koneksi. Silakan coba lagi.';
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({ icon: 'error', title: 'Error', text: message });
+            } else {
+                alert(message);
+            }
+            console.error('Add to cart error:', error);
+        })
+        .finally(() => {
+            button.prop('disabled', false);
+            button.html(originalText);
         });
     });
 });
 </script>
 
 <style>
+/* Floating Filter Button */
+.btn-floating-filter {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 1040; /* Below modal backdrop (1050) and modal (1055) */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    transition: all 0.3s ease;
+    border: none;
+    padding: 0;
+}
+
+.btn-floating-filter:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2), 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-floating-filter:active {
+    transform: scale(0.95);
+}
+
+.btn-floating-filter .filter-badge {
+    font-size: 0.75rem;
+    padding: 0.25em 0.5em;
+    min-width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Filter Modal (Bootbox) */
+.bootbox .filter-checkbox-list {
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.bootbox .filter-checkbox-list .form-check {
+    margin-bottom: 0.5rem;
+}
+
+.bootbox .modal-body {
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+}
+
+/* Remove old filter card styles */
 .agent-catalog-page .filter-card {
     max-height: calc(100vh - 108px);
     overflow-y: auto;
@@ -607,9 +690,16 @@ document.addEventListener('DOMContentLoaded', function () {
 }
 
 @media (max-width: 991.98px) {
-    .agent-catalog-page .filter-card {
-        position: static !important;
-        max-height: unset;
+    .btn-floating-filter {
+        bottom: 15px;
+        right: 15px;
+        width: 52px;
+        height: 52px;
+        font-size: 1.1rem;
+    }
+
+    .bootbox .modal-dialog {
+        margin: 0.5rem;
     }
 
     .agent-catalog-page .product-card-list {

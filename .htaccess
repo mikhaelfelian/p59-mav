@@ -30,6 +30,12 @@ RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^images/(.*)$ public/images/$1 [L]
 
+# /uploads/... → /public/uploads/...
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^uploads/(.*)$ public/uploads/$1 [L]
+
+
 # ---------------------------------------------------
 # CodeIgniter routing (biar index.php tetap berfungsi)
 # ---------------------------------------------------
