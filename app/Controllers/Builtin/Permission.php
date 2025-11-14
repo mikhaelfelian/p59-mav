@@ -87,6 +87,14 @@ class Permission extends \App\Controllers\BaseController
 			} else {
 				$result = $this->model->saveData();
 				if ($result['status'] == 'ok') {
+					// Clear permission cache after successful save
+					$id_module = $_POST['id_module'] ?? null;
+					if ($id_module) {
+						$this->clearPermissionCache($id_module);
+					}
+					// Clear menu cache (permissions affect menu visibility)
+					$this->clearMenuCache();
+					
 					$result['data'] = $this->model->getPermission($_POST['id_module']);
 				}
 			}

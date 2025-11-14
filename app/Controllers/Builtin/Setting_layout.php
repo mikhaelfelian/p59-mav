@@ -39,6 +39,13 @@ class Setting_layout extends \App\Controllers\BaseController
 				$save = $this->model->saveData();
 				
 				if ($save) {
+					// Clear cache after successful save
+					$this->clearSettingsCache();
+					// Clear user settings from session
+					if (isset($_SESSION['user']['user_settings'])) {
+						unset($_SESSION['user']['user_settings']);
+					}
+					
 					$data['status'] = 'ok';
 					$data['message'] = 'Data berhasil disimpan';
 				} else {

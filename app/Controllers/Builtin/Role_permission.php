@@ -55,6 +55,15 @@ class Role_permission extends \App\Controllers\BaseController
 		if (!empty($_POST['id_module']) && !empty($_POST['submit'])) {
 			$save = $this->model->saveData();
 			if ($save) {
+				// Clear permission and menu cache after successful save
+				$id_module = $_POST['id_module'] ?? null;
+				if ($id_module) {
+					$this->clearPermissionCache($id_module);
+				}
+				// Clear all user permission caches (permissions changed)
+				$this->clearAllUserPermissionCache();
+				$this->clearMenuCache();
+				
 				$result['status'] = 'ok';
 				$result['message'] = 'Data berhasil disimpan';
 			} else {
@@ -116,6 +125,15 @@ class Role_permission extends \App\Controllers\BaseController
 			} else {
 				$save = $this->model->saveData();
 				if ($save) {
+					// Clear permission and menu cache after successful save
+					$id_module = $_POST['id_module'] ?? null;
+					if ($id_module) {
+						$this->clearPermissionCache($id_module);
+					}
+					// Clear all user permission caches (permissions changed)
+					$this->clearAllUserPermissionCache();
+					$this->clearMenuCache();
+					
 					$data['msg']['status'] = 'ok';
 					$data['msg']['message'] = 'Data berhasil disimpan';
 					// $data = array_merge($data, $save);
@@ -216,6 +234,14 @@ class Role_permission extends \App\Controllers\BaseController
 	{
 		$result = $this->model->assignPermission();
 		if ($result) {
+			// Clear permission and menu cache after successful assignment
+			$id_module = $_POST['id_module'] ?? null;
+			if ($id_module) {
+				$this->clearPermissionCache($id_module);
+			}
+			$this->clearAllUserPermissionCache();
+			$this->clearMenuCache();
+			
 			$message = ['status' => 'ok', 'message' => 'Data berhasil disimpan', 'hasAllPermission' => $this->model->hasAllPermission($_POST['id_role'])];
 		} else {
 			$message = ['status' => 'error', 'message' => 'Data gagal disimpan'];
@@ -228,6 +254,10 @@ class Role_permission extends \App\Controllers\BaseController
 	{
 		$result = $this->model->assignAllPermission();
 		if ($result) {
+			// Clear all permission and menu caches after successful assignment
+			$this->clearAllUserPermissionCache();
+			$this->clearMenuCache();
+			
 			$message = ['status' => 'ok', 'message' => 'Data berhasil disimpan'];
 		} else {
 			$message = ['status' => 'error', 'message' => 'Data gagal disimpan'];

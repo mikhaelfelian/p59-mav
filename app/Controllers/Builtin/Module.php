@@ -38,8 +38,22 @@ class Module extends \App\Controllers\BaseController
 			if ($used) {
 				$result = ['status' => 'error', 'message' => 'Module digunakan sebagai halaman default user'];
 			} else {
+				// Get module name before delete for cache clearing
+				$module_id = $this->request->getPost('id');
+				$module_data = $this->model->getModuleById($module_id);
+				$nama_module = $module_data['nama_module'] ?? null;
+				
 				$delete = $this->model->deleteData();
 				if ($delete) {
+					// Clear cache after successful delete
+					if ($nama_module) {
+						$this->clearModuleCache($nama_module);
+					}
+					if ($module_id) {
+						$this->clearPermissionCache($module_id);
+					}
+					$this->clearMenuCache();
+					
 					$result = ['status' => 'ok', 'message' => 'Data user berhasil dihapus'];
 				} else {
 					$result = ['status' => 'error', 'message' => 'Tidak ada data yang dihapus'];
@@ -57,10 +71,26 @@ class Module extends \App\Controllers\BaseController
 		// Module Aktif/Nonaktif/Login
 		if (!empty($_POST['change_module_attr'])) 
 		{
+			// Get module name before update for cache clearing
+			$module_id = $this->request->getPost('id') ?? $_POST['id'] ?? null;
+			$module_data = null;
+			if ($module_id) {
+				$module_data = $this->model->getModuleById($module_id);
+			}
+			
 			$update_status = $this->model->updateStatus();
 					
 			if (!empty($_POST['ajax'])) {
 				if ($update_status) {
+					// Clear cache after successful status update
+					if ($module_data && isset($module_data['nama_module'])) {
+						$this->clearModuleCache($module_data['nama_module']);
+					}
+					if ($module_id) {
+						$this->clearPermissionCache($module_id);
+					}
+					$this->clearMenuCache();
+					
 					echo 'ok';
 				} else {
 					echo 'error';
@@ -147,6 +177,30 @@ class Module extends \App\Controllers\BaseController
 			$data['message'] = $form_errors;
 		} else {
 			$data = $this->model->saveData();
+			
+			// Clear cache after successful save
+			if (isset($data['status']) && $data['status'] === 'ok') {
+				$nama_module = $this->request->getPost('nama_module');
+				$nama_module_old = $this->request->getPost('nama_module_old');
+				
+				// Clear cache for updated module
+				if ($nama_module) {
+					$this->clearModuleCache($nama_module);
+				}
+				// Clear cache for old module name if changed
+				if ($nama_module_old && $nama_module_old != $nama_module) {
+					$this->clearModuleCache($nama_module_old);
+				}
+				
+				// Clear permission cache for this module
+				$id_module = $data['id_module'] ?? $this->request->getPost('id');
+				if ($id_module) {
+					$this->clearPermissionCache($id_module);
+				}
+				
+				// Clear menu cache (menu might change when module changes)
+				$this->clearMenuCache();
+			}
 		}
 		
 		return $data;

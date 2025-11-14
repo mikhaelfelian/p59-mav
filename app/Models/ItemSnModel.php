@@ -25,6 +25,7 @@ class ItemSnModel extends Model
         'agent_id',
         'user_id',
         'sn',
+        'barcode',
         'sn_replaced',
         'is_sell',
         'is_activated',
@@ -46,6 +47,7 @@ class ItemSnModel extends Model
         'agent_id' => 'required|integer|greater_than_equal_to[0]',
         'user_id' => 'required|integer|is_natural_no_zero',
         'sn' => 'required|max_length[100]|is_unique[item_sn.sn,id,{id}]',
+        'barcode' => 'permit_empty|max_length[100]',
         'sn_replaced' => 'permit_empty|max_length[100]',
         'is_sell' => 'in_list[0,1]',
         'is_activated' => 'in_list[0,1]',
@@ -74,6 +76,9 @@ class ItemSnModel extends Model
             'required' => 'Serial Number harus diisi',
             'max_length' => 'Serial Number maksimal 100 karakter',
             'is_unique' => 'Serial Number sudah terdaftar'
+        ],
+        'barcode' => [
+            'max_length' => 'Barcode maksimal 100 karakter'
         ],
         'sn_replaced' => [
             'max_length' => 'SN Replaced maksimal 100 karakter'

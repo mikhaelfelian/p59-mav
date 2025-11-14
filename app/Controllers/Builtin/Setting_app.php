@@ -46,6 +46,12 @@ class Setting_app extends \App\Controllers\BaseController
 					$data['message'] = ['status' => 'error', 'message' => 'Role anda tidak diperbolehkan melakukan perubahan'];
 				} else {
 					$result = $this->model->saveData();
+					
+					// Clear cache after successful save
+					if (isset($result['status']) && $result['status'] === 'ok') {
+						$this->clearSettingsCache();
+					}
+					
 					$data['message'] = ['status' => $result['status'], 'message' => $result['message']];
 				}
 			}

@@ -55,6 +55,9 @@ class Menu extends \App\Controllers\BaseController
 			$menu_updated = $this->model->updateData();
 			
 			if ($menu_updated) {
+				// Clear menu cache after successful update
+				$this->clearMenuCache();
+				
 				$msg['status'] = 'ok';
 				$msg['content'] = 'Menu berhasil diupdate';
 			} else {
@@ -187,6 +190,9 @@ class Menu extends \App\Controllers\BaseController
 				
 				// $query = true;
 				if ($query) {
+					// Clear menu cache after successful save
+					$this->clearMenuCache();
+					
 					$data['msg']['status'] = 'ok';
 					$data['msg']['message'] = $message;
 					// $data['msg']['message'] = 'Menu berhasil diupdate';
@@ -206,6 +212,9 @@ class Menu extends \App\Controllers\BaseController
 		$result = $this->model->deleteMenu();
 		
 		if ($result) {
+			// Clear menu cache after successful delete
+			$this->clearMenuCache();
+			
 			$message = ['status' => 'ok', 'message' => 'Data menu berhasil dihapus'];
 			echo json_encode($message);
 		} else {

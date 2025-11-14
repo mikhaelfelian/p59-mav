@@ -1595,13 +1595,16 @@ class Sales extends BaseController
     {
         // Get agent IDs for current user
         // Check if user is admin (has read_all or update_all permission)
-        $isAdmin = key_exists('read_all', $this->userPermission) || key_exists('update_all', $this->userPermission);
+        // Defensive check: ensure userPermission is an array
+        $userPermission = is_array($this->userPermission) ? $this->userPermission : [];
+        $isAdmin = key_exists('read_all', $userPermission) || key_exists('update_all', $userPermission);
         
         $agentIds = [];
-        if (!$isAdmin && !empty($this->user['id_user'])) {
+        $userId = !empty($this->user) && is_array($this->user) ? ($this->user['id_user'] ?? null) : null;
+        if (!$isAdmin && !empty($userId)) {
             $agentRows = $this->userRoleAgentModel
                 ->select('agent_id')
-                ->where('user_id', $this->user['id_user'])
+                ->where('user_id', $userId)
                 ->findAll();
 
             $agentIds = array_values(array_unique(array_map(
@@ -1779,14 +1782,17 @@ class Sales extends BaseController
             }
 
             // Check if user is admin (has read_all or update_all permission)
-            $isAdmin = key_exists('read_all', $this->userPermission) || key_exists('update_all', $this->userPermission);
+            // Defensive check: ensure userPermission is an array
+            $userPermission = is_array($this->userPermission) ? $this->userPermission : [];
+            $isAdmin = key_exists('read_all', $userPermission) || key_exists('update_all', $userPermission);
             
             // Get agent IDs for current user (only for non-admin users)
             $agentIds = [];
-            if (!$isAdmin && !empty($this->user['id_user'])) {
+            $userId = !empty($this->user) && is_array($this->user) ? ($this->user['id_user'] ?? null) : null;
+            if (!$isAdmin && !empty($userId)) {
                 $agentRows = $this->userRoleAgentModel
                     ->select('agent_id')
-                    ->where('user_id', $this->user['id_user'])
+                    ->where('user_id', $userId)
                     ->findAll();
 
                 $agentIds = array_values(array_unique(array_map(
@@ -1823,11 +1829,13 @@ class Sales extends BaseController
                     sales_detail.qty,
                     item.name as item_name_fallback,
                     item.sku as item_sku,
+                    item_sn.barcode,
                     sales.sale_channel,
                     sales.warehouse_id')
                 ->join('sales_detail', 'sales_detail.id = sales_item_sn.sales_item_id', 'inner')
                 ->join('sales', 'sales.id = sales_detail.sale_id', 'inner')
                 ->join('item', 'item.id = sales_detail.item_id', 'left')
+                ->join('item_sn', 'item_sn.id = sales_item_sn.item_sn_id', 'left')
                 ->where('sales.sale_channel', self::CHANNEL_ONLINE);
             
             // Apply agent filter only for non-admin users
@@ -1869,6 +1877,7 @@ class Sales extends BaseController
                       ->orLike('sales_detail.item', $searchValue)
                       ->orLike('item.name', $searchValue)
                       ->orLike('item.sku', $searchValue)
+                      ->orLike('item_sn.barcode', $searchValue)
                       ->groupEnd();
 
                 // Clone query for count
@@ -1890,6 +1899,12 @@ class Sales extends BaseController
                 // Use item name from sales_detail, fallback to item.name
                 $itemName = !empty($row['item_name']) ? $row['item_name'] : ($row['item_name_fallback'] ?? '-');
                 
+                // Get item SKU
+                $itemSku = !empty($row['item_sku']) ? $row['item_sku'] : '-';
+                
+                // Get barcode (from item_sn.barcode only, show '-' if empty - do NOT use serial number as fallback)
+                $barcode = !empty($row['barcode']) ? $row['barcode'] : '-';
+                
                 // Action button (only for unused)
                 $actionButton = '';
                 if ($filter === 'unused') {
@@ -1902,7 +1917,8 @@ class Sales extends BaseController
                     'ignore_search_urut' => $no,
                     'sn'                => esc($row['sn']),
                     'item_name'         => esc($itemName),
-                    'qty'               => esc($row['qty'] ?? 1),
+                    'item_sku'          => esc($itemSku),
+                    'barcode'           => esc($barcode),
                     'ignore_search_action' => $actionButton,
                 ];
 
@@ -1916,17 +1932,28 @@ class Sales extends BaseController
                 'data'            => $result,
             ]);
         } catch (\Throwable $e) {
+            // Enhanced error logging
+            $errorDetails = [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+                'user_id' => !empty($this->user) && is_array($this->user) ? ($this->user['id_user'] ?? 'N/A') : 'N/A',
+                'userPermission_type' => gettype($this->userPermission ?? null),
+                'isLoggedIn' => $this->isLoggedIn ?? false,
+            ];
+            
             log_message(
                 'error',
-                'Agent\Sales::getSnDataDT error: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString()
+                'Agent\Sales::getSnDataDT error: ' . json_encode($errorDetails, JSON_PRETTY_PRINT)
             );
 
             return $this->response->setJSON([
-                'draw'            => 0,
+                'draw'            => $draw ?? 0,
                 'recordsTotal'    => 0,
                 'recordsFiltered' => 0,
                 'data'            => [],
-                'error'           => 'Terjadi kesalahan saat memuat data.',
+                'error'           => 'Terjadi kesalahan saat memuat data: ' . $e->getMessage(),
             ]);
         }
     }

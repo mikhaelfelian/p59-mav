@@ -164,7 +164,8 @@ html[data-bs-theme="dark"] .sn-table tbody tr:nth-child(even):hover {
 					'ignore_search_urut'    => 'No',
 					'sn'                    => 'SN',
 					'item_name'             => 'Item',
-					'qty'                   => 'Qty',
+					'item_sku'              => 'Item Code',
+					'barcode'               => 'Barcode',
 					'ignore_search_action'  => 'Aksi'
 				];
 
@@ -215,7 +216,8 @@ html[data-bs-theme="dark"] .sn-table tbody tr:nth-child(even):hover {
 					'ignore_search_urut'    => 'No',
 					'sn'                    => 'SN',
 					'item_name'             => 'Item',
-					'qty'                   => 'Qty',
+					'item_sku'              => 'Item Code',
+					'barcode'               => 'Barcode',
 					'ignore_search_action'  => 'Aksi'
 				];
 

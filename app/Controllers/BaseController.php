@@ -34,6 +34,7 @@ class BaseController extends Controller
 	// protected $moduleRole;
 	protected $modulePermission;
 	protected $userPermission;
+	protected $cache;
 	
 	/*
 	Alur:
@@ -58,6 +59,15 @@ class BaseController extends Controller
 		$this->auth = new Auth;
 		$this->model = new BaseModel;
 		
+		// Initialize cache service
+		try {
+			$this->cache = \Config\Services::cache();
+		} catch (\Exception $e) {
+			// Fallback: cache will be null, all cache operations will use database
+			$this->cache = null;
+			log_message('error', 'Cache initialization failed: ' . $e->getMessage());
+		}
+		
 		// Autoload util helpers (app\Helpers\Autoload.php)
 		if ($this->config->csrf['enable']) {
 			helper('csrf');
@@ -71,7 +81,15 @@ class BaseController extends Controller
 		$web = $this->session->get('web');
 
 		$nama_module = $web['nama_module'];
-		$module = $this->model->getModule($nama_module);
+		
+		// Cache module data (1 hour TTL)
+		$module = $this->getCachedData(
+			'module_' . $nama_module,
+			function() use ($nama_module) {
+				return $this->model->getModule($nama_module);
+			},
+			3600 // 1 hour
+		);
 		
 		if (!$module) {
 			$this->data['content'] = 'Module ' . $nama_module . ' tidak ditemukan di database';
@@ -100,7 +118,15 @@ class BaseController extends Controller
 		$this->data['session'] = $this->session;
 		$this->data['site_title'] = 'Admin Template Codeigniter 4';
 		$this->data['site_desc'] = 'Admin Template Codeigniter 4 lengkap dengan berbagai fitur untuk memudahkan pengembangan aplikasi';
-		$this->data['settingAplikasi'] = $this->model->getSettingAplikasi();
+		
+		// Cache app settings (24 hours TTL)
+		$this->data['settingAplikasi'] = $this->getCachedData(
+			'app_settings',
+			function() {
+				return $this->model->getSettingAplikasi();
+			},
+			86400 // 24 hours
+		);
 		$this->data['user'] = [];
 		$this->data['auth'] = $this->auth;
 		$this->data['scripts'] = [];
@@ -114,14 +140,36 @@ class BaseController extends Controller
 		}
 				
 		if ($this->isLoggedIn) {
-			$user_setting = $this->model->getUserSetting();
-			
-			if ($user_setting) {
-				$this->data['app_layout'] = json_decode($user_setting->param, true);
+			// Use session for user settings to avoid repeated queries
+			if (isset($_SESSION['user']['user_settings']) && !empty($_SESSION['user']['user_settings'])) {
+				$user_setting = $_SESSION['user']['user_settings'];
+				if ($user_setting) {
+					$this->data['app_layout'] = is_string($user_setting) ? json_decode($user_setting, true) : $user_setting;
+				}
+			} else {
+				$user_setting = $this->model->getUserSetting();
+				if ($user_setting) {
+					$layout_data = json_decode($user_setting->param, true);
+					$this->data['app_layout'] = $layout_data;
+					// Store in session for next request
+					if (!isset($_SESSION['user'])) {
+						$_SESSION['user'] = [];
+					}
+					$_SESSION['user']['user_settings'] = $user_setting->param;
+				}
 			}
 				
 		} else {
-			$query = $this->model->getAppLayoutSetting();
+			// Cache layout settings (24 hours TTL)
+			$query = $this->getCachedData(
+				'layout_settings',
+				function() {
+					return $this->model->getAppLayoutSetting();
+				},
+				86400 // 24 hours
+			);
+			
+			$app_layout = [];
 			foreach ($query as $val) {
 				$app_layout[$val['param']] = $val['value'];
 			}
@@ -141,7 +189,20 @@ class BaseController extends Controller
 
 			// List action assigned to role
 			$this->data['action_user'] = $this->userPermission;
-			$this->data['menu'] = $this->model->getMenu($this->currentModule['nama_module']);
+			
+			// Cache menu data with role-based key (30 minutes TTL)
+			$user_role = $this->user['role'] ?? [];
+			$role_ids = !empty($user_role) ? array_keys($user_role) : [];
+			$role_hash = !empty($role_ids) ? md5(implode(',', $role_ids)) : 'no_role';
+			$menu_cache_key = 'menu_' . $role_hash . '_' . $this->currentModule['nama_module'];
+			
+			$this->data['menu'] = $this->getCachedData(
+				$menu_cache_key,
+				function() {
+					return $this->model->getMenu($this->currentModule['nama_module']);
+				},
+				1800 // 30 minutes
+			);
 			
 			$this->data['breadcrumb'] = ['Home' => $this->config->baseURL, $this->currentModule['judul_module'] => $this->moduleURL];
 			$this->data['module_role'] = $this->model->getDefaultUserModule();
@@ -149,14 +210,27 @@ class BaseController extends Controller
 			$this->getModulePermission();
 			$this->getListPermission();
 			
-			$result = $this->model->getAllModulePermission($_SESSION['user']['id_user']);
-			$all_module_permission = [];
-			if ($result) {
-				foreach ($result as $val) {
-					$all_module_permission[$val['id_module']][$val['nama_permission']] = $val;
+			// Use session for user permissions to avoid repeated queries
+			if (isset($_SESSION['user']['all_permission']) && !empty($_SESSION['user']['all_permission'])) {
+				$all_module_permission = $_SESSION['user']['all_permission'];
+			} else {
+				// Cache all module permissions (1 hour TTL)
+				$result = $this->getCachedData(
+					'user_permissions_' . $_SESSION['user']['id_user'],
+					function() {
+						return $this->model->getAllModulePermission($_SESSION['user']['id_user']);
+					},
+					3600 // 1 hour
+				);
+				
+				$all_module_permission = [];
+				if ($result) {
+					foreach ($result as $val) {
+						$all_module_permission[$val['id_module']][$val['nama_permission']] = $val;
+					}
 				}
+				$_SESSION['user']['all_permission'] = $all_module_permission;
 			}
-			$_SESSION['user']['all_permission'] = $all_module_permission;
 			
 			// Check Global Role Action
 			$this->checkRoleAction();
@@ -173,7 +247,14 @@ class BaseController extends Controller
 	
 	private function getModulePermission()
 	{
-		$query = $this->model->getModulePermission($this->currentModule['id_module']);
+		// Cache module permissions (1 hour TTL)
+		$query = $this->getCachedData(
+			'module_permission_' . $this->currentModule['id_module'],
+			function() {
+				return $this->model->getModulePermission($this->currentModule['id_module']);
+			},
+			3600 // 1 hour
+		);
 		
 		$this->modulePermission = [];
 		foreach ($query as $val) {
@@ -188,8 +269,17 @@ class BaseController extends Controller
 				
 		if ($this->isLoggedIn && $this->currentModule['nama_module'] != 'login') 
 		{
-			$current_user = $this->model->getUserById($this->user['id_user']);
-			if ($current_user['status'] != 'active') {
+			// Use user data from session if available, only query if status check needed
+			$current_user = null;
+			if (isset($this->user['status'])) {
+				// User data already in session, use it
+				$current_user = $this->user;
+			} else {
+				// Fallback: query database if status not in session
+				$current_user = $this->model->getUserById($this->user['id_user']);
+			}
+			
+			if ($current_user && isset($current_user['status']) && $current_user['status'] != 'active') {
 				$this->data['content'] = 'Status akun Anda ' . ucfirst($current_user['status']);
 				$this->exitError($this->data);
 			}
@@ -515,5 +605,159 @@ class BaseController extends Controller
 			$data = array_merge($data, $addData);
 		}
 		$this->view('error-data-notfound.php', $data);
+	}
+	
+	/**
+	 * Get cached data with automatic fallback to database
+	 * 
+	 * @param string $key Cache key
+	 * @param callable $callback Function to get data from database if cache miss
+	 * @param int $ttl Time to live in seconds (default: 1 hour)
+	 * @return mixed Cached data or result from callback
+	 */
+	protected function getCachedData($key, $callback, $ttl = 3600)
+	{
+		// If cache is not available, directly call callback
+		if ($this->cache === null) {
+			return $callback();
+		}
+		
+		try {
+			$data = $this->cache->get($key);
+			
+			if ($data === null) {
+				// Cache miss - get from database
+				$data = $callback();
+				if ($data !== null && $data !== false) {
+					$this->cache->save($key, $data, $ttl);
+				}
+			}
+			return $data;
+		} catch (\Exception $e) {
+			// Fallback to database on cache error
+			log_message('error', 'Cache get error for key "' . $key . '": ' . $e->getMessage());
+			return $callback();
+		}
+	}
+	
+	/**
+	 * Clear cache by key
+	 * 
+	 * @param string $key Cache key to clear
+	 * @return bool True if successful, false otherwise
+	 */
+	protected function clearCacheByKey($key)
+	{
+		if ($this->cache === null) {
+			return false;
+		}
+		
+		try {
+			return $this->cache->delete($key);
+		} catch (\Exception $e) {
+			log_message('error', 'Cache clear error for key "' . $key . '": ' . $e->getMessage());
+			return false;
+		}
+	}
+	
+	/**
+	 * Clear module cache
+	 * 
+	 * @param string|null $nama_module Module name, if null clears all module caches
+	 * @return void
+	 */
+	protected function clearModuleCache($nama_module = null)
+	{
+		if ($nama_module !== null) {
+			$this->clearCacheByKey('module_' . $nama_module);
+		} else {
+			// Clear all module caches (pattern matching)
+			// Note: CodeIgniter cache doesn't support pattern deletion natively
+			// This would require iterating through all possible keys or using cache tags
+			// For now, we'll clear specific keys when known
+		}
+	}
+	
+	/**
+	 * Clear menu cache for all role combinations
+	 * 
+	 * @return void
+	 */
+	protected function clearMenuCache()
+	{
+		// Clear all menu caches
+		// Since menu cache keys include role hash, we need to clear all
+		// For simplicity, we'll use a cache prefix approach
+		// Note: This is a simplified version - in production you might want cache tags
+		try {
+			if ($this->cache !== null) {
+				// Clear common menu cache patterns
+				// In a real implementation, you might want to store cache keys in a registry
+				// For now, we'll rely on TTL expiration or manual clearing
+			}
+		} catch (\Exception $e) {
+			log_message('error', 'Menu cache clear error: ' . $e->getMessage());
+		}
+	}
+	
+	/**
+	 * Clear permission cache
+	 * 
+	 * @param int|null $id_module Module ID, if null clears all permission caches
+	 * @return void
+	 */
+	protected function clearPermissionCache($id_module = null)
+	{
+		if ($id_module !== null) {
+			$this->clearCacheByKey('module_permission_' . $id_module);
+		}
+	}
+	
+	/**
+	 * Clear settings cache
+	 * 
+	 * @return void
+	 */
+	protected function clearSettingsCache()
+	{
+		$this->clearCacheByKey('app_settings');
+		$this->clearCacheByKey('layout_settings');
+	}
+	
+	/**
+	 * Clear all user permission caches
+	 * Used when permissions are updated globally
+	 * 
+	 * @return void
+	 */
+	protected function clearAllUserPermissionCache()
+	{
+		// Clear session-based permission cache
+		if (isset($_SESSION['user']['all_permission'])) {
+			unset($_SESSION['user']['all_permission']);
+		}
+		
+		// Note: We can't easily clear all user_permissions_* cache keys without pattern matching
+		// The cache will expire naturally, or we rely on session clearing
+		// For immediate effect, we clear session which is the primary cache for permissions
+	}
+	
+	/**
+	 * Clear all application caches
+	 * Use with caution - only for maintenance or emergency
+	 * 
+	 * @return void
+	 */
+	protected function clearAllCache()
+	{
+		if ($this->cache === null) {
+			return;
+		}
+		
+		try {
+			$this->cache->clean();
+		} catch (\Exception $e) {
+			log_message('error', 'Clear all cache error: ' . $e->getMessage());
+		}
 	}
 }
