@@ -242,7 +242,7 @@
 										<td><?= $no++ ?></td>
 										<td>
 											<?php if (!empty($item['image'])): ?>
-												<img src="<?= $config->baseURL ?>public/images/item/<?= esc($item['image']) ?>" 
+												<img src="<?= $config->baseURL ?>uploads/<?= esc($item['image']) ?>" 
 													alt="<?= esc($item['item_name']) ?>" 
 													class="cart-item-image">
 											<?php else: ?>
