@@ -245,8 +245,8 @@ $totalPages = $pagerInfo['totalPages'] ?? 1;
                             $itemName = $item['name'] ?? 'Produk';
                             $categoryName = $item['category_name'] ?? 'Tanpa Kategori';
                             $brandName = $item['brand_name'] ?? 'Tanpa Brand';
-                            $price = (float) ($item['price'] ?? 0);
                             $agentPrice = (float) ($item['agent_price'] ?? 0);
+                            $displayPrice = $agentPrice > 0 ? $agentPrice : (float) ($item['price'] ?? 0);
                             $isStockable = ($item['is_stockable'] ?? '0') === '1';
                             ?>
                             <div class="list-group-item product-card-list border-0 shadow-sm mb-3 rounded-3">
@@ -288,16 +288,13 @@ $totalPages = $pagerInfo['totalPages'] ?? 1;
                                     </div>
                                     <div class="col-12 col-md-3 text-md-end">
                                         <div class="mb-3">
-                                            <div class="text-primary fw-bold fs-5"><?= format_angka_rp($price) ?></div>
-                                            <?php if ($agentPrice > 0 && $agentPrice !== $price): ?>
-                                                <div class="text-success small">Harga Agen: <?= format_angka_rp($agentPrice) ?></div>
-                                            <?php endif; ?>
+                                            <div class="text-primary fw-bold fs-5"><?= format_angka_rp($displayPrice) ?></div>
                                         </div>
                                         <button type="button"
                                                 class="btn btn-primary btn-lg rounded-pill w-100 btn-add-cart"
                                                 data-item-id="<?= esc($itemId) ?>"
                                                 data-item-name="<?= esc($itemName) ?>"
-                                                data-item-price="<?= esc($agentPrice > 0 ? $agentPrice : $price) ?>">
+                                                data-item-price="<?= esc($displayPrice) ?>">
                                             <i class="fas fa-shopping-cart me-2"></i>Tambah
                                         </button>
                                     </div>
@@ -313,8 +310,8 @@ $totalPages = $pagerInfo['totalPages'] ?? 1;
                             $itemName = $item['name'] ?? 'Produk';
                             $categoryName = $item['category_name'] ?? 'Tanpa Kategori';
                             $brandName = $item['brand_name'] ?? 'Tanpa Brand';
-                            $price = (float) ($item['price'] ?? 0);
                             $agentPrice = (float) ($item['agent_price'] ?? 0);
+                            $displayPrice = $agentPrice > 0 ? $agentPrice : (float) ($item['price'] ?? 0);
                             $isStockable = ($item['is_stockable'] ?? '0') === '1';
                             ?>
                             <div class="col">
@@ -344,10 +341,7 @@ $totalPages = $pagerInfo['totalPages'] ?? 1;
                                         <?php endif; ?>
 
                                         <div class="mb-3">
-                                            <div class="text-primary fw-bold fs-5"><?= format_angka_rp($price) ?></div>
-                                            <?php if ($agentPrice > 0 && $agentPrice !== $price): ?>
-                                                <div class="text-success small fw-semibold">Harga Agen <?= format_angka_rp($agentPrice) ?></div>
-                                            <?php endif; ?>
+                                            <div class="text-primary fw-bold fs-5"><?= format_angka_rp($displayPrice) ?></div>
                                         </div>
 
                                         <div class="mt-auto">
@@ -355,7 +349,7 @@ $totalPages = $pagerInfo['totalPages'] ?? 1;
                                                     class="btn btn-primary w-100 rounded-pill btn-add-cart"
                                                     data-item-id="<?= esc($itemId) ?>"
                                                     data-item-name="<?= esc($itemName) ?>"
-                                                    data-item-price="<?= esc($agentPrice > 0 ? $agentPrice : $price) ?>">
+                                                    data-item-price="<?= esc($displayPrice) ?>">
                                                 <i class="fas fa-shopping-cart me-2"></i>Tambah
                                             </button>
                                         </div>
