@@ -885,11 +885,48 @@ class Sales extends BaseController
                 // Get item name
                 $itemRecord = $itemModel->find((int)$item['item_id']);
                 $itemName = 'Unknown';
+                $isStockable = '0';
                 if ($itemRecord) {
                     if (is_array($itemRecord)) {
                         $itemName = isset($itemRecord['name']) ? (string)$itemRecord['name'] : 'Unknown';
+                        $isStockable = isset($itemRecord['is_stockable']) ? (string)$itemRecord['is_stockable'] : '0';
                     } else {
                         $itemName = isset($itemRecord->name) ? (string)$itemRecord->name : 'Unknown';
+                        $isStockable = isset($itemRecord->is_stockable) ? (string)$itemRecord->is_stockable : '0';
+                    }
+                }
+
+                // Validate: For stockable items, qty must equal serial number count (1 SN = 1 Qty)
+                $qty = (int)($item['qty'] ?? 1);
+                if ($isStockable === '1') {
+                    // Count serial numbers
+                    $snCount = 0;
+                    if (!empty($item['sns'])) {
+                        if (is_array($item['sns'])) {
+                            $sns = $item['sns'];
+                        } else {
+                            $sns = json_decode($item['sns'], true);
+                        }
+                        if (is_array($sns)) {
+                            // Count valid serial numbers (those with item_sn_id and sn)
+                            foreach ($sns as $sn) {
+                                if (!empty($sn['item_sn_id']) && !empty($sn['sn'])) {
+                                    $snCount++;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Validate qty matches serial number count
+                    if ($snCount !== $qty) {
+                        $message = "Untuk item stok '{$itemName}', jumlah serial number harus sama dengan quantity (1 SN = 1 Qty). Quantity: {$qty}, Serial Number: {$snCount}";
+                        if ($isAjax) {
+                            return $this->response->setJSON(['status' => 'error', 'message' => $message]);
+                        }
+                        return redirect()->back()->withInput()->with('message', [
+                            'status' => 'error',
+                            'message' => $message
+                        ]);
                     }
                 }
 

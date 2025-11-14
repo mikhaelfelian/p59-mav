@@ -609,6 +609,61 @@ class SalesConfirm extends \App\Controllers\BaseController
                 ]);
             }
 
+            // Validate: Ensure total assigned serial numbers don't exceed qty (1 SN = 1 Qty)
+            $requiredQty = (int)($salesDetail['qty'] ?? 1);
+            
+            // Count currently assigned serial numbers for this sales_item
+            $currentAssigned = $this->salesItemSnModel
+                ->where('sales_item_id', $salesItemId)
+                ->countAllResults();
+            
+            // Count valid new serial numbers that will be assigned
+            $newAssignments = 0;
+            foreach ($itemSnIds as $itemSnId) {
+                $itemSnId = (int)$itemSnId;
+                if ($itemSnId <= 0) {
+                    continue;
+                }
+
+                // Verify item_sn exists and is available (is_sell = '0')
+                $itemSn = $this->itemSnModel->find($itemSnId);
+                if (!$itemSn) {
+                    continue;
+                }
+
+                $itemSnArray = is_array($itemSn) ? $itemSn : (array)$itemSn;
+                if (($itemSnArray['is_sell'] ?? '0') !== '0') {
+                    continue; // Already sold
+                }
+
+                // Verify item_sn belongs to the same item
+                if ((int)$itemSnArray['item_id'] !== (int)$salesDetail['item_id']) {
+                    continue; // Wrong item
+                }
+
+                // Check if already assigned to this sales_item
+                $existing = $this->salesItemSnModel
+                    ->where('sales_item_id', $salesItemId)
+                    ->where('item_sn_id', $itemSnId)
+                    ->first();
+
+                if ($existing) {
+                    continue; // Already assigned
+                }
+
+                // This is a valid new assignment
+                $newAssignments++;
+            }
+            
+            // Validate total doesn't exceed qty
+            $totalAfterAssignment = $currentAssigned + $newAssignments;
+            if ($totalAfterAssignment > $requiredQty) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => "Jumlah serial number yang di-assign melebihi quantity. Quantity: {$requiredQty}, Sudah di-assign: {$currentAssigned}, Akan di-assign: {$newAssignments}, Total: {$totalAfterAssignment}. Maksimal: {$requiredQty} SN (1 SN = 1 Qty)"
+                ]);
+            }
+
             $db = \Config\Database::connect();
             $db->transStart();
 
