@@ -221,10 +221,10 @@ html[data-bs-theme="dark"] .activation-header h5 {
 						</div>
 
 						<!-- Tanggal Exp -->
-						<div class="mb-3">
+						<div class="mb-3" id="expired-date-wrapper" style="display: none;">
 							<label class="activation-form-label">Tanggal Exp</label>
 							<input type="date" class="form-control activation-form-input" name="expired_at" id="expired_at" 
-								value="<?= set_value('expired_at', !empty($sn['expired_at']) ? date('Y-m-d', strtotime($sn['expired_at'])) : '') ?>">
+								value="<?= set_value('expired_at', !empty($sn['expired_at']) ? date('Y-m-d', strtotime($sn['expired_at'])) : '') ?>" readonly>
 							<small class="text-muted">Otomatis dihitung dari Tanggal Aktif + garansi (<?= $itemWarrantyDays ?? 0 ?> hari)</small>
 						</div>
 					</div>
@@ -351,9 +351,10 @@ function formatFileSize(bytes) {
 $(document).ready(function() {
 	var activatedAtInput = document.getElementById('activated_at');
 	var expiredAtInput = document.getElementById('expired_at');
+	var expiredDateWrapper = document.getElementById('expired-date-wrapper');
 	var warrantyDays = <?= $itemWarrantyDays ?? 0 ?>;
 	
-	if (activatedAtInput && expiredAtInput) {
+	if (activatedAtInput && expiredAtInput && expiredDateWrapper) {
 		var today = new Date();
 		var twoWeeksAgo = new Date();
 		twoWeeksAgo.setDate(today.getDate() - 14);
@@ -365,6 +366,14 @@ $(document).ready(function() {
 		// Set min and max attributes
 		activatedAtInput.setAttribute('max', todayStr);
 		activatedAtInput.setAttribute('min', twoWeeksAgoStr);
+		
+		// Set expired_at as readonly
+		expiredAtInput.setAttribute('readonly', 'readonly');
+		
+		// Check if activation date or expired date already has a value on page load
+		if (activatedAtInput.value || expiredAtInput.value) {
+			expiredDateWrapper.style.display = 'block';
+		}
 		
 		// Function to calculate expired date
 		function calculateExpiredDate(activatedDate) {
@@ -380,6 +389,9 @@ $(document).ready(function() {
 		// Function to handle date validation and calculation
 		function handleDateChange() {
 			if (!this.value) {
+				// Hide expired date wrapper if activation date is cleared
+				expiredDateWrapper.style.display = 'none';
+				expiredAtInput.value = '';
 				return;
 			}
 			
@@ -407,6 +419,7 @@ $(document).ready(function() {
 					var expiredDate = calculateExpiredDate(this.value);
 					if (expiredDate) {
 						expiredAtInput.value = expiredDate;
+						expiredDateWrapper.style.display = 'block';
 					}
 				}
 				return;
@@ -427,6 +440,7 @@ $(document).ready(function() {
 					var expiredDate = calculateExpiredDate(this.value);
 					if (expiredDate) {
 						expiredAtInput.value = expiredDate;
+						expiredDateWrapper.style.display = 'block';
 					}
 				}
 				return;
@@ -439,7 +453,12 @@ $(document).ready(function() {
 				var expiredDate = calculateExpiredDate(this.value);
 				if (expiredDate) {
 					expiredAtInput.value = expiredDate;
+					// Show expired date wrapper
+					expiredDateWrapper.style.display = 'block';
 				}
+			} else {
+				// Hide if no warranty
+				expiredDateWrapper.style.display = 'none';
 			}
 		}
 		
