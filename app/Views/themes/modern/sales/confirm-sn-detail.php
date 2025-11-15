@@ -360,19 +360,6 @@ helper('angka');
 							</div>
 						</div>
 					<?php endforeach; ?>
-					
-					<!-- Verify & Activate Button (only if there are pending SNs) -->
-					<?php if ($hasPendingSNs): ?>
-						<div class="text-center mt-4">
-							<form id="confirmSNForm" method="POST" action="<?= $config->baseURL ?>agent/sales/confirm/verify/<?= $sale['id'] ?? '' ?>">
-								<?= csrf_field() ?>
-								<button type="submit" class="btn confirm-btn" id="confirmBtn">
-									<i class="fas fa-check-circle me-2"></i>
-									Verifikasi & Aktifkan Serial Number
-								</button>
-							</form>
-						</div>
-					<?php endif; ?>
 				<?php endif; ?>
 			</div>
 		</div>
