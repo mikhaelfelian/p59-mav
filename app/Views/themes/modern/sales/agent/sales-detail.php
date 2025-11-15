@@ -190,7 +190,7 @@
 </style>
 <div class="card shadow-sm border-0">
 	<div class="detail-header">
-		<h5><i class="fas fa-file-invoice me-2"></i><?= $title ?? 'Detail Penjualan' ?></h5>
+		<h5><i class="fas fa-file-invoice me-2"></i>Detail Pembelian</h5>
 		<?php if (!empty($sale['invoice_no'])): ?>
 			<span class="invoice-badge"><i class="fas fa-hashtag me-1"></i><?= esc($sale['invoice_no']) ?></span>
 		<?php endif; ?>
@@ -385,13 +385,6 @@
 										<button type="button" class="btn btn-sm btn-outline-secondary ms-2" onclick="copyToClipboard('<?= addslashes(esc($gatewayResponse['paymentCode'])) ?>')">
 											<i class="fas fa-copy"></i> Salin
 										</button>
-									</dd>
-								<?php endif; ?>
-								
-								<?php if (!empty($gatewayResponse['paymentGatewayAdminFee']) && $gatewayResponse['paymentGatewayAdminFee'] > 0): ?>
-									<dt class="col-sm-5 mb-3">Biaya Admin:</dt>
-									<dd class="col-sm-7 mb-3">
-										<span class="currency">Rp <?= number_format($gatewayResponse['paymentGatewayAdminFee'], 0, ',', '.') ?></span>
 									</dd>
 								<?php endif; ?>
 								
