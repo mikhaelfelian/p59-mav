@@ -102,6 +102,7 @@ class SalesDetailModel extends Model
         return $this->select('sales_detail.*, 
             item.name as item_name,
             item.sku as item_sku,
+            item.is_stockable,
             item_variant.variant_name,
             item_variant.sku_variant')
             ->join('item', 'item.id = sales_detail.item_id', 'left')

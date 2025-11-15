@@ -310,89 +310,100 @@ helper('angka');
 								
 								<!-- Assign Serial Numbers Section -->
 								<?php 
-								$requiredQty = (int)($item['qty'] ?? 1);
-								$assignedCount = count($item['pending_sns'] ?? []);
-								$needsMore = $requiredQty > $assignedCount;
+								$hasSerialNumbers = !empty($item['has_serial_numbers']) || !empty($item['available_sns']);
 								
-								// Collect assigned serial number IDs from pending_sns
-								$assignedSnIds = [];
-								if (!empty($item['pending_sns'])) {
-									foreach ($item['pending_sns'] as $pendingSn) {
-										// Handle both object and array
-										$itemSnId = is_object($pendingSn) ? ($pendingSn->item_sn_id ?? null) : ($pendingSn['item_sn_id'] ?? null);
-										if ($itemSnId) {
-											$assignedSnIds[] = (int)$itemSnId;
+								// Only show SN assignment section if item has serial numbers
+								if ($hasSerialNumbers):
+									$requiredQty = (int)($item['qty'] ?? 1);
+									$assignedCount = count($item['pending_sns'] ?? []);
+									$needsMore = $requiredQty > $assignedCount;
+									
+									// Collect assigned serial number IDs from pending_sns
+									$assignedSnIds = [];
+									if (!empty($item['pending_sns'])) {
+										foreach ($item['pending_sns'] as $pendingSn) {
+											// Handle both object and array
+											$itemSnId = is_object($pendingSn) ? ($pendingSn->item_sn_id ?? null) : ($pendingSn['item_sn_id'] ?? null);
+											if ($itemSnId) {
+												$assignedSnIds[] = (int)$itemSnId;
+											}
 										}
 									}
-								}
-								
-								// Filter available_sns to only show is_sell='0' serial numbers that are not already assigned
-								$filteredAvailableSns = [];
-								if (!empty($item['available_sns'])) {
-									foreach ($item['available_sns'] as $sn) {
-										// Handle both object and array
-										$isSell = is_object($sn) ? ($sn->is_sell ?? '0') : ($sn['is_sell'] ?? '0');
-										$snId = is_object($sn) ? ($sn->id ?? null) : ($sn['id'] ?? null);
-										
-										// Only include serial numbers where is_sell='0' and not already assigned
-										if (($isSell === '0' || $isSell === 0) && $snId && !in_array((int)$snId, $assignedSnIds, true)) {
-											$filteredAvailableSns[] = $sn;
+									
+									// Filter available_sns to only show is_sell='0' serial numbers that are not already assigned
+									$filteredAvailableSns = [];
+									if (!empty($item['available_sns'])) {
+										foreach ($item['available_sns'] as $sn) {
+											// Handle both object and array
+											$isSell = is_object($sn) ? ($sn->is_sell ?? '0') : ($sn['is_sell'] ?? '0');
+											$snId = is_object($sn) ? ($sn->id ?? null) : ($sn['id'] ?? null);
+											
+											// Only include serial numbers where is_sell='0' and not already assigned
+											if (($isSell === '0' || $isSell === 0) && $snId && !in_array((int)$snId, $assignedSnIds, true)) {
+												$filteredAvailableSns[] = $sn;
+											}
 										}
 									}
-								}
-								$availableCount = count($filteredAvailableSns);
+									$availableCount = count($filteredAvailableSns);
 								?>
-								
-								<?php if ($needsMore): ?>
-									<div class="mt-4 pt-3 border-top">
-										<h6 class="mb-3">
-											<i class="fas fa-plus-circle me-2 text-primary"></i>
-											Assign Serial Number
-											<small class="text-muted">(Perlu: <?= $requiredQty ?>, Sudah: <?= $assignedCount ?>, Tersedia: <?= $availableCount ?>)</small>
-										</h6>
-										
-										<?php if ($availableCount > 0): ?>
-											<form class="assign-sn-form" data-sales-item-id="<?= $item['id'] ?? '' ?>">
-												<?= csrf_field() ?>
-												<div class="mb-3">
-													<label class="form-label">Pilih Serial Number:</label>
-													<div class="mb-2">
-														<input type="text" class="form-control form-control-sm sn-search-input" 
-															id="sn-search-<?= $item['id'] ?? '' ?>" 
-															placeholder="Cari serial number..." 
-															autocomplete="off">
+									
+									<?php if ($needsMore): ?>
+										<div class="mt-4 pt-3 border-top">
+											<h6 class="mb-3">
+												<i class="fas fa-plus-circle me-2 text-primary"></i>
+												Assign Serial Number
+												<small class="text-muted">(Perlu: <?= $requiredQty ?>, Sudah: <?= $assignedCount ?>, Tersedia: <?= $availableCount ?>)</small>
+											</h6>
+											
+											<?php if ($availableCount > 0): ?>
+												<form class="assign-sn-form" data-sales-item-id="<?= $item['id'] ?? '' ?>">
+													<?= csrf_field() ?>
+													<div class="mb-3">
+														<label class="form-label">Pilih Serial Number:</label>
+														<div class="mb-2">
+															<input type="text" class="form-control form-control-sm sn-search-input" 
+																id="sn-search-<?= $item['id'] ?? '' ?>" 
+																placeholder="Cari serial number..." 
+																autocomplete="off">
+														</div>
+														<select class="form-select form-select-sm sn-select" 
+															id="sn-select-<?= $item['id'] ?? '' ?>" 
+															name="item_sn_ids[]" 
+															multiple 
+															size="5" 
+															required>
+															<?php foreach ($filteredAvailableSns as $sn): 
+																// Handle both object and array
+																$snId = is_object($sn) ? ($sn->id ?? '') : ($sn['id'] ?? '');
+																$snValue = is_object($sn) ? ($sn->sn ?? '-') : ($sn['sn'] ?? '-');
+															?>
+																<option value="<?= $snId ?>" data-sn="<?= esc($snValue) ?>"><?= esc($snValue) ?></option>
+															<?php endforeach; ?>
+														</select>
+														<small class="text-muted">Gunakan Ctrl/Cmd untuk memilih multiple</small>
 													</div>
-													<select class="form-select form-select-sm sn-select" 
-														id="sn-select-<?= $item['id'] ?? '' ?>" 
-														name="item_sn_ids[]" 
-														multiple 
-														size="5" 
-														required>
-														<?php foreach ($filteredAvailableSns as $sn): 
-															// Handle both object and array
-															$snId = is_object($sn) ? ($sn->id ?? '') : ($sn['id'] ?? '');
-															$snValue = is_object($sn) ? ($sn->sn ?? '-') : ($sn['sn'] ?? '-');
-														?>
-															<option value="<?= $snId ?>" data-sn="<?= esc($snValue) ?>"><?= esc($snValue) ?></option>
-														<?php endforeach; ?>
-													</select>
-													<small class="text-muted">Gunakan Ctrl/Cmd untuk memilih multiple</small>
+													<button type="submit" class="btn btn-sm btn-primary text-white">
+														<i class="fas fa-plus me-1"></i>Assign Serial Number
+													</button>
+												</form>
+											<?php else: ?>
+												<div class="alert alert-warning">
+													<i class="fas fa-exclamation-triangle me-2"></i>
+													Tidak ada serial number tersedia untuk item ini.
 												</div>
-												<button type="submit" class="btn btn-sm btn-primary text-white">
-													<i class="fas fa-plus me-1"></i>Assign Serial Number
-												</button>
-											</form>
-										<?php else: ?>
-											<div class="alert alert-warning">
-												<i class="fas fa-exclamation-triangle me-2"></i>
-												Tidak ada serial number tersedia untuk item ini.
-											</div>
-										<?php endif; ?>
-									</div>
-								<?php elseif ($assignedCount >= $requiredQty): ?>
-									<div class="alert alert-success mt-3">
-										<i class="fas fa-check-circle me-2"></i>
-										Serial number sudah lengkap untuk item ini.
+											<?php endif; ?>
+										</div>
+									<?php elseif ($assignedCount >= $requiredQty): ?>
+										<div class="alert alert-success mt-3">
+											<i class="fas fa-check-circle me-2"></i>
+											Serial number sudah lengkap untuk item ini.
+										</div>
+									<?php endif; ?>
+								<?php else: ?>
+									<!-- Item doesn't have serial numbers -->
+									<div class="alert alert-info mt-3">
+										<i class="fas fa-info-circle me-2"></i>
+										Item ini tidak memerlukan serial number.
 									</div>
 								<?php endif; ?>
 							</div>
@@ -496,9 +507,12 @@ $(document).ready(function() {
 		}
 		
 		// Prepare form data
-		var formData = $form.serializeArray();
+		// Filter out item_sn_ids[] from serialized data to avoid duplication
+		var formData = $form.serializeArray().filter(function(field) {
+			return field.name !== 'item_sn_ids[]';
+		});
 		formData.push({name: 'sales_item_id', value: salesItemId});
-		// Add each selected SN ID
+		// Add each selected SN ID (only once)
 		$.each(selectedSNs, function(i, snId) {
 			formData.push({name: 'item_sn_ids[]', value: snId});
 		});

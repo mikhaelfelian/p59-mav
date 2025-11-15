@@ -284,6 +284,11 @@ class SalesConfirm extends \App\Controllers\BaseController
             // Get serial numbers for each item (both assigned and available)
             $itemsWithSN = [];
             foreach ($items as $item) {
+                // Check if this item has any serial numbers in item_sn table
+                $hasSerialNumbers = $this->itemSnModel
+                    ->where('item_id', $item['item_id'])
+                    ->countAllResults() > 0;
+
                 // Get sales_item_sn records for this sales_detail (already assigned)
                 $salesItemSns = $this->salesItemSnModel
                     ->select('sales_item_sn.*, item_sn.sn, item_sn.is_sell, item_sn.is_activated, item_sn.activated_at, item_sn.expired_at, item_sn.item_id')
@@ -299,37 +304,41 @@ class SalesConfirm extends \App\Controllers\BaseController
                     }
                 }
 
-                // Get available unused serial numbers for this item
-                // Exclude serial numbers that are already assigned to this sales_item_id
-                $availableSns = $this->itemSnModel
-                    ->select('item_sn.*')
-                    ->where('item_sn.item_id', $item['item_id'])
-                    ->where('item_sn.is_sell', '0')
-                    ->join('sales_item_sn', 'sales_item_sn.item_sn_id = item_sn.id AND sales_item_sn.sales_item_id = ' . (int)$item['id'], 'left')
-                    ->where('sales_item_sn.id IS NULL')
-                    ->orderBy('item_sn.created_at', 'ASC')
-                    ->findAll();
-
-                // Convert objects to arrays properly
+                // Only fetch available serial numbers if the item has serial numbers
                 $availableSnsArray = [];
-                foreach ($availableSns as $sn) {
-                    if (is_object($sn)) {
-                        $availableSnsArray[] = [
-                            'id' => $sn->id ?? null,
-                            'sn' => $sn->sn ?? '',
-                            'item_id' => $sn->item_id ?? null,
-                            'is_sell' => $sn->is_sell ?? '0',
-                            'is_activated' => $sn->is_activated ?? '0',
-                            'created_at' => $sn->created_at ?? null,
-                        ];
-                    } else {
-                        $availableSnsArray[] = $sn;
+                if ($hasSerialNumbers) {
+                    // Get available unused serial numbers for this item
+                    // Exclude serial numbers that are already assigned to this sales_item_id
+                    $availableSns = $this->itemSnModel
+                        ->select('item_sn.*')
+                        ->where('item_sn.item_id', $item['item_id'])
+                        ->where('item_sn.is_sell', '0')
+                        ->join('sales_item_sn', 'sales_item_sn.item_sn_id = item_sn.id AND sales_item_sn.sales_item_id = ' . (int)$item['id'], 'left')
+                        ->where('sales_item_sn.id IS NULL')
+                        ->orderBy('item_sn.created_at', 'ASC')
+                        ->findAll();
+
+                    // Convert objects to arrays properly
+                    foreach ($availableSns as $sn) {
+                        if (is_object($sn)) {
+                            $availableSnsArray[] = [
+                                'id' => $sn->id ?? null,
+                                'sn' => $sn->sn ?? '',
+                                'item_id' => $sn->item_id ?? null,
+                                'is_sell' => $sn->is_sell ?? '0',
+                                'is_activated' => $sn->is_activated ?? '0',
+                                'created_at' => $sn->created_at ?? null,
+                            ];
+                        } else {
+                            $availableSnsArray[] = $sn;
+                        }
                     }
                 }
 
                 $item['pending_sns'] = $pendingSns;
                 $item['available_sns'] = $availableSnsArray;
-                $item['needs_assignment'] = (int)($item['qty'] ?? 1) > count($pendingSns);
+                $item['has_serial_numbers'] = $hasSerialNumbers;
+                $item['needs_assignment'] = $hasSerialNumbers && (int)($item['qty'] ?? 1) > count($pendingSns);
                 $itemsWithSN[] = $item;
             }
 
@@ -609,6 +618,19 @@ class SalesConfirm extends \App\Controllers\BaseController
                 return $this->response->setJSON([
                     'status' => 'error',
                     'message' => 'Sales detail tidak ditemukan atau tidak sesuai dengan sale.'
+                ]);
+            }
+
+            // Check if this item has any serial numbers in item_sn table
+            $hasSerialNumbers = $this->itemSnModel
+                ->where('item_id', $salesDetail['item_id'])
+                ->countAllResults() > 0;
+
+            // If item has no serial numbers, return success (no SNs needed)
+            if (!$hasSerialNumbers) {
+                return $this->response->setJSON([
+                    'status' => 'success',
+                    'message' => 'Item ini tidak memerlukan serial number.'
                 ]);
             }
 

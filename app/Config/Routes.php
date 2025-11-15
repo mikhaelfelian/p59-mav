@@ -198,6 +198,11 @@ $routes->group('sales',  function($routes){
     $routes->post('getDataDT', 'Sales::getDataDT');
     $routes->get('getUnusedSNs', 'Sales::getUnusedSNs');
     $routes->get('print_dm/(:num)', 'Sales::print_dm/$1');
+    // Fee management (Agent only)
+    $routes->post('addFee/(:num)', 'Sales::addFee/$1');
+    $routes->post('updateFee/(:num)/(:num)', 'Sales::updateFee/$1/$2');
+    $routes->post('deleteFee/(:num)/(:num)', 'Sales::deleteFee/$1/$2');
+    $routes->post('updateNote/(:num)', 'Sales::updateNote/$1');
 });
 
 # Payment Gateway Callback (No authentication required - called by Midtrans)
