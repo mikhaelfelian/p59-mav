@@ -21,6 +21,8 @@ use App\Models\SalesItemsModel;
 use App\Models\SalesItemSnModel;
 use App\Models\SalesPaymentsModel;
 use App\Models\SalesDetailModel;
+use App\Models\SalesFeeModel;
+use App\Models\FeeTypeModel;
 use App\Models\ItemModel;
 use App\Models\ItemSnModel;
 use App\Models\AgentModel;
@@ -42,6 +44,8 @@ class Sales extends BaseController
     protected $salesItemSnModel;
     protected $salesPaymentsModel;
     protected $salesDetailModel;
+    protected $salesFeeModel;
+    protected $feeTypeModel;
     protected $itemModel;
     protected $itemSnModel;
     protected $agentModel;
@@ -81,6 +85,8 @@ class Sales extends BaseController
         $this->salesItemSnModel = new SalesItemSnModel();
         $this->salesPaymentsModel = new SalesPaymentsModel();
         $this->salesDetailModel = new SalesDetailModel();
+        $this->salesFeeModel = new SalesFeeModel();
+        $this->feeTypeModel = new FeeTypeModel();
         $this->itemModel = new ItemModel();
         $this->itemSnModel = new ItemSnModel();
         $this->agentModel = new AgentModel();
@@ -1633,6 +1639,12 @@ class Sales extends BaseController
                     }
             }
 
+            // Get fees for this sale
+            $fees = $this->salesFeeModel->getFeesBySale($id);
+
+            // Get fee types for dropdown
+            $feeTypes = $this->feeTypeModel->getActiveFeeTypes();
+
             // Get payment information
             $payments = $this->salesPaymentsModel->getPaymentsBySale($id);
             $paymentInfo = null;
@@ -1656,6 +1668,9 @@ class Sales extends BaseController
             $this->data['config'] = $this->config;
             $this->data['sale'] = $sale;
             $this->data['items'] = $items;
+            $this->data['fees'] = $fees;
+            $this->data['feeTypes'] = $feeTypes;
+            $this->data['isAgent'] = true; // Always true in agent context
             $this->data['payment'] = $paymentInfo;
             $this->data['gatewayResponse'] = $gatewayResponse;
 
@@ -1665,6 +1680,280 @@ class Sales extends BaseController
             return redirect()->to('sales')->with('message', [
                 'status' => 'error',
                 'message' => 'Gagal memuat detail penjualan.'
+            ]);
+        }
+    }
+
+    /**
+     * Add fee to sale (AJAX endpoint - Agent only)
+     * 
+     * @param int $saleId Sale ID
+     * @return ResponseInterface
+     */
+    public function addFee(int $saleId): ResponseInterface
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Invalid request method.'
+            ])->setStatusCode(400);
+        }
+
+        // Verify sale exists
+        $sale = $this->model->find($saleId);
+        if (!$sale) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Data penjualan tidak ditemukan.'
+            ])->setStatusCode(404);
+        }
+
+        $postData = $this->request->getPost();
+        $feeTypeId = (int)($postData['fee_type_id'] ?? 0);
+        $feeName = trim($postData['fee_name'] ?? '');
+        $amount = (float)($postData['amount'] ?? 0);
+
+        // Validate
+        if ($feeTypeId <= 0) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Jenis biaya harus dipilih.'
+            ]);
+        }
+
+        if ($amount <= 0) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Jumlah biaya harus lebih dari 0.'
+            ]);
+        }
+
+        // Verify fee type exists
+        $feeType = $this->feeTypeModel->find($feeTypeId);
+        if (!$feeType) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Jenis biaya tidak ditemukan.'
+            ]);
+        }
+
+        // Insert fee
+        $feeData = [
+            'sale_id' => $saleId,
+            'fee_type_id' => $feeTypeId,
+            'fee_name' => !empty($feeName) ? $feeName : null,
+            'amount' => $amount,
+        ];
+
+        if ($this->salesFeeModel->insert($feeData)) {
+            // Get updated fee with type info
+            $feeId = $this->salesFeeModel->getInsertID();
+            $fee = $this->salesFeeModel->getFeesBySale($saleId);
+            $newFee = null;
+            foreach ($fee as $f) {
+                if ($f['id'] == $feeId) {
+                    $newFee = $f;
+                    break;
+                }
+            }
+
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'Biaya tambahan berhasil ditambahkan.',
+                'fee' => $newFee
+            ]);
+        } else {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Gagal menambahkan biaya tambahan: ' . implode(', ', $this->salesFeeModel->errors())
+            ]);
+        }
+    }
+
+    /**
+     * Update fee (AJAX endpoint - Agent only)
+     * 
+     * @param int $saleId Sale ID
+     * @param int $feeId Fee ID
+     * @return ResponseInterface
+     */
+    public function updateFee(int $saleId, int $feeId): ResponseInterface
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Invalid request method.'
+            ])->setStatusCode(400);
+        }
+
+        // Verify sale exists
+        $sale = $this->model->find($saleId);
+        if (!$sale) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Data penjualan tidak ditemukan.'
+            ])->setStatusCode(404);
+        }
+
+        // Verify fee exists and belongs to this sale
+        $fee = $this->salesFeeModel->find($feeId);
+        if (!$fee || (int)$fee['sale_id'] !== $saleId) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Biaya tambahan tidak ditemukan.'
+            ])->setStatusCode(404);
+        }
+
+        $postData = $this->request->getPost();
+        $feeTypeId = (int)($postData['fee_type_id'] ?? 0);
+        $feeName = trim($postData['fee_name'] ?? '');
+        $amount = (float)($postData['amount'] ?? 0);
+
+        // Validate
+        if ($feeTypeId <= 0) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Jenis biaya harus dipilih.'
+            ]);
+        }
+
+        if ($amount <= 0) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Jumlah biaya harus lebih dari 0.'
+            ]);
+        }
+
+        // Verify fee type exists
+        $feeType = $this->feeTypeModel->find($feeTypeId);
+        if (!$feeType) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Jenis biaya tidak ditemukan.'
+            ]);
+        }
+
+        // Update fee
+        $feeData = [
+            'fee_type_id' => $feeTypeId,
+            'fee_name' => !empty($feeName) ? $feeName : null,
+            'amount' => $amount,
+        ];
+
+        if ($this->salesFeeModel->update($feeId, $feeData)) {
+            // Get updated fee with type info
+            $updatedFee = $this->salesFeeModel->getFeesBySale($saleId);
+            $feeResult = null;
+            foreach ($updatedFee as $f) {
+                if ($f['id'] == $feeId) {
+                    $feeResult = $f;
+                    break;
+                }
+            }
+
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'Biaya tambahan berhasil diubah.',
+                'fee' => $feeResult
+            ]);
+        } else {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Gagal mengubah biaya tambahan: ' . implode(', ', $this->salesFeeModel->errors())
+            ]);
+        }
+    }
+
+    /**
+     * Delete fee (AJAX endpoint - Agent only)
+     * 
+     * @param int $saleId Sale ID
+     * @param int $feeId Fee ID
+     * @return ResponseInterface
+     */
+    public function deleteFee(int $saleId, int $feeId): ResponseInterface
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Invalid request method.'
+            ])->setStatusCode(400);
+        }
+
+        // Verify sale exists
+        $sale = $this->model->find($saleId);
+        if (!$sale) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Data penjualan tidak ditemukan.'
+            ])->setStatusCode(404);
+        }
+
+        // Verify fee exists and belongs to this sale
+        $fee = $this->salesFeeModel->find($feeId);
+        if (!$fee || (int)$fee['sale_id'] !== $saleId) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Biaya tambahan tidak ditemukan.'
+            ])->setStatusCode(404);
+        }
+
+        // Delete fee
+        if ($this->salesFeeModel->delete($feeId)) {
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'Biaya tambahan berhasil dihapus.'
+            ]);
+        } else {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Gagal menghapus biaya tambahan.'
+            ]);
+        }
+    }
+
+    /**
+     * Update note (courier/air waybill) (AJAX endpoint - Agent only)
+     * 
+     * @param int $saleId Sale ID
+     * @return ResponseInterface
+     */
+    public function updateNote(int $saleId): ResponseInterface
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Invalid request method.'
+            ])->setStatusCode(400);
+        }
+
+        // Verify sale exists
+        $sale = $this->model->find($saleId);
+        if (!$sale) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Data penjualan tidak ditemukan.'
+            ])->setStatusCode(404);
+        }
+
+        $postData = $this->request->getPost();
+        $note = trim($postData['note'] ?? '');
+
+        // Update note
+        $updateData = [
+            'note' => !empty($note) ? $note : null,
+        ];
+
+        if ($this->model->update($saleId, $updateData)) {
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'Catatan berhasil disimpan.',
+                'note' => $note
+            ]);
+        } else {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Gagal menyimpan catatan: ' . implode(', ', $this->model->errors())
             ]);
         }
     }

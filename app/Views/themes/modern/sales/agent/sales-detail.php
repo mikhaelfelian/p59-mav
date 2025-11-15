@@ -279,6 +279,98 @@
 			</div>
 		</div>
 
+		<!-- Biaya Tambahan Section -->
+		<div class="items-section mb-4">
+			<div class="d-flex justify-content-between align-items-center mb-3">
+				<h6 class="mb-0"><i class="fas fa-receipt me-2"></i> Biaya Tambahan</h6>
+				<?php if (!empty($isAgent) && $isAgent && !empty($feeTypes)): ?>
+					<button type="button" class="btn btn-sm btn-primary" id="btnAddFee">
+						<i class="fas fa-plus me-1"></i>Tambah Biaya
+					</button>
+				<?php endif; ?>
+			</div>
+			
+			<?php if (!empty($fees) && is_array($fees) && count($fees) > 0): ?>
+			<div class="table-responsive">
+				<table class="table items-table" id="feesTable">
+					<thead>
+						<tr>
+							<th style="width: 50px;">No</th>
+							<th>Jenis Biaya</th>
+							<th>Nama Biaya (Opsional)</th>
+							<th style="width: 150px;" class="text-end">Jumlah</th>
+							<?php if (!empty($isAgent) && $isAgent): ?>
+							<th style="width: 80px;" class="text-center">Aksi</th>
+							<?php endif; ?>
+						</tr>
+					</thead>
+					<tbody id="feesTableBody">
+						<?php foreach ($fees as $index => $fee): ?>
+							<tr data-fee-id="<?= $fee['id'] ?>">
+								<td class="text-center"><?= $index + 1 ?></td>
+								<td><strong><?= esc($fee['fee_type_name'] ?? $fee['fee_type_code'] ?? '-') ?></strong></td>
+								<td><?= esc($fee['fee_name'] ?? '-') ?></td>
+								<td class="text-end currency"><strong>Rp <?= number_format($fee['amount'] ?? 0, 0, ',', '.') ?></strong></td>
+								<?php if (!empty($isAgent) && $isAgent): ?>
+								<td class="text-center">
+									<button type="button" class="btn btn-sm btn-warning text-white edit-fee-btn" data-fee-id="<?= $fee['id'] ?>" title="Edit">
+										<i class="fas fa-edit"></i>
+									</button>
+									<button type="button" class="btn btn-sm btn-danger text-white delete-fee-btn" data-fee-id="<?= $fee['id'] ?>" title="Hapus">
+										<i class="fas fa-trash"></i>
+									</button>
+								</td>
+								<?php endif; ?>
+							</tr>
+						<?php endforeach; ?>
+					</tbody>
+					<tfoot>
+						<tr>
+							<td colspan="<?= (!empty($isAgent) && $isAgent) ? '4' : '3' ?>" class="text-end"><strong>Total Biaya:</strong></td>
+							<td class="text-end currency">
+								<strong>Rp <?= number_format(array_sum(array_column($fees, 'amount')), 0, ',', '.') ?></strong>
+							</td>
+							<?php if (!empty($isAgent) && $isAgent): ?>
+							<td></td>
+							<?php endif; ?>
+						</tr>
+					</tfoot>
+				</table>
+			</div>
+			<?php else: ?>
+				<?php if (!empty($isAgent) && $isAgent && !empty($feeTypes)): ?>
+					<div class="alert alert-info mb-0">
+						<i class="fas fa-info-circle me-2"></i>Belum ada biaya tambahan. Klik "Tambah Biaya" untuk menambahkan.
+					</div>
+				<?php else: ?>
+					<div class="alert alert-info mb-0">
+						<i class="fas fa-info-circle me-2"></i>Tidak ada biaya tambahan.
+					</div>
+				<?php endif; ?>
+			<?php endif; ?>
+		</div>
+
+		<!-- Note Field (Courier/Air Waybill) -->
+		<?php if (!empty($isAgent) && $isAgent): ?>
+		<div class="items-section mb-4">
+			<h6><i class="fas fa-sticky-note me-2"></i> Catatan (Kurir, Air Waybill, dll)</h6>
+			<div class="mb-3">
+				<textarea class="form-control" id="saleNote" rows="3" placeholder="Masukkan catatan seperti kurir, air waybill, dll..."><?= esc($sale['note'] ?? '') ?></textarea>
+				<small class="text-muted">Catatan ini hanya untuk informasi, tidak mempengaruhi perhitungan total.</small>
+			</div>
+			<button type="button" class="btn btn-sm btn-primary" id="btnSaveNote">
+				<i class="fas fa-save me-1"></i>Simpan Catatan
+			</button>
+		</div>
+		<?php elseif (!empty($sale['note'])): ?>
+		<div class="items-section mb-4">
+			<h6><i class="fas fa-sticky-note me-2"></i> Catatan</h6>
+			<div class="mb-0">
+				<p class="mb-0"><?= nl2br(esc($sale['note'])) ?></p>
+			</div>
+		</div>
+		<?php endif; ?>
+
 		<div class="row">
 			<div class="col-md-8"></div>
 			<div class="col-md-4">
@@ -384,6 +476,10 @@
 		</div>
 		
 		<script>
+		var saleId = <?= $sale['id'] ?? 0 ?>;
+		var feeTypes = <?= json_encode($feeTypes ?? []) ?>;
+		var isAgent = <?= !empty($isAgent) && $isAgent ? 'true' : 'false' ?>;
+
 		function copyToClipboard(text) {
 			navigator.clipboard.writeText(text).then(function() {
 				// Show success message
@@ -418,6 +514,406 @@
 				document.body.removeChild(textArea);
 			});
 		}
+
+		<?php if (!empty($isAgent) && $isAgent && !empty($feeTypes)): ?>
+		// Fee Management JavaScript
+		$(document).ready(function() {
+			// Show add fee modal
+			$('#btnAddFee').on('click', function() {
+				showFeeModal();
+			});
+
+			// Edit fee
+			$(document).on('click', '.edit-fee-btn', function() {
+				var feeId = $(this).data('fee-id');
+				var $row = $('tr[data-fee-id="' + feeId + '"]');
+				var feeTypeName = $row.find('td:eq(1)').text().trim();
+				var feeName = $row.find('td:eq(2)').text().trim();
+				var amountText = $row.find('td:eq(3)').text().trim();
+				var amount = parseFloat(amountText.replace(/[Rp\s.,]/g, '').replace(',', '.'));
+
+				// Find fee type ID by name
+				var feeTypeId = null;
+				$.each(feeTypes, function(i, ft) {
+					if (ft.name === feeTypeName || ft.code === feeTypeName) {
+						feeTypeId = ft.id;
+						return false;
+					}
+				});
+
+				showFeeModal(feeId, feeTypeId, feeName, amount);
+			});
+
+			// Delete fee
+			$(document).on('click', '.delete-fee-btn', function() {
+				var feeId = $(this).data('fee-id');
+				deleteFee(feeId);
+			});
+
+			// Save note
+			$('#btnSaveNote').on('click', function() {
+				saveNote();
+			});
+		});
+
+		function showFeeModal(feeId = null, feeTypeId = null, feeName = '', amount = 0) {
+			var title = feeId ? 'Edit Biaya Tambahan' : 'Tambah Biaya Tambahan';
+			var feeTypeOptions = '<option value="">-- Pilih Jenis Biaya --</option>';
+			$.each(feeTypes, function(i, ft) {
+				var selected = (feeTypeId && ft.id == feeTypeId) ? 'selected' : '';
+				feeTypeOptions += '<option value="' + ft.id + '" ' + selected + '>' + (ft.name || ft.code) + '</option>';
+			});
+
+			var modalHtml = '<form id="feeForm">' +
+				'<div class="mb-3">' +
+				'<label class="form-label">Jenis Biaya <span class="text-danger">*</span></label>' +
+				'<select class="form-select" id="modalFeeTypeId" name="fee_type_id" required>' + feeTypeOptions + '</select>' +
+				'</div>' +
+				'<div class="mb-3">' +
+				'<label class="form-label">Nama Biaya (Opsional)</label>' +
+				'<input type="text" class="form-control" id="modalFeeName" name="fee_name" placeholder="Nama biaya (opsional)" value="' + (feeName || '') + '">' +
+				'</div>' +
+				'<div class="mb-3">' +
+				'<label class="form-label">Jumlah <span class="text-danger">*</span></label>' +
+				'<div class="input-group">' +
+				'<span class="input-group-text">Rp</span>' +
+				'<input type="number" class="form-control" id="modalFeeAmount" name="amount" min="0" step="0.01" value="' + (amount || 0) + '" required>' +
+				'</div>' +
+				'</div>' +
+				'</form>';
+
+			if (typeof bootbox !== 'undefined') {
+				bootbox.dialog({
+					title: title,
+					message: modalHtml,
+					size: 'medium',
+					buttons: {
+						cancel: {
+							label: 'Batal',
+							className: 'btn-secondary'
+						},
+						submit: {
+							label: feeId ? 'Simpan' : 'Tambah',
+							className: 'btn-primary',
+							callback: function() {
+								var form = $('#feeForm');
+								if (form[0].checkValidity()) {
+									if (feeId) {
+										updateFee(feeId);
+									} else {
+										addFee();
+									}
+									return false; // Keep modal open if validation fails
+								} else {
+									form[0].reportValidity();
+									return false;
+								}
+							}
+						}
+					}
+				});
+			} else {
+				alert('Bootbox library tidak tersedia. Silakan refresh halaman.');
+			}
+		}
+
+		function addFee() {
+			var feeTypeId = $('#modalFeeTypeId').val();
+			var feeName = $('#modalFeeName').val();
+			var amount = $('#modalFeeAmount').val();
+
+			if (!feeTypeId || !amount || parseFloat(amount) <= 0) {
+				if (typeof Swal !== 'undefined') {
+					Swal.fire({
+						icon: 'error',
+						title: 'Error',
+						text: 'Mohon lengkapi semua field yang wajib diisi.'
+					});
+				} else {
+					alert('Mohon lengkapi semua field yang wajib diisi.');
+				}
+				return;
+			}
+
+			$.ajax({
+				url: '<?= $config->baseURL ?>agent/sales/addFee/' + saleId,
+				type: 'POST',
+				data: {
+					fee_type_id: feeTypeId,
+					fee_name: feeName,
+					amount: amount,
+					<?= csrf_token() ?>: '<?= csrf_hash() ?>'
+				},
+				headers: {
+					'X-Requested-With': 'XMLHttpRequest'
+				},
+				dataType: 'json',
+				success: function(response) {
+					if (response.status === 'success') {
+						if (typeof bootbox !== 'undefined') {
+							bootbox.hideAll();
+						}
+						if (typeof Swal !== 'undefined') {
+							Swal.fire({
+								icon: 'success',
+								title: 'Berhasil',
+								text: response.message,
+								timer: 2000,
+								showConfirmButton: false
+							}).then(function() {
+								location.reload();
+							});
+						} else {
+							alert(response.message);
+							location.reload();
+						}
+					} else {
+						if (typeof Swal !== 'undefined') {
+							Swal.fire({
+								icon: 'error',
+								title: 'Error',
+								text: response.message
+							});
+						} else {
+							alert(response.message);
+						}
+					}
+				},
+				error: function(xhr) {
+					var errorMsg = 'Terjadi kesalahan saat menambahkan biaya tambahan.';
+					if (xhr.responseJSON && xhr.responseJSON.message) {
+						errorMsg = xhr.responseJSON.message;
+					}
+					if (typeof Swal !== 'undefined') {
+						Swal.fire({
+							icon: 'error',
+							title: 'Error',
+							text: errorMsg
+						});
+					} else {
+						alert(errorMsg);
+					}
+				}
+			});
+		}
+
+		function updateFee(feeId) {
+			var feeTypeId = $('#modalFeeTypeId').val();
+			var feeName = $('#modalFeeName').val();
+			var amount = $('#modalFeeAmount').val();
+
+			if (!feeTypeId || !amount || parseFloat(amount) <= 0) {
+				if (typeof Swal !== 'undefined') {
+					Swal.fire({
+						icon: 'error',
+						title: 'Error',
+						text: 'Mohon lengkapi semua field yang wajib diisi.'
+					});
+				} else {
+					alert('Mohon lengkapi semua field yang wajib diisi.');
+				}
+				return;
+			}
+
+			$.ajax({
+				url: '<?= $config->baseURL ?>agent/sales/updateFee/' + saleId + '/' + feeId,
+				type: 'POST',
+				data: {
+					fee_type_id: feeTypeId,
+					fee_name: feeName,
+					amount: amount,
+					<?= csrf_token() ?>: '<?= csrf_hash() ?>'
+				},
+				headers: {
+					'X-Requested-With': 'XMLHttpRequest'
+				},
+				dataType: 'json',
+				success: function(response) {
+					if (response.status === 'success') {
+						if (typeof bootbox !== 'undefined') {
+							bootbox.hideAll();
+						}
+						if (typeof Swal !== 'undefined') {
+							Swal.fire({
+								icon: 'success',
+								title: 'Berhasil',
+								text: response.message,
+								timer: 2000,
+								showConfirmButton: false
+							}).then(function() {
+								location.reload();
+							});
+						} else {
+							alert(response.message);
+							location.reload();
+						}
+					} else {
+						if (typeof Swal !== 'undefined') {
+							Swal.fire({
+								icon: 'error',
+								title: 'Error',
+								text: response.message
+							});
+						} else {
+							alert(response.message);
+						}
+					}
+				},
+				error: function(xhr) {
+					var errorMsg = 'Terjadi kesalahan saat mengubah biaya tambahan.';
+					if (xhr.responseJSON && xhr.responseJSON.message) {
+						errorMsg = xhr.responseJSON.message;
+					}
+					if (typeof Swal !== 'undefined') {
+						Swal.fire({
+							icon: 'error',
+							title: 'Error',
+							text: errorMsg
+						});
+					} else {
+						alert(errorMsg);
+					}
+				}
+			});
+		}
+
+		function deleteFee(feeId) {
+			if (typeof Swal !== 'undefined') {
+				Swal.fire({
+					icon: 'question',
+					title: 'Konfirmasi',
+					text: 'Apakah Anda yakin ingin menghapus biaya tambahan ini?',
+					showCancelButton: true,
+					confirmButtonText: 'Ya, Hapus',
+					cancelButtonText: 'Batal'
+				}).then(function(result) {
+					if (result.isConfirmed) {
+						performDeleteFee(feeId);
+					}
+				});
+			} else {
+				if (confirm('Apakah Anda yakin ingin menghapus biaya tambahan ini?')) {
+					performDeleteFee(feeId);
+				}
+			}
+		}
+
+		function performDeleteFee(feeId) {
+			$.ajax({
+				url: '<?= $config->baseURL ?>agent/sales/deleteFee/' + saleId + '/' + feeId,
+				type: 'POST',
+				data: {
+					<?= csrf_token() ?>: '<?= csrf_hash() ?>'
+				},
+				headers: {
+					'X-Requested-With': 'XMLHttpRequest'
+				},
+				dataType: 'json',
+				success: function(response) {
+					if (response.status === 'success') {
+						if (typeof Swal !== 'undefined') {
+							Swal.fire({
+								icon: 'success',
+								title: 'Berhasil',
+								text: response.message,
+								timer: 2000,
+								showConfirmButton: false
+							}).then(function() {
+								location.reload();
+							});
+						} else {
+							alert(response.message);
+							location.reload();
+						}
+					} else {
+						if (typeof Swal !== 'undefined') {
+							Swal.fire({
+								icon: 'error',
+								title: 'Error',
+								text: response.message
+							});
+						} else {
+							alert(response.message);
+						}
+					}
+				},
+				error: function(xhr) {
+					var errorMsg = 'Terjadi kesalahan saat menghapus biaya tambahan.';
+					if (xhr.responseJSON && xhr.responseJSON.message) {
+						errorMsg = xhr.responseJSON.message;
+					}
+					if (typeof Swal !== 'undefined') {
+						Swal.fire({
+							icon: 'error',
+							title: 'Error',
+							text: errorMsg
+						});
+					} else {
+						alert(errorMsg);
+					}
+				}
+			});
+		}
+
+		function saveNote() {
+			var note = $('#saleNote').val();
+
+			$.ajax({
+				url: '<?= $config->baseURL ?>agent/sales/updateNote/' + saleId,
+				type: 'POST',
+				data: {
+					note: note,
+					<?= csrf_token() ?>: '<?= csrf_hash() ?>'
+				},
+				headers: {
+					'X-Requested-With': 'XMLHttpRequest'
+				},
+				dataType: 'json',
+				success: function(response) {
+					if (response.status === 'success') {
+						if (typeof Swal !== 'undefined') {
+							Swal.fire({
+								icon: 'success',
+								title: 'Berhasil',
+								text: response.message,
+								timer: 2000,
+								showConfirmButton: false,
+								toast: true,
+								position: 'top-end'
+							});
+						} else {
+							alert(response.message);
+						}
+					} else {
+						if (typeof Swal !== 'undefined') {
+							Swal.fire({
+								icon: 'error',
+								title: 'Error',
+								text: response.message
+							});
+						} else {
+							alert(response.message);
+						}
+					}
+				},
+				error: function(xhr) {
+					var errorMsg = 'Terjadi kesalahan saat menyimpan catatan.';
+					if (xhr.responseJSON && xhr.responseJSON.message) {
+						errorMsg = xhr.responseJSON.message;
+					}
+					if (typeof Swal !== 'undefined') {
+						Swal.fire({
+							icon: 'error',
+							title: 'Error',
+							text: errorMsg
+						});
+					} else {
+						alert(errorMsg);
+					}
+				}
+			});
+		}
+		<?php endif; ?>
 		</script>
 	</div>
 </div>

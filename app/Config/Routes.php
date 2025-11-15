@@ -124,7 +124,12 @@ $routes->group('agent', function($routes) {
     $routes->post('sales/updateCart', 'Agent\Sales::updateCart');
     $routes->post('sales/removeFromCart', 'Agent\Sales::removeFromCart');
     $routes->get('sales/clearCart', 'Agent\Sales::clearCart');
-    $routes->post('sales/getDataDT', 'Agent\Sales::getDataDT');    
+    $routes->post('sales/getDataDT', 'Agent\Sales::getDataDT');
+    // Fee management (Agent only)
+    $routes->post('sales/addFee/(:num)', 'Agent\Sales::addFee/$1');
+    $routes->post('sales/updateFee/(:num)/(:num)', 'Agent\Sales::updateFee/$1/$2');
+    $routes->post('sales/deleteFee/(:num)/(:num)', 'Agent\Sales::deleteFee/$1/$2');
+    $routes->post('sales/updateNote/(:num)', 'Agent\Sales::updateNote/$1');
     
     // Agent Payment Result Pages
     $routes->get('payment/thankyou', 'Agent\Payment::thankyou');
