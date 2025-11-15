@@ -258,5 +258,5 @@ $user = $_SESSION['user'];
 			</nav>
 		</div>
 		<div class="content">
-		<?=!empty($breadcrumb) ? breadcrumb($breadcrumb) : ''?>
+		<?=breadcrumb($breadcrumb ?? null, $breadcrumb_uri ?? null)?>
 		<div class="content-wrapper">

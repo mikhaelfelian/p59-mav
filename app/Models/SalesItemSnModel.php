@@ -32,7 +32,9 @@ class SalesItemSnModel extends Model
         'plat_last',
         'file',
         'activated_at',
-        'expired_at'
+        'expired_at',
+        'is_receive',
+        'receive_at'
     ];
 
     // Dates
@@ -53,7 +55,9 @@ class SalesItemSnModel extends Model
         'plat_last' => 'permit_empty|max_length[10]',
         'file' => 'permit_empty|max_length[255]',
         'activated_at' => 'permit_empty|valid_date',
-        'expired_at' => 'permit_empty|valid_date'
+        'expired_at' => 'permit_empty|valid_date',
+        'is_receive' => 'in_list[0,1]',
+        'receive_at' => 'permit_empty|valid_date'
     ];
     protected $validationMessages   = [];
     protected $skipValidation       = false;

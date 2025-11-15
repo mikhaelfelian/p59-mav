@@ -185,7 +185,8 @@ class Item extends BaseController
         $model->select('item.*, item_category.category as category_name, item_brand.name as brand_name')
             ->join('item_category', 'item_category.id = item.category_id', 'left')
             ->join('item_brand', 'item_brand.id = item.brand_id', 'left')
-            ->where('item.status', '1');
+            ->where('item.status', '1')
+            ->where('item.is_agen', '1');
 
         if (!empty($filters['search'])) {
             $searchTerm = $filters['search'];
@@ -362,6 +363,7 @@ class Item extends BaseController
                 ->join('item_brand', 'item_brand.id = item.brand_id', 'left')
                 ->where('item.id', $id)
                 ->where('item.status', '1')
+                ->where('item.is_agen', '1')
                 ->first();
 
             if (!$item) {

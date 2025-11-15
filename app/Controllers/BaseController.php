@@ -343,6 +343,30 @@ class BaseController extends Controller
 		return $this->methodName;
 	}
 	
+	/**
+	 * Set breadcrumb manually (replaces existing breadcrumb)
+	 * 
+	 * @param array $items Breadcrumb items as ['Title' => 'url'] or ['Title' => ''] for current page
+	 * @return void
+	 */
+	protected function setBreadcrumb(array $items) {
+		$this->data['breadcrumb'] = $items;
+	}
+	
+	/**
+	 * Add a breadcrumb item to the existing breadcrumb
+	 * 
+	 * @param string $title Breadcrumb title
+	 * @param string $url Breadcrumb URL (empty string for current page)
+	 * @return void
+	 */
+	protected function addBreadcrumb(string $title, string $url = '') {
+		if (!isset($this->data['breadcrumb']) || !is_array($this->data['breadcrumb'])) {
+			$this->data['breadcrumb'] = [];
+		}
+		$this->data['breadcrumb'][$title] = $url;
+	}
+	
 	protected function addStyle($file) {
 		$this->data['styles'][] = $file;
 	}

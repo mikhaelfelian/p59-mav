@@ -8,8 +8,44 @@ https://webdev.id
 $data: title as key, and url as value */ 
 
 if (!function_exists('breadcrumb')) {
-	function breadcrumb($data) 
+	function breadcrumb($data = null, $breadcrumb_uri = null) 
 	{
+		// Method 2: Handle string format (e.g., "Bla >> Blah >> blah")
+		if (is_string($data) && !empty($data)) {
+			// Parse string by ">>" separator
+			$titles = array_map('trim', explode('>>', $data));
+			$titles = array_filter($titles); // Remove empty items
+			
+			if (!empty($titles)) {
+				// Convert to array format
+				$data = [];
+				$lastIndex = count($titles) - 1;
+				
+				foreach ($titles as $index => $title) {
+					// Last item gets the URI if provided, otherwise empty string
+					// All previous items get empty string (no URL)
+					if ($index === $lastIndex && $breadcrumb_uri !== null) {
+						$data[$title] = $breadcrumb_uri;
+					} else {
+						$data[$title] = '';
+					}
+				}
+			} else {
+				$data = null; // If parsing failed, treat as empty
+			}
+		}
+		
+		// Method 1: Auto-generate breadcrumb if data is null or empty
+		if (empty($data)) {
+			$data = generateBreadcrumb();
+		}
+		
+		// If still empty after auto-generation, return empty string
+		if (empty($data)) {
+			return '';
+		}
+		
+		// Method 3: Array format (existing behavior) - render breadcrumb
 		$separator = '&raquo;';
 		echo '<nav aria-label="breadcrumb">
 	  <ol class="breadcrumb">';
@@ -23,6 +59,107 @@ if (!function_exists('breadcrumb')) {
 		echo '
 	  </ol>
 	</nav>';
+	}
+}
+
+/**
+ * Auto-generate breadcrumb from current route/controller/method
+ * 
+ * @return array Breadcrumb data (title => url)
+ */
+if (!function_exists('generateBreadcrumb')) {
+	function generateBreadcrumb() 
+	{
+		$breadcrumb = [];
+		
+		try {
+			// Get base URL
+			$config = config('App');
+			$baseURL = $config->baseURL;
+			
+			// Get current module from session if available
+			$session = \Config\Services::session();
+			$web = $session->get('web');
+			
+			// Start with Home
+			$breadcrumb['Home'] = $baseURL;
+			
+			// Add module if available
+			if (!empty($web['nama_module']) && !empty($web['module_url'])) {
+				$moduleTitle = !empty($web['judul_module']) ? $web['judul_module'] : ucfirst($web['nama_module']);
+				$breadcrumb[$moduleTitle] = $web['module_url'];
+			}
+			
+			// Try to get controller and method from router
+			$router = \Config\Services::router();
+			$request = \Config\Services::request();
+			
+			// Get route information
+			$controller = null;
+			$method = null;
+			
+			// Try to get from router
+			if (method_exists($router, 'controllerName')) {
+				$controller = $router->controllerName();
+			}
+			if (method_exists($router, 'methodName')) {
+				$method = $router->methodName();
+			}
+			
+			// Fallback: try to get from URI segments
+			if (empty($controller) || empty($method)) {
+				$uri = $request->getUri();
+				$segments = $uri->getSegments();
+				
+				if (empty($controller) && !empty($segments)) {
+					// First segment is usually controller
+					$controller = ucfirst($segments[0] ?? '');
+				}
+				
+				if (empty($method) && !empty($segments[1])) {
+					// Second segment is usually method
+					$method = $segments[1];
+				} elseif (empty($method)) {
+					$method = 'index';
+				}
+			}
+			
+			// Add controller name if not 'index' and different from module
+			if (!empty($controller) && strtolower($controller) !== 'index') {
+				$controllerName = str_replace('Controller', '', $controller);
+				$controllerName = preg_replace('/(?<!^)[A-Z]/', ' $0', $controllerName);
+				$controllerName = trim($controllerName);
+				
+				// Only add if it's meaningful and different from module
+				if (!empty($controllerName) && strtolower($controllerName) !== strtolower($web['nama_module'] ?? '')) {
+					// Build controller URL from current URI
+					$uri = $request->getUri();
+					$segments = $uri->getSegments();
+					
+					// Build URL up to controller
+					$controllerURL = $baseURL;
+					if (!empty($segments)) {
+						// Take first segment as controller URL
+						$controllerURL = $baseURL . $segments[0];
+					}
+					
+					$breadcrumb[$controllerName] = $controllerURL;
+				}
+			}
+			
+			// Add method name if not 'index'
+			if (!empty($method) && strtolower($method) !== 'index') {
+				$methodName = ucfirst(str_replace('_', ' ', $method));
+				$breadcrumb[$methodName] = ''; // Current page, no URL
+			}
+			
+		} catch (\Exception $e) {
+			// If auto-generation fails, return empty array (will fall back to manual)
+			log_message('debug', 'Breadcrumb auto-generation failed: ' . $e->getMessage());
+			return [];
+		}
+		
+		return $breadcrumb;
 	}
 }
 

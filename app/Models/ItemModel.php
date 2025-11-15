@@ -36,6 +36,7 @@ class ItemModel extends Model
         'agent_price',
         'is_stockable',
         'is_catalog',
+        'is_agen',
         'status',
         'warranty'
     ];

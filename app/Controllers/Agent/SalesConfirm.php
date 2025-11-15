@@ -291,9 +291,11 @@ class SalesConfirm extends \App\Controllers\BaseController
 
                 // Get sales_item_sn records for this sales_detail (already assigned)
                 $salesItemSns = $this->salesItemSnModel
-                    ->select('sales_item_sn.*, item_sn.sn, item_sn.is_sell, item_sn.is_activated, item_sn.activated_at, item_sn.expired_at, item_sn.item_id')
+                    ->select('sales_item_sn.*, item_sn.sn, item_sn.is_sell, item_sn.is_activated, item_sn.activated_at, item_sn.expired_at, item_sn.item_id, item_sn.agent_id')
                     ->join('item_sn', 'item_sn.id = sales_item_sn.item_sn_id', 'inner')
                     ->where('sales_item_sn.sales_item_id', $item['id'])
+                    ->orderBy('sales_item_sn.is_receive', 'ASC')
+                    ->orderBy('sales_item_sn.created_at', 'ASC')
                     ->findAll();
 
                 // Filter only those with is_sell = '0' (not yet activated)
@@ -366,6 +368,7 @@ class SalesConfirm extends \App\Controllers\BaseController
             $this->data['items'] = $itemsWithSN;
             $this->data['payment'] = $paymentInfo;
             $this->data['gatewayResponse'] = $gatewayResponse;
+            $this->data['agentId'] = $sale['warehouse_id'] ?? null; // Agent ID from sales.warehouse_id
 
             $this->view('sales/confirm-sn-detail', $this->data);
         } catch (\Exception $e) {
@@ -761,6 +764,224 @@ class SalesConfirm extends \App\Controllers\BaseController
             return $this->response->setJSON([
                 'status' => 'error',
                 'message' => 'Gagal meng-assign serial number: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Receive single serial number (AJAX endpoint)
+     * Updates sales_item_sn.is_receive='1' and item_sn.agent_id
+     * 
+     * @param int $saleId Sale ID
+     * @param int $salesItemSnId Sales Item SN ID
+     * @return ResponseInterface
+     */
+    public function receiveSN(int $saleId, int $salesItemSnId): ResponseInterface
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Invalid request method.'
+            ])->setStatusCode(400);
+        }
+
+        try {
+            // Verify sale exists
+            $sale = $this->model->find($saleId);
+            if (!$sale) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Data penjualan tidak ditemukan.'
+                ])->setStatusCode(404);
+            }
+
+            // Get agent ID from sales.warehouse_id
+            $agentId = (int)($sale['warehouse_id'] ?? 0);
+            if ($agentId <= 0) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Agent ID tidak valid.'
+                ]);
+            }
+
+            // Verify sales_item_sn exists and belongs to this sale
+            $salesItemSn = $this->salesItemSnModel
+                ->select('sales_item_sn.*, sales_detail.sale_id, sales_item_sn.item_sn_id')
+                ->join('sales_detail', 'sales_detail.id = sales_item_sn.sales_item_id', 'inner')
+                ->where('sales_item_sn.id', $salesItemSnId)
+                ->where('sales_detail.sale_id', $saleId)
+                ->first();
+
+            if (!$salesItemSn) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Serial number tidak ditemukan atau tidak sesuai dengan penjualan.'
+                ])->setStatusCode(404);
+            }
+
+            // Check if already received
+            if (($salesItemSn['is_receive'] ?? '0') === '1') {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Serial number ini sudah diterima sebelumnya.'
+                ]);
+            }
+
+            $db = \Config\Database::connect();
+            $db->transStart();
+
+            try {
+                // Update sales_item_sn.is_receive = '1' and set receive_at timestamp
+                $this->salesItemSnModel->update($salesItemSnId, [
+                    'is_receive' => '1',
+                    'receive_at' => date('Y-m-d H:i:s')
+                ]);
+
+                // Update item_sn.agent_id to match agent from sales.warehouse_id
+                $itemSnId = (int)($salesItemSn['item_sn_id'] ?? 0);
+                if ($itemSnId > 0) {
+                    $this->itemSnModel->update($itemSnId, [
+                        'agent_id' => $agentId
+                    ]);
+                }
+
+                $db->transComplete();
+
+                if ($db->transStatus() === false) {
+                    throw new \Exception('Transaksi gagal.');
+                }
+
+                return $this->response->setJSON([
+                    'status' => 'success',
+                    'message' => 'Serial number berhasil diterima.',
+                    'sales_item_sn_id' => $salesItemSnId
+                ]);
+
+            } catch (\Exception $e) {
+                $db->transRollback();
+                throw $e;
+            }
+
+        } catch (\Exception $e) {
+            log_message('error', 'Agent\SalesConfirm::receiveSN error: ' . $e->getMessage());
+            
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Gagal menerima serial number: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Receive all serial numbers for a sale (AJAX endpoint)
+     * Updates all sales_item_sn.is_receive='1' and corresponding item_sn.agent_id
+     * 
+     * @param int $saleId Sale ID
+     * @return ResponseInterface
+     */
+    public function receiveAllSN(int $saleId): ResponseInterface
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Invalid request method.'
+            ])->setStatusCode(400);
+        }
+
+        try {
+            // Verify sale exists
+            $sale = $this->model->find($saleId);
+            if (!$sale) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Data penjualan tidak ditemukan.'
+                ])->setStatusCode(404);
+            }
+
+            // Get agent ID from sales.warehouse_id
+            $agentId = (int)($sale['warehouse_id'] ?? 0);
+            if ($agentId <= 0) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Agent ID tidak valid.'
+                ]);
+            }
+
+            // Get all sales_item_sn records for this sale where is_receive='0'
+            $unreceivedSns = $this->salesItemSnModel
+                ->select('sales_item_sn.id, sales_item_sn.item_sn_id, sales_detail.sale_id')
+                ->join('sales_detail', 'sales_detail.id = sales_item_sn.sales_item_id', 'inner')
+                ->where('sales_detail.sale_id', $saleId)
+                ->where('sales_item_sn.is_receive', '0')
+                ->findAll();
+
+            if (empty($unreceivedSns)) {
+                return $this->response->setJSON([
+                    'status' => 'info',
+                    'message' => 'Tidak ada serial number yang perlu diterima.',
+                    'count' => 0
+                ]);
+            }
+
+            $db = \Config\Database::connect();
+            $db->transStart();
+
+            try {
+                $updatedCount = 0;
+                $itemSnIds = [];
+
+                foreach ($unreceivedSns as $salesItemSn) {
+                    $salesItemSnId = (int)($salesItemSn['id'] ?? 0);
+                    $itemSnId = (int)($salesItemSn['item_sn_id'] ?? 0);
+
+                    if ($salesItemSnId <= 0) {
+                        continue;
+                    }
+
+                    // Update sales_item_sn.is_receive = '1' and set receive_at timestamp
+                    $this->salesItemSnModel->update($salesItemSnId, [
+                        'is_receive' => '1',
+                        'receive_at' => date('Y-m-d H:i:s')
+                    ]);
+
+                    // Collect item_sn_ids to update
+                    if ($itemSnId > 0 && !in_array($itemSnId, $itemSnIds)) {
+                        $itemSnIds[] = $itemSnId;
+                    }
+
+                    $updatedCount++;
+                }
+
+                // Update all item_sn.agent_id in batch
+                if (!empty($itemSnIds)) {
+                    $this->itemSnModel->whereIn('id', $itemSnIds)
+                        ->set('agent_id', $agentId)
+                        ->update();
+                }
+
+                $db->transComplete();
+
+                if ($db->transStatus() === false) {
+                    throw new \Exception('Transaksi gagal.');
+                }
+
+                return $this->response->setJSON([
+                    'status' => 'success',
+                    'message' => "Semua serial number berhasil diterima. Total: {$updatedCount} SN",
+                    'count' => $updatedCount
+                ]);
+
+            } catch (\Exception $e) {
+                $db->transRollback();
+                throw $e;
+            }
+
+        } catch (\Exception $e) {
+            log_message('error', 'Agent\SalesConfirm::receiveAllSN error: ' . $e->getMessage());
+            
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Gagal menerima serial number: ' . $e->getMessage()
             ]);
         }
     }

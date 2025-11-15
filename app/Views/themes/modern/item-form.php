@@ -153,6 +153,22 @@ $isModal = $isModal ?? false;
 									<label class="form-check-label">Item ini ditampilkan di katalog web</label>
 								</div>
 							</div>
+							<div class="mb-3">
+								<label class="control-label mb-2">Tampilkan di Agen</label>
+								<div class="form-switch">
+									<input type="checkbox" name="is_agen" value="1" class="form-check-input"
+										<?= set_value('is_agen', @$item->is_agen) == '1' ? 'checked' : '' ?> />
+									<label class="form-check-label">Item ini ditampilkan untuk Agen</label>
+								</div>
+							</div>
+							<div class="mb-3">
+								<label class="control-label mb-2">Stock / Persediaan</label>
+								<div class="form-switch">
+									<input type="checkbox" name="is_stockable" value="1" class="form-check-input"
+										<?= set_value('is_stockable', @$item->is_stockable) == '1' ? 'checked' : '' ?> />
+									<label class="form-check-label">Item ini menggunakan/stok persediaan (opsi dinonaktifkan jika layanan atau digital product)</label>
+								</div>
+							</div>
 
 							<div class="mb-3">
 								<label class="control-label mb-2">Status</label>

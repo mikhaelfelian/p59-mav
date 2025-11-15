@@ -258,6 +258,7 @@ class Item extends BaseController
         $categoryId       = $this->request->getPost('category_id');
         $isStockable      = $this->request->getPost('is_stockable') ?? '1';
         $isCatalog        = $this->request->getPost('is_catalog') ?? '1';
+        $isAgen           = $this->request->getPost('is_agen') ?? '0';
         $status           = $this->request->getPost('status') ?? '1';
         $warranty         = $this->request->getPost('warranty');
         $id               = $this->request->getPost('id');
@@ -287,10 +288,14 @@ class Item extends BaseController
         ];
 
         // Normalize price and agentPrice using angka helper before validation
-        $form = $this->request->getPost();
-        $form['price'] = isset($form['price']) ? format_angka_db((string)$form['price']) : null;
-        $form['agent_price'] = isset($form['agent_price']) ? format_angka_db((string)$form['agent_price']) : null;
-        $this->request->setGlobal('post', $form); // Override POST for validation
+        $form                = $this->request->getPost();
+
+        // Format price fields before validation
+        $form['price']       = isset($form['price']) ? format_angka_db((string) $form['price']) : null;
+        $form['agent_price'] = isset($form['agent_price']) ? format_angka_db((string) $form['agent_price']) : null;
+
+        // Override POST for validation process
+        $this->request->setGlobal('post', $form);
 
         // Run validation
         if (!$this->validate($rules)) {
@@ -396,8 +401,9 @@ class Item extends BaseController
                 'agent_price'       => $agentPrice,
                 'brand_id'          => $brandId,
                 'category_id'       => $categoryId,
-                'is_stockable'      => '1',
+                'is_stockable'      => $isStockable,
                 'is_catalog'        => $isCatalog,
+                'is_agen'           => $isAgen,
                 'status'            => $status,
                 'warranty'          => !empty($warranty) ? (int)$warranty : null
             ];

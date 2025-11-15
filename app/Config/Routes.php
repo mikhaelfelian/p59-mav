@@ -142,6 +142,9 @@ $routes->group('agent', function($routes) {
     $routes->post('sales/confirm/getDataDT', 'Agent\SalesConfirm::getDataDT');
     $routes->post('sales/confirm/verify/(:num)', 'Agent\SalesConfirm::verify/$1');
     $routes->post('sales/confirm/assignSN/(:num)', 'Agent\SalesConfirm::assignSN/$1');
+    // Receive SN endpoints
+    $routes->post('sales/confirm/receiveSN/(:num)/(:num)', 'Agent\SalesConfirm::receiveSN/$1/$2');
+    $routes->post('sales/confirm/receiveAllSN/(:num)', 'Agent\SalesConfirm::receiveAllSN/$1');
 });
 
 # Agent Gateway Check (for agent/post integration)
