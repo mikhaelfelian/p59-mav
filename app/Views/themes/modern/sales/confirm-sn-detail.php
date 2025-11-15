@@ -292,90 +292,6 @@ helper('angka');
 							</div>
 							
 							<div class="mt-3">
-								<!-- Assigned Serial Numbers -->
-								<?php if (!empty($item['pending_sns'])): 
-									// Separate received and unreceived SNs
-									$receivedSns = [];
-									$unreceivedSns = [];
-									foreach ($item['pending_sns'] as $sn) {
-										if (($sn['is_receive'] ?? '0') === '1') {
-											$receivedSns[] = $sn;
-										} else {
-											$unreceivedSns[] = $sn;
-										}
-									}
-									$totalAssigned = count($item['pending_sns']);
-									$receivedCount = count($receivedSns);
-									$unreceivedCount = count($unreceivedSns);
-								?>
-									<h6 class="mb-3">
-										<span class="pending-badge">
-											<i class="fas fa-list me-1"></i>
-											<?= $totalAssigned ?> Serial Number Assigned
-											<?php if ($receivedCount > 0): ?>
-												<span class="text-success">(<?= $receivedCount ?> Diterima)</span>
-											<?php endif; ?>
-											<?php if ($unreceivedCount > 0): ?>
-												<span class="text-warning">(<?= $unreceivedCount ?> Belum Diterima)</span>
-											<?php endif; ?>
-										</span>
-									</h6>
-									
-									<!-- Unreceived Serial Numbers -->
-									<?php if (!empty($unreceivedSns)): ?>
-										<div class="mb-3">
-											<small class="text-muted d-block mb-2">
-												<i class="fas fa-clock me-1"></i>Belum Diterima:
-											</small>
-											<?php foreach ($unreceivedSns as $sn): ?>
-												<div class="sn-item mb-2" data-sales-item-sn-id="<?= $sn['id'] ?? '' ?>">
-													<div>
-														<span class="sn-badge"><?= esc($sn['sn'] ?? '-') ?></span>
-														<span class="sn-status ms-2 text-muted">
-															<i class="fas fa-info-circle me-1"></i>
-															Belum diterima
-														</span>
-													</div>
-													<div>
-														<button type="button" class="btn btn-sm btn-success receive-sn-btn" 
-															data-sales-item-sn-id="<?= $sn['id'] ?? '' ?>" 
-															data-sn="<?= esc($sn['sn'] ?? '-') ?>"
-															title="Terima Serial Number">
-															<i class="fas fa-check me-1"></i>Terima
-														</button>
-													</div>
-												</div>
-											<?php endforeach; ?>
-										</div>
-									<?php endif; ?>
-									
-									<!-- Received Serial Numbers -->
-									<?php if (!empty($receivedSns)): ?>
-										<div class="mb-3">
-											<small class="text-muted d-block mb-2">
-												<i class="fas fa-check-circle me-1 text-success"></i>Sudah Diterima:
-											</small>
-											<?php foreach ($receivedSns as $sn): ?>
-												<div class="sn-item mb-2">
-													<div>
-														<span class="sn-badge"><?= esc($sn['sn'] ?? '-') ?></span>
-														<span class="sn-status ms-2 text-success">
-															<i class="fas fa-check-circle me-1"></i>
-															Diterima
-															<?php if (!empty($sn['receive_at'])): ?>
-																- <?= date('d/m/Y H:i', strtotime($sn['receive_at'])) ?>
-															<?php endif; ?>
-														</span>
-													</div>
-													<div>
-														<span class="badge bg-success">Diterima</span>
-													</div>
-												</div>
-											<?php endforeach; ?>
-										</div>
-									<?php endif; ?>
-								<?php endif; ?>
-								
 								<!-- Assign Serial Numbers Section -->
 								<?php 
 								$hasSerialNumbers = !empty($item['has_serial_numbers']) || !empty($item['available_sns']);
@@ -487,7 +403,7 @@ helper('angka');
 				<a href="<?= $config->baseURL ?>agent/sales" class="btn btn-secondary text-black">
 					&laquo; Kembali
 				</a>
-				<?php if ($hasUnreceivedSNs && $totalUnreceivedCount > 0): ?>
+				<?php if (($isAgent ?? false) && $hasUnreceivedSNs && $totalUnreceivedCount > 0): ?>
 					<button type="button" class="btn btn-success text-white" id="btnReceiveAll">
 						<i class="fas fa-check-double me-1"></i>Terima Semua (<?= $totalUnreceivedCount ?> SN)
 					</button>
@@ -667,84 +583,6 @@ $(document).ready(function() {
 	// Receive SN functionality
 	var saleId = <?= $sale['id'] ?? 0 ?>;
 
-	// Individual receive button
-	$(document).on('click', '.receive-sn-btn', function() {
-		var $btn = $(this);
-		var salesItemSnId = $btn.data('sales-item-sn-id');
-		var snValue = $btn.data('sn');
-		var originalText = $btn.html();
-
-		if (!salesItemSnId) {
-			alert('ID serial number tidak valid.');
-			return;
-		}
-
-		// Disable button and show loading
-		$btn.prop('disabled', true);
-		$btn.html('<i class="fas fa-spinner fa-spin me-1"></i>Memproses...');
-
-		$.ajax({
-			url: '<?= $config->baseURL ?>agent/sales/confirm/receiveSN/' + saleId + '/' + salesItemSnId,
-			type: 'POST',
-			data: {
-				<?= csrf_token() ?>: '<?= csrf_hash() ?>'
-			},
-			headers: {
-				'X-Requested-With': 'XMLHttpRequest'
-			},
-			dataType: 'json',
-			success: function(response) {
-				if (response.status === 'success') {
-					if (typeof Swal !== 'undefined') {
-						Swal.fire({
-							icon: 'success',
-							title: 'Berhasil',
-							text: response.message || 'Serial number berhasil diterima',
-							timer: 2000,
-							showConfirmButton: false,
-							toast: true,
-							position: 'top-end'
-						}).then(function() {
-							location.reload();
-						});
-					} else {
-						alert(response.message || 'Serial number berhasil diterima');
-						location.reload();
-					}
-				} else {
-					if (typeof Swal !== 'undefined') {
-						Swal.fire({
-							icon: 'error',
-							title: 'Error',
-							text: response.message || 'Gagal menerima serial number'
-						});
-					} else {
-						alert(response.message || 'Gagal menerima serial number');
-					}
-					$btn.prop('disabled', false);
-					$btn.html(originalText);
-				}
-			},
-			error: function(xhr) {
-				var errorMsg = 'Terjadi kesalahan saat menerima serial number.';
-				if (xhr.responseJSON && xhr.responseJSON.message) {
-					errorMsg = xhr.responseJSON.message;
-				}
-				if (typeof Swal !== 'undefined') {
-					Swal.fire({
-						icon: 'error',
-						title: 'Error',
-						text: errorMsg
-					});
-				} else {
-					alert(errorMsg);
-				}
-				$btn.prop('disabled', false);
-				$btn.html(originalText);
-			}
-		});
-	});
-
 	// Receive All button
 	$('#btnReceiveAll').on('click', function() {
 		var $btn = $(this);
@@ -917,6 +755,84 @@ $(document).ready(function() {
 				}
 				
 				// Re-enable button
+				$btn.prop('disabled', false);
+				$btn.html(originalText);
+			}
+		});
+	});
+
+	// Handle receive button clicks (delegated event)
+	$(document).on('click', '.receive-sn-btn', function() {
+		var $btn = $(this);
+		var salesItemSnId = $btn.data('sales-item-sn-id');
+		var snValue = $btn.data('sn');
+		var originalText = $btn.html();
+
+		if (!salesItemSnId) {
+			alert('ID serial number tidak valid.');
+			return;
+		}
+
+		$btn.prop('disabled', true);
+		$btn.html('<i class="fas fa-spinner fa-spin me-1"></i>Memproses...');
+
+		$.ajax({
+			url: '<?= $config->baseURL ?>agent/sales/confirm/receiveSN/' + saleId + '/' + salesItemSnId,
+			type: 'POST',
+			headers: {
+				'X-Requested-With': 'XMLHttpRequest'
+			},
+			dataType: 'json',
+			success: function(response) {
+				if (response.status === 'success') {
+					if (typeof Swal !== 'undefined') {
+						Swal.fire({
+							icon: 'success',
+							title: 'Berhasil',
+							text: response.message || 'Serial number berhasil diterima',
+							timer: 2000,
+							showConfirmButton: false,
+							toast: true,
+							position: 'top-end'
+						}).then(function() {
+							// Reload all DataTables
+							tableUnreceived.ajax.reload();
+							tableReceived.ajax.reload();
+							tableUnused.ajax.reload();
+							tableUsed.ajax.reload();
+						});
+					} else {
+						alert(response.message || 'Serial number berhasil diterima');
+						location.reload();
+					}
+				} else {
+					if (typeof Swal !== 'undefined') {
+						Swal.fire({
+							icon: 'error',
+							title: 'Error',
+							text: response.message || 'Gagal menerima serial number'
+						});
+					} else {
+						alert(response.message || 'Gagal menerima serial number');
+					}
+					$btn.prop('disabled', false);
+					$btn.html(originalText);
+				}
+			},
+			error: function(xhr) {
+				var errorMsg = 'Terjadi kesalahan saat menerima serial number.';
+				if (xhr.responseJSON && xhr.responseJSON.message) {
+					errorMsg = xhr.responseJSON.message;
+				}
+				if (typeof Swal !== 'undefined') {
+					Swal.fire({
+						icon: 'error',
+						title: 'Error',
+						text: errorMsg
+					});
+				} else {
+					alert(errorMsg);
+				}
 				$btn.prop('disabled', false);
 				$btn.html(originalText);
 			}

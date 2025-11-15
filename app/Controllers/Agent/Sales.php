@@ -1663,6 +1663,10 @@ class Sales extends BaseController
                 }
             }
 
+            // Check if user is admin (has read_all or update_all permission)
+            $userPermission = is_array($this->userPermission) ? $this->userPermission : [];
+            $isAdmin = key_exists('read_all', $userPermission) || key_exists('update_all', $userPermission);
+
             $this->data['title'] = 'Detail Pembelian';
             $this->data['currentModule'] = 'Agen &laquo; ' . $sale['agent_name'];
             $this->data['config'] = $this->config;
@@ -1671,6 +1675,7 @@ class Sales extends BaseController
             $this->data['fees'] = $fees;
             $this->data['feeTypes'] = $feeTypes;
             $this->data['isAgent'] = true; // Always true in agent context
+            $this->data['isAdmin'] = $isAdmin;
             $this->data['payment'] = $paymentInfo;
             $this->data['gatewayResponse'] = $gatewayResponse;
 
@@ -1957,6 +1962,65 @@ class Sales extends BaseController
             ]);
         }
     }
+
+    /**
+     * Update admin note (courier/AWB) for a sale
+     * Only accessible by admins
+     * 
+     * @param int $saleId Sale ID
+     * @return ResponseInterface
+     */
+    public function updateAdminNote(int $saleId): ResponseInterface
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Invalid request method.'
+            ])->setStatusCode(400);
+        }
+
+        // Check if user is admin (has read_all or update_all permission)
+        $userPermission = is_array($this->userPermission) ? $this->userPermission : [];
+        $isAdmin = key_exists('read_all', $userPermission) || key_exists('update_all', $userPermission);
+        
+        // Only admins can update admin note
+        if (!$isAdmin) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Hanya admin yang dapat mengupdate catatan admin.'
+            ])->setStatusCode(403);
+        }
+
+        // Verify sale exists
+        $sale = $this->model->find($saleId);
+        if (!$sale) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Data penjualan tidak ditemukan.'
+            ])->setStatusCode(404);
+        }
+
+        $postData = $this->request->getPost();
+        $adminNote = trim($postData['admin_note'] ?? '');
+
+        // Update admin note
+        $updateData = [
+            'admin_note' => !empty($adminNote) ? $adminNote : null,
+        ];
+
+        if ($this->model->update($saleId, $updateData)) {
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'Catatan admin berhasil disimpan.',
+                'admin_note' => $adminNote
+            ]);
+        } else {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Gagal menyimpan catatan admin: ' . implode(', ', $this->model->errors())
+            ]);
+        }
+    }
     
     /**
      * Display serial numbers for agent sales
@@ -1994,11 +2058,29 @@ class Sales extends BaseController
             )));
         }
 
+        // Count unreceived SNs for current agent
+        $db = \Config\Database::connect();
+        $unreceivedBuilder = $db->table('sales_item_sn')
+            ->select('sales_item_sn.id')
+            ->join('sales_detail', 'sales_detail.id = sales_item_sn.sales_item_id', 'inner')
+            ->join('sales', 'sales.id = sales_detail.sale_id', 'inner')
+            ->where('sales.sale_channel', self::CHANNEL_ONLINE)
+            ->where('sales_item_sn.is_receive', '0');
+        
+        // Apply agent filter only for non-admin users
+        if (!$isAdmin && !empty($agentIds)) {
+            $unreceivedBuilder->whereIn('sales.warehouse_id', $agentIds);
+        }
+        
+        $totalUnreceivedCount = $unreceivedBuilder->countAllResults();
+
         $this->data['title'] = 'Data Serial Number';
         $this->data['currentModule'] = $this->currentModule;
         $this->data['config'] = $this->config;
         $this->data['isAdmin'] = $isAdmin;
         $this->data['agentIds'] = $agentIds;
+        $this->data['totalUnreceivedCount'] = $totalUnreceivedCount;
+        $this->data['isAgent'] = !$isAdmin && !empty($agentIds);
 
         $this->view('sales/agent/sales-sn', $this->data);
     }
@@ -2200,6 +2282,7 @@ class Sales extends BaseController
                     sales_detail.item_id,
                     sales_detail.item as item_name,
                     sales_detail.qty,
+                    sales_detail.sale_id,
                     item.name as item_name_fallback,
                     item.sku as item_sku,
                     item_sn.barcode,
@@ -2216,8 +2299,10 @@ class Sales extends BaseController
                 $builder->whereIn('sales.warehouse_id', $agentIds);
             }
 
-            // Apply filter for unused/used
-            if ($filter === 'unused') {
+            // Apply filter for unreceived/unused/used
+            if ($filter === 'unreceived') {
+                $builder->where('sales_item_sn.is_receive', '0');
+            } elseif ($filter === 'unused') {
                 $builder->where('sales_item_sn.activated_at IS NULL');
             } else {
                 $builder->where('sales_item_sn.activated_at IS NOT NULL');
@@ -2235,7 +2320,9 @@ class Sales extends BaseController
                 $totalRecords->whereIn('sales.warehouse_id', $agentIds);
             }
             
-            if ($filter === 'unused') {
+            if ($filter === 'unreceived') {
+                $totalRecords->where('sales_item_sn.is_receive', '0');
+            } elseif ($filter === 'unused') {
                 $totalRecords->where('sales_item_sn.activated_at IS NULL');
             } else {
                 $totalRecords->where('sales_item_sn.activated_at IS NOT NULL');
@@ -2278,9 +2365,18 @@ class Sales extends BaseController
                 // Get barcode (from item_sn.barcode only, show '-' if empty - do NOT use serial number as fallback)
                 $barcode = !empty($row['barcode']) ? $row['barcode'] : '-';
                 
-                // Action button (only for unused)
+                // Action button
                 $actionButton = '';
-                if ($filter === 'unused') {
+                if ($filter === 'unreceived') {
+                    // Show receive button for unreceived SNs (agent only)
+                    $saleId = !empty($row['sale_id']) ? $row['sale_id'] : 0;
+                    $actionButton = '<button type="button" class="btn btn-sm btn-success receive-sn-btn" '
+                        . 'data-sales-item-sn-id="' . $row['id'] . '" '
+                        . 'data-sale-id="' . $saleId . '" '
+                        . 'data-sn="' . esc($row['sn']) . '" '
+                        . 'title="Terima Serial Number">'
+                        . '<i class="fas fa-check me-1"></i>Terima</button>';
+                } elseif ($filter === 'unused') {
                     $actionButton = '<a href="' . $this->config->baseURL . 'agent/sales/sn/activate/' . $row['id'] . '" class="btn btn-sm btn-primary" title="Aktifasi Serial Number"><i class="fas fa-check-circle"></i> Aktifasi</a>';
                 } else {
                     $actionButton = '<span class="badge bg-success">Aktif</span>';
@@ -2321,6 +2417,191 @@ class Sales extends BaseController
                 'Agent\Sales::getSnDataDT error: ' . json_encode($errorDetails, JSON_PRETTY_PRINT)
             );
 
+            return $this->response->setJSON([
+                'draw'            => $draw ?? 0,
+                'recordsTotal'    => 0,
+                'recordsFiltered' => 0,
+                'data'            => [],
+                'error'           => 'Terjadi kesalahan saat memuat data: ' . $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Get DataTables data for serial numbers for a specific sale
+     * 
+     * @param int $saleId Sale ID
+     * @return ResponseInterface
+     */
+    public function getSnDataDTForSale(int $saleId): ResponseInterface
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status'  => 'error',
+                'message' => 'Request tidak valid.',
+            ]);
+        }
+
+        if ($saleId <= 0) {
+            return $this->response->setJSON([
+                'draw'            => 0,
+                'recordsTotal'    => 0,
+                'recordsFiltered' => 0,
+                'data'            => [],
+                'error'           => 'ID penjualan tidak valid.',
+            ]);
+        }
+
+        try {
+            $draw   = (int) ($this->request->getPost('draw') ?? $this->request->getGet('draw') ?? 0);
+            $start  = (int) ($this->request->getPost('start') ?? $this->request->getGet('start') ?? 0);
+            $length = (int) ($this->request->getPost('length') ?? $this->request->getGet('length') ?? 10);
+            $filter = $this->request->getPost('filter') ?? 'unused'; // 'unused' or 'used'
+
+            // Defensive bounds for pagination
+            if ($start < 0) {
+                $start = 0;
+            }
+            if ($length < 1 || $length > 100) {
+                $length = 10;
+            }
+
+            // Retrieve search value from DataTables POST/GET
+            $search = $this->request->getPost('search');
+            if ($search === null) {
+                $search = $this->request->getGet('search');
+            }
+
+            $searchValue = '';
+            if (is_array($search) && isset($search['value'])) {
+                $searchValue = trim($search['value']);
+            } elseif (is_string($search)) {
+                $searchValue = trim($search);
+            }
+
+            $db = \Config\Database::connect();
+            
+            // Build base query - filter by sale_id
+            $builder = $db->table('sales_item_sn')
+                ->select('sales_item_sn.*,
+                    sales_detail.item_id,
+                    sales_detail.item as item_name,
+                    sales_detail.qty,
+                    item.name as item_name_fallback,
+                    item.sku as item_sku,
+                    item_sn.barcode,
+                    sales.sale_channel,
+                    sales.warehouse_id')
+                ->join('sales_detail', 'sales_detail.id = sales_item_sn.sales_item_id', 'inner')
+                ->join('sales', 'sales.id = sales_detail.sale_id', 'inner')
+                ->join('item', 'item.id = sales_detail.item_id', 'left')
+                ->join('item_sn', 'item_sn.id = sales_item_sn.item_sn_id', 'left')
+                ->where('sales.id', $saleId)
+                ->where('sales.sale_channel', self::CHANNEL_ONLINE);
+
+            // Apply filter for unused/used
+            if ($filter === 'unused') {
+                $builder->where('sales_item_sn.activated_at IS NULL');
+            } else {
+                $builder->where('sales_item_sn.activated_at IS NOT NULL');
+            }
+
+            // Count total records
+            $totalRecords = $db->table('sales_item_sn')
+                ->select('sales_item_sn.id')
+                ->join('sales_detail', 'sales_detail.id = sales_item_sn.sales_item_id', 'inner')
+                ->join('sales', 'sales.id = sales_detail.sale_id', 'inner')
+                ->where('sales.id', $saleId)
+                ->where('sales.sale_channel', self::CHANNEL_ONLINE);
+            
+            if ($filter === 'unused') {
+                $totalRecords->where('sales_item_sn.activated_at IS NULL');
+            } else {
+                $totalRecords->where('sales_item_sn.activated_at IS NOT NULL');
+            }
+            $totalRecords = $totalRecords->countAllResults();
+
+            // Apply search filter
+            $totalFiltered = $totalRecords;
+            if (!empty($searchValue)) {
+                $builder->groupStart()
+                      ->like('sales_item_sn.sn', $searchValue)
+                      ->orLike('sales_detail.item', $searchValue)
+                      ->orLike('item.name', $searchValue)
+                      ->orLike('item.sku', $searchValue)
+                      ->orLike('item_sn.barcode', $searchValue)
+                      ->groupEnd();
+
+                // Clone query for count
+                $countBuilder = clone $builder;
+                $totalFiltered = $countBuilder->countAllResults();
+            }
+
+            // Get data
+            $data = $builder->orderBy('sales_item_sn.created_at', 'DESC')
+                          ->limit($length, $start)
+                          ->get()
+                          ->getResultArray();
+
+            // Format for DataTables
+            $result = [];
+            $no = $start + 1;
+
+            foreach ($data as $row) {
+                // Use item name from sales_detail, fallback to item.name
+                $itemName = !empty($row['item_name']) ? $row['item_name'] : ($row['item_name_fallback'] ?? '-');
+                
+                // Get item SKU
+                $itemSku = !empty($row['item_sku']) ? $row['item_sku'] : '-';
+                
+                // Get barcode (from item_sn.barcode only, show '-' if empty)
+                $barcode = !empty($row['barcode']) ? $row['barcode'] : '-';
+                
+                // Get SN from sales_item_sn.sn (included in sales_item_sn.*)
+                $sn = !empty($row['sn']) ? $row['sn'] : '-';
+                
+                // Action button (only for unused)
+                $actionButton = '';
+                if ($filter === 'unused') {
+                    $actionButton = '<a href="' . $this->config->baseURL . 'agent/sales/sn/activate/' . $row['id'] . '" class="btn btn-sm btn-primary" title="Aktifasi Serial Number"><i class="fas fa-check-circle"></i> Aktifasi</a>';
+                } else {
+                    $actionButton = '<span class="badge bg-success">Aktif</span>';
+                }
+
+                $result[] = [
+                    'ignore_search_urut' => $no,
+                    'sn'                => esc($sn),
+                    'item_name'         => esc($itemName),
+                    'item_sku'          => esc($itemSku),
+                    'barcode'           => esc($barcode),
+                    'ignore_search_action' => $actionButton,
+                ];
+
+                $no++;
+            }
+
+            return $this->response->setJSON([
+                'draw'            => $draw,
+                'recordsTotal'    => $totalRecords,
+                'recordsFiltered' => $totalFiltered,
+                'data'            => $result,
+            ]);
+        } catch (\Throwable $e) {
+            // Enhanced error logging
+            $errorDetails = [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+                'user_id' => !empty($this->user) && is_array($this->user) ? ($this->user['id_user'] ?? 'N/A') : 'N/A',
+                'sale_id' => $saleId,
+            ];
+            
+            log_message(
+                'error',
+                'Agent\Sales::getSnDataDTForSale error: ' . json_encode($errorDetails, JSON_PRETTY_PRINT)
+            );
+            
             return $this->response->setJSON([
                 'draw'            => $draw ?? 0,
                 'recordsTotal'    => 0,
@@ -2690,6 +2971,158 @@ class Sales extends BaseController
             return redirect()->back()->withInput()->with('message', [
                 'status'  => 'error',
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Receive all unreceived serial numbers for current agent
+     * This method receives all SNs where is_receive='0' for the current agent/user
+     * 
+     * @return ResponseInterface
+     */
+    public function receiveAllUnreceivedSN(): ResponseInterface
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Invalid request method.'
+            ])->setStatusCode(400);
+        }
+
+        try {
+            // Check if user is admin (has read_all or update_all permission)
+            $userPermission = is_array($this->userPermission) ? $this->userPermission : [];
+            $isAdmin = key_exists('read_all', $userPermission) || key_exists('update_all', $userPermission);
+            
+            // Only agents can receive SNs, not admins
+            if ($isAdmin) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Hanya agen yang dapat menerima serial number.'
+                ])->setStatusCode(403);
+            }
+
+            // Get agent IDs for current user
+            $agentIds = [];
+            $userId = !empty($this->user) && is_array($this->user) ? ($this->user['id_user'] ?? null) : null;
+            if (empty($userId)) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'User tidak valid.'
+                ])->setStatusCode(403);
+            }
+
+            $agentRows = $this->userRoleAgentModel
+                ->select('agent_id')
+                ->where('user_id', $userId)
+                ->findAll();
+
+            $agentIds = array_values(array_unique(array_map(
+                static function ($row) {
+                    if (is_object($row)) {
+                        return (int)($row->agent_id ?? 0);
+                    }
+                    if (is_array($row)) {
+                        return (int)($row['agent_id'] ?? 0);
+                    }
+                    return 0;
+                },
+                $agentRows
+            )));
+
+            if (empty($agentIds)) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Anda tidak memiliki akses sebagai agen.'
+                ])->setStatusCode(403);
+            }
+
+            // Get all unreceived SNs for this agent across all sales
+            $unreceivedSns = $this->salesItemSnModel
+                ->select('sales_item_sn.id, sales_item_sn.item_sn_id, sales_detail.sale_id, sales.warehouse_id as agent_id')
+                ->join('sales_detail', 'sales_detail.id = sales_item_sn.sales_item_id', 'inner')
+                ->join('sales', 'sales.id = sales_detail.sale_id', 'inner')
+                ->where('sales.sale_channel', self::CHANNEL_ONLINE)
+                ->where('sales_item_sn.is_receive', '0')
+                ->whereIn('sales.warehouse_id', $agentIds)
+                ->findAll();
+
+            if (empty($unreceivedSns)) {
+                return $this->response->setJSON([
+                    'status' => 'info',
+                    'message' => 'Tidak ada serial number yang perlu diterima.',
+                    'count' => 0
+                ]);
+            }
+
+            $db = \Config\Database::connect();
+            $db->transStart();
+
+            try {
+                $updatedCount = 0;
+                $itemSnUpdates = []; // Group by agent_id to update item_sn efficiently
+
+                foreach ($unreceivedSns as $salesItemSn) {
+                    $salesItemSnId = (int)($salesItemSn['id'] ?? 0);
+                    $itemSnId = (int)($salesItemSn['item_sn_id'] ?? 0);
+                    $agentId = (int)($salesItemSn['agent_id'] ?? 0);
+
+                    if ($salesItemSnId <= 0 || $agentId <= 0) {
+                        continue;
+                    }
+
+                    // Update sales_item_sn.is_receive = '1' and set receive_at timestamp
+                    $this->salesItemSnModel->update($salesItemSnId, [
+                        'is_receive' => '1',
+                        'receive_at' => date('Y-m-d H:i:s')
+                    ]);
+
+                    // Collect item_sn_ids grouped by agent_id
+                    if ($itemSnId > 0) {
+                        if (!isset($itemSnUpdates[$agentId])) {
+                            $itemSnUpdates[$agentId] = [];
+                        }
+                        if (!in_array($itemSnId, $itemSnUpdates[$agentId])) {
+                            $itemSnUpdates[$agentId][] = $itemSnId;
+                        }
+                    }
+
+                    $updatedCount++;
+                }
+
+                // Update all item_sn.agent_id in batches per agent
+                foreach ($itemSnUpdates as $agentId => $itemSnIds) {
+                    if (!empty($itemSnIds)) {
+                        $this->itemSnModel->whereIn('id', $itemSnIds)
+                            ->set('agent_id', $agentId)
+                            ->update();
+                    }
+                }
+
+                $db->transComplete();
+
+                if ($db->transStatus() === false) {
+                    throw new \Exception('Transaksi gagal.');
+                }
+
+                return $this->response->setJSON([
+                    'status' => 'success',
+                    'message' => "Semua serial number berhasil diterima. Total: {$updatedCount} SN",
+                    'count' => $updatedCount
+                ]);
+
+            } catch (\Exception $e) {
+                $db->transRollback();
+                throw $e;
+            }
+
+        } catch (\Exception $e) {
+            log_message('error', 'Agent\Sales::receiveAllUnreceivedSN error: ' . $e->getMessage());
+            
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Gagal menerima serial number: ' . $e->getMessage()
             ]);
         }
     }

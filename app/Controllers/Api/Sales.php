@@ -308,7 +308,10 @@ class Sales extends Controller
             $redirectUrl = null;
             if ($status === 'PAID') {
                 // Success - redirect to thankyou page
+                // Always redirect for PAID status, regardless of request type
+                // Payment gateways typically follow redirects
                 $redirectUrl = $baseURL . 'agent/payment/thankyou?orderId=' . urlencode($orderId);
+                return redirect()->to($redirectUrl);
             } elseif (in_array($status, ['FAILED', 'CANCELED', 'EXPIRED'])) {
                 // Failed/Canceled/Expired - redirect to status page
                 $statusLower = strtolower($status);
@@ -318,7 +321,7 @@ class Sales extends Controller
                 $redirectUrl = $baseURL . 'agent/payment/status?orderId=' . urlencode($orderId) . '&status=pending';
             }
             
-            // Check if this is a browser request (has Accept: text/html header)
+            // For non-PAID statuses, check if this is a browser request (has Accept: text/html header)
             $acceptHeader = $request->getHeaderLine('Accept');
             $isBrowserRequest = strpos($acceptHeader, 'text/html') !== false;
             

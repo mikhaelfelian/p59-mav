@@ -187,6 +187,118 @@
 	transform: translateY(-2px);
 	box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
+
+.nav-tabs-custom {
+	border-bottom: 2px solid #dee2e6;
+	margin-bottom: 1.5rem;
+}
+
+.nav-tabs-custom .nav-link {
+	border: none;
+	border-bottom: 2px solid transparent;
+	padding: 0.75rem 1.5rem;
+	color: #6c757d;
+	font-weight: 500;
+	background: transparent;
+	margin-right: 0.5rem;
+}
+
+.nav-tabs-custom .nav-link:hover {
+	border-bottom-color: #dee2e6;
+	color: #212529;
+}
+
+.nav-tabs-custom .nav-link.active {
+	color: #212529;
+	border-bottom-color: #212529;
+	background: #ffffff;
+	font-weight: 600;
+}
+
+.sn-table {
+	border-collapse: collapse;
+	width: 100%;
+	background: #ffffff;
+}
+
+.sn-table thead {
+	background: #f8f9fa;
+}
+
+.sn-table th {
+	padding: 0.75rem 1rem;
+	text-align: left;
+	font-weight: 600;
+	font-size: 0.875rem;
+	color: #495057;
+	border: 1px solid #dee2e6;
+	border-bottom: 2px solid #212529;
+}
+
+.sn-table td {
+	padding: 0.75rem 1rem;
+	border: 1px solid #dee2e6;
+	color: #212529;
+	vertical-align: middle;
+}
+
+.sn-table tbody tr:hover {
+	background-color: #f8f9fa;
+}
+
+/* Dark theme support for table */
+html[data-bs-theme="dark"] .nav-tabs-custom {
+	border-bottom-color: #4a5560;
+}
+
+html[data-bs-theme="dark"] .nav-tabs-custom .nav-link {
+	color: #adb5bd;
+}
+
+html[data-bs-theme="dark"] .nav-tabs-custom .nav-link:hover {
+	border-bottom-color: #4a5560;
+	color: #d7dbde;
+}
+
+html[data-bs-theme="dark"] .nav-tabs-custom .nav-link.active {
+	color: #d7dbde;
+	border-bottom-color: #d7dbde;
+	background: #293042;
+}
+
+html[data-bs-theme="dark"] .sn-table {
+	background: #293042;
+	color: #adb5bd;
+}
+
+html[data-bs-theme="dark"] .sn-table thead {
+	background: #2a3143;
+}
+
+html[data-bs-theme="dark"] .sn-table th {
+	color: #d7dbde;
+	border-color: #4a5560;
+	border-bottom-color: #6c757d;
+	background: #2a3143;
+}
+
+html[data-bs-theme="dark"] .sn-table td {
+	border-color: #4a5560;
+	color: #adb5bd;
+	background: #293042;
+}
+
+html[data-bs-theme="dark"] .sn-table tbody tr:hover {
+	background-color: #3a4258;
+}
+
+html[data-bs-theme="dark"] .sn-table tbody tr:nth-child(even) {
+	background-color: #2a3143;
+}
+
+html[data-bs-theme="dark"] .sn-table tbody tr:nth-child(even):hover {
+	background-color: #3a4258;
+}
 </style>
 <div class="card shadow-sm border-0">
 	<div class="detail-header">
@@ -350,23 +462,31 @@
 			<?php endif; ?>
 		</div>
 
-		<!-- Note Field (Courier/Air Waybill) -->
-		<?php if (!empty($isAgent) && $isAgent): ?>
-		<div class="items-section mb-4">
-			<h6><i class="fas fa-sticky-note me-2"></i> Catatan (Kurir, Air Waybill, dll)</h6>
-			<div class="mb-3">
-				<textarea class="form-control" id="saleNote" rows="3" placeholder="Masukkan catatan seperti kurir, air waybill, dll..."><?= esc($sale['note'] ?? '') ?></textarea>
-				<small class="text-muted">Catatan ini hanya untuk informasi, tidak mempengaruhi perhitungan total.</small>
-			</div>
-			<button type="button" class="btn btn-sm btn-primary" id="btnSaveNote">
-				<i class="fas fa-save me-1"></i>Simpan Catatan
-			</button>
-		</div>
-		<?php elseif (!empty($sale['note'])): ?>
+		<!-- Note Field -->
 		<div class="items-section mb-4">
 			<h6><i class="fas fa-sticky-note me-2"></i> Catatan</h6>
 			<div class="mb-0">
 				<p class="mb-0"><?= nl2br(esc($sale['note'])) ?></p>
+			</div>
+		</div>
+
+		<!-- Admin Note Field (Courier/AWB) - Admin Only -->
+		<?php if (!empty($isAdmin) && $isAdmin): ?>
+		<div class="items-section mb-4">
+			<h6><i class="fas fa-truck me-2"></i> Catatan Admin (Kurir, AWB, dll)</h6>
+			<div class="mb-3">
+				<textarea class="form-control" id="adminNote" rows="3" placeholder="Masukkan informasi kurir, AWB, tracking number, dll..."><?= esc($sale['admin_note'] ?? '') ?></textarea>
+				<small class="text-muted">Catatan ini hanya untuk admin, tidak terlihat oleh agen.</small>
+			</div>
+			<button type="button" class="btn btn-sm btn-primary" id="btnSaveAdminNote">
+				<i class="fas fa-save me-1"></i>Simpan
+			</button>
+		</div>
+		<?php elseif (!empty($sale['admin_note'])): ?>
+		<div class="items-section mb-4">
+			<h6><i class="fas fa-truck me-2"></i> Catatan Admin</h6>
+			<div class="mb-0">
+				<p class="mb-0 text-muted"><em>Catatan admin tidak dapat dilihat oleh agen.</em></p>
 			</div>
 		</div>
 		<?php endif; ?>
@@ -462,6 +582,67 @@
 					<?php endif; ?>
 				</div>
 			</div>
+		<?php endif; ?>
+
+		<!-- Payment Success Thank You Message -->
+		<?php
+		$isPaymentPaid = false;
+		if (!empty($gatewayResponse) && isset($gatewayResponse['status'])) {
+			$isPaymentPaid = (strtoupper($gatewayResponse['status']) === 'PAID');
+		} elseif (!empty($sale['payment_status']) && $sale['payment_status'] === '2') {
+			$isPaymentPaid = true;
+		} elseif (!empty($payment) && isset($payment['payment_status']) && $payment['payment_status'] === '2') {
+			$isPaymentPaid = true;
+		}
+		?>
+		<?php if ($isPaymentPaid): ?>
+		<div class="items-section mb-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+			<div class="text-center py-4">
+				<i class="fas fa-check-circle fa-4x mb-3" style="color: #28a745; background: white; border-radius: 50%; padding: 1rem;"></i>
+				<h2 class="mb-3" style="color: white;">Pembayaran Berhasil!</h2>
+				<p class="lead mb-4" style="color: rgba(255,255,255,0.9);">
+					Transaksi Anda dengan nomor invoice <strong><?= esc($sale['invoice_no'] ?? 'N/A') ?></strong> telah berhasil diselesaikan.
+				</p>
+				
+				<div class="row justify-content-center mt-4">
+					<div class="col-md-8">
+						<div class="card" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);">
+							<div class="card-body">
+								<h5 class="card-title" style="color: white;">Detail Transaksi</h5>
+								<dl class="row mb-0">
+									<dt class="col-sm-5" style="color: rgba(255,255,255,0.9);">Invoice No:</dt>
+									<dd class="col-sm-7" style="color: white;"><strong><?= esc($sale['invoice_no'] ?? 'N/A') ?></strong></dd>
+									
+									<dt class="col-sm-5" style="color: rgba(255,255,255,0.9);">Total:</dt>
+									<dd class="col-sm-7">
+										<span class="fw-bold" style="color: #28a745; background: white; padding: 0.25rem 0.75rem; border-radius: 4px;">
+											Rp <?= number_format($sale['grand_total'] ?? 0, 0, ',', '.') ?>
+										</span>
+									</dd>
+									
+									<?php if (!empty($sale['agent_name'])): ?>
+										<dt class="col-sm-5" style="color: rgba(255,255,255,0.9);">Agen:</dt>
+										<dd class="col-sm-7" style="color: white;"><?= esc($sale['agent_name']) ?></dd>
+									<?php endif; ?>
+									
+									<dt class="col-sm-5" style="color: rgba(255,255,255,0.9);">Tanggal:</dt>
+									<dd class="col-sm-7" style="color: white;">
+										<?php
+										if (!empty($sale['created_at'])) {
+											$date = new \DateTime($sale['created_at']);
+											echo esc($date->format('d/m/Y H:i'));
+										} else {
+											echo 'N/A';
+										}
+										?>
+									</dd>
+								</dl>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
 		<?php endif; ?>
 
 		<div class="row mt-4">
@@ -913,6 +1094,74 @@
 				}
 			});
 		}
+		<?php endif; ?>
+
+		<?php if (!empty($isAdmin) && $isAdmin): ?>
+		// Save Admin Note
+		function saveAdminNote() {
+			var adminNote = $('#adminNote').val().trim();
+
+			$.ajax({
+				url: '<?= $config->baseURL ?>agent/sales/updateAdminNote/<?= $sale['id'] ?>',
+				type: 'POST',
+				data: {
+					<?= csrf_token() ?>: '<?= csrf_hash() ?>',
+					admin_note: adminNote
+				},
+				headers: {
+					'X-Requested-With': 'XMLHttpRequest'
+				},
+				dataType: 'json',
+				success: function(response) {
+					if (response.status === 'success') {
+						if (typeof Swal !== 'undefined') {
+							Swal.fire({
+								icon: 'success',
+								title: 'Berhasil',
+								text: response.message,
+								timer: 2000,
+								showConfirmButton: false,
+								toast: true,
+								position: 'top-end'
+							});
+						} else {
+							alert(response.message);
+						}
+					} else {
+						if (typeof Swal !== 'undefined') {
+							Swal.fire({
+								icon: 'error',
+								title: 'Error',
+								text: response.message
+							});
+						} else {
+							alert(response.message);
+						}
+					}
+				},
+				error: function(xhr) {
+					var errorMsg = 'Terjadi kesalahan saat menyimpan catatan admin.';
+					if (xhr.responseJSON && xhr.responseJSON.message) {
+						errorMsg = xhr.responseJSON.message;
+					}
+					if (typeof Swal !== 'undefined') {
+						Swal.fire({
+							icon: 'error',
+							title: 'Error',
+							text: errorMsg
+						});
+					} else {
+						alert(errorMsg);
+					}
+				}
+			});
+		}
+
+		$(document).ready(function() {
+			$('#btnSaveAdminNote').on('click', function() {
+				saveAdminNote();
+			});
+		});
 		<?php endif; ?>
 		</script>
 	</div>

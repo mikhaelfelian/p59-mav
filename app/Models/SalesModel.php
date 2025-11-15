@@ -38,6 +38,7 @@ class SalesModel extends Model
         'grand_total',
         'delivery_address',
         'note',
+        'admin_note',
         'payment_status',
         'settlement_time'
     ];
@@ -65,6 +66,7 @@ class SalesModel extends Model
         'grand_total'     => 'required|decimal',
         'delivery_address'=> 'permit_empty|string',
         'note'            => 'permit_empty|string',
+        'admin_note'      => 'permit_empty|string',
         'payment_status'  => 'required|in_list[0,1,2]',
         'settlement_time' => 'permit_empty|valid_date'
     ];

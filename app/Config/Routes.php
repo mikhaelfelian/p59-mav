@@ -116,6 +116,7 @@ $routes->group('agent', function($routes) {
     $routes->get('sales/sn', 'Agent\Sales::sn');
     $routes->get('sales/sn/activate/(:num)', 'Agent\Sales::activateForm/$1');
     $routes->post('sales/getSnDataDT', 'Agent\Sales::getSnDataDT');
+    $routes->post('sales/getSnDataDTForSale/(:num)', 'Agent\Sales::getSnDataDTForSale/$1');
     $routes->post('sales/getSnData/(:num)', 'Agent\Sales::getSnData/$1');
     $routes->post('sales/activateSN/(:num)', 'Agent\Sales::activateSN/$1');
     $routes->post('sales/store', 'Agent\Sales::store');
@@ -130,6 +131,7 @@ $routes->group('agent', function($routes) {
     $routes->post('sales/updateFee/(:num)/(:num)', 'Agent\Sales::updateFee/$1/$2');
     $routes->post('sales/deleteFee/(:num)/(:num)', 'Agent\Sales::deleteFee/$1/$2');
     $routes->post('sales/updateNote/(:num)', 'Agent\Sales::updateNote/$1');
+    $routes->post('sales/updateAdminNote/(:num)', 'Agent\Sales::updateAdminNote/$1');
     
     // Agent Payment Result Pages
     $routes->get('payment/thankyou', 'Agent\Payment::thankyou');
@@ -145,6 +147,9 @@ $routes->group('agent', function($routes) {
     // Receive SN endpoints
     $routes->post('sales/confirm/receiveSN/(:num)/(:num)', 'Agent\SalesConfirm::receiveSN/$1/$2');
     $routes->post('sales/confirm/receiveAllSN/(:num)', 'Agent\SalesConfirm::receiveAllSN/$1');
+    $routes->post('sales/receiveAllUnreceivedSN', 'Agent\Sales::receiveAllUnreceivedSN');
+    // DataTables endpoint for SN list
+    $routes->post('sales/confirm/getSnDataDT/(:num)', 'Agent\SalesConfirm::getSnDataDTForSale/$1');
 });
 
 # Agent Gateway Check (for agent/post integration)

@@ -591,6 +591,12 @@ $(document).ready(function() {
 							confirmButtonColor: '#4e73df',
 							width: '500px'
 						}).then(() => {
+							// Redirect to sales detail page if sale ID is available
+							var redirectUrl = '<?= $config->baseURL ?>agent/sales/cart';
+							if (response.data && response.data.id) {
+								redirectUrl = '<?= $config->baseURL ?>agent/sales/' + response.data.id;
+							}
+							
 							if (typeof Swal !== 'undefined') {
 								Swal.fire({
 									icon: 'success',
@@ -598,14 +604,20 @@ $(document).ready(function() {
 									text: response.message || 'Penjualan berhasil disimpan.',
 									confirmButtonColor: '#28a745'
 								}).then(() => {
-									window.location.href = '<?= $config->baseURL ?>agent/sales/cart';
+									window.location.href = redirectUrl;
 								});
 							} else {
 								alert(response.message || 'Penjualan berhasil disimpan.');
-								window.location.href = '<?= $config->baseURL ?>agent/sales/cart';
+								window.location.href = redirectUrl;
 							}
 						});
 					} else {
+						// Redirect to sales detail page if sale ID is available
+						var redirectUrl = '<?= $config->baseURL ?>agent/sales/cart';
+						if (response.data && response.data.id) {
+							redirectUrl = '<?= $config->baseURL ?>agent/sales/' + response.data.id;
+						}
+						
 						if (typeof Swal !== 'undefined') {
 							Swal.fire({
 								icon: 'success',
@@ -613,11 +625,11 @@ $(document).ready(function() {
 								text: response.message || 'Penjualan berhasil disimpan.',
 								confirmButtonColor: '#28a745'
 							}).then(() => {
-								window.location.href = '<?= $config->baseURL ?>agent/sales/cart';
+								window.location.href = redirectUrl;
 							});
 						} else {
 							alert(response.message || 'Penjualan berhasil disimpan.');
-							window.location.href = '<?= $config->baseURL ?>agent/sales/cart';
+							window.location.href = redirectUrl;
 						}
 					}
 				} else {
