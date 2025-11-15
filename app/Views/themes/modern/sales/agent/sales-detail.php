@@ -203,23 +203,6 @@
 					<dl class="row mb-0">
 						<dt class="col-sm-5 mb-3">Pelanggan:</dt>
 						<dd class="col-sm-7 mb-3">
-							<strong><?= esc($sale['customer_name'] ?? '-') ?></strong>
-						</dd>
-						
-						<?php if (!empty($sale['plat_code']) && !empty($sale['plat_number'])): ?>
-							<dt class="col-sm-5 mb-3">Plat Kendaraan:</dt>
-							<dd class="col-sm-7 mb-3">
-								<span class="badge bg-dark">
-									<i class="fas fa-car me-1"></i><?= esc($sale['plat_code']) ?>-<?= esc($sale['plat_number']) ?>
-									<?php if (!empty($sale['plat_last'])): ?>
-										-<?= esc($sale['plat_last']) ?>
-									<?php endif; ?>
-								</span>
-							</dd>
-						<?php endif; ?>
-						
-						<dt class="col-sm-5 mb-3">Agen:</dt>
-						<dd class="col-sm-7 mb-3">
 							<i class="fas fa-user-tie me-1 text-muted"></i><?= esc($sale['agent_name'] ?? '-') ?>
 						</dd>
 					</dl>
