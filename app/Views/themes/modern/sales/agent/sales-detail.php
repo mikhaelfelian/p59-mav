@@ -206,6 +206,12 @@
 							<i class="fas fa-user-tie me-1 text-muted"></i><?= esc($sale['agent_name'] ?? '-') ?>
 						</dd>
 					</dl>
+					<dl class="row mb-0">
+						<dt class="col-sm-5 mb-3">Alamat:</dt>
+						<dd class="col-sm-7 mb-3">
+							<i class="fas fa-address-card me-1 text-muted"></i><?= esc($sale['delivery_address'] ?? '-') ?>
+						</dd>
+					</dl>
 				</div>
 			</div>
 			<div class="col-md-6 mb-3">
@@ -305,20 +311,6 @@
 				<div class="row">
 					<div class="col-md-6">
 						<dl class="row mb-0">
-							<dt class="col-sm-5 mb-3">Metode Pembayaran:</dt>
-							<dd class="col-sm-7 mb-3">
-								<?php
-								$methodLabels = [
-									'cash' => 'Tunai',
-									'transfer' => 'Transfer',
-									'qris' => 'QRIS',
-									'credit' => 'Kredit',
-									'other' => 'Lainnya'
-								];
-								$methodLabel = $methodLabels[$payment['method'] ?? 'other'] ?? 'Lainnya';
-								?>
-								<span class="badge bg-primary"><?= esc($methodLabel) ?></span>
-							</dd>
 							
 							<dt class="col-sm-5 mb-3">Platform:</dt>
 							<dd class="col-sm-7 mb-3">
@@ -358,33 +350,6 @@
 										</button>
 									</dd>
 								<?php endif; ?>
-								
-								<?php
-								// Calculate totalReceive if gateway response exists (platform.gw_status = 1)
-								if (!empty($gatewayResponse) && isset($gatewayResponse['chargeCustomerForPaymentGatewayFee']) && isset($gatewayResponse['originalAmount'])) {
-									$chargeCustomer = $gatewayResponse['chargeCustomerForPaymentGatewayFee'];
-									$originalAmount = (float) ($gatewayResponse['originalAmount'] ?? 0);
-									$totalReceive = 0;
-									
-									if ($chargeCustomer === true || $chargeCustomer === 'true' || $chargeCustomer === 1 || $chargeCustomer === '1') {
-										// Customer is charged the fee, so totalReceive = originalAmount
-										$totalReceive = $originalAmount;
-									} else {
-										// Customer is NOT charged the fee, so totalReceive = originalAmount - paymentGatewayAdminFee
-										$adminFee = (float) ($gatewayResponse['paymentGatewayAdminFee'] ?? 0);
-										$totalReceive = $originalAmount - $adminFee;
-									}
-									
-									if ($totalReceive > 0) {
-								?>
-									<dt class="col-sm-5 mb-3">Total Diterima:</dt>
-									<dd class="col-sm-7 mb-3">
-										<span class="currency"><strong>Rp <?= number_format($totalReceive, 0, ',', '.') ?></strong></span>
-									</dd>
-								<?php
-									}
-								}
-								?>
 								
 								<?php if (!empty($gatewayResponse['expiredAt'])): ?>
 									<dt class="col-sm-5 mb-3">Kedaluwarsa:</dt>

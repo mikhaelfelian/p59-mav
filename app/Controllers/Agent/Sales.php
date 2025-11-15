@@ -1274,11 +1274,10 @@ class Sales extends BaseController
                     ]);
                 }
                 
-                return redirect()->to('agent/sales/cart')->with('message', [
+                return redirect()->to("agent/sales/{$saleId}")->with('message', [
                     'status' => 'success',
                     'message' => $message
                 ]);
-                
             } catch (\Exception $e) {
                 $db->transRollback();
                 throw $e;
@@ -1652,7 +1651,7 @@ class Sales extends BaseController
                 }
             }
 
-            $this->data['title'] = 'Detail Penjualan';
+            $this->data['title'] = 'Detail Pembelian';
             $this->data['currentModule'] = 'Agen &laquo; ' . $sale['agent_name'];
             $this->data['config'] = $this->config;
             $this->data['sale'] = $sale;

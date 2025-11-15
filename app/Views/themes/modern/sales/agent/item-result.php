@@ -568,6 +568,35 @@ $(document).ready(function () {
             }
 
             if (data.status === 'success') {
+                // Update cart count badge
+                if (data.cart_count !== undefined) {
+                    var cartBadge = $('#page-cart-count');
+                    var cartButton = $('a[href*="agent/sales/cart"]').first();
+                    
+                    if (cartButton.length === 0) {
+                        // Fallback: find cart button by class or title
+                        cartButton = $('a[title="Keranjang"]').first();
+                    }
+                    
+                    if (data.cart_count > 0) {
+                        if (cartBadge.length === 0) {
+                            // Create badge if it doesn't exist
+                            if (cartButton.length > 0) {
+                                cartButton.append('<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="page-cart-count">' + data.cart_count + '</span>');
+                            }
+                        } else {
+                            // Update existing badge
+                            cartBadge.text(data.cart_count);
+                            cartBadge.show();
+                        }
+                    } else {
+                        // Hide badge if count is 0
+                        if (cartBadge.length > 0) {
+                            cartBadge.hide();
+                        }
+                    }
+                }
+                
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({
                         icon: 'success',
