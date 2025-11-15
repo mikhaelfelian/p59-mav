@@ -263,7 +263,6 @@
 							<th style="width: 80px;" class="text-center">Qty</th>
 							<th style="width: 120px;" class="text-end">Harga</th>
 							<th style="width: 120px;" class="text-end">Diskon</th>
-							<th>Nomor Seri</th>
 							<th style="width: 150px;" class="text-end">Subtotal</th>
 						</tr>
 					</thead>
@@ -276,17 +275,6 @@
 									<td class="text-center"><?= esc($item['qty'] ?? $item['quantity'] ?? '0') ?></td>
 									<td class="text-end currency">Rp <?= number_format($item['price'] ?? 0, 0, ',', '.') ?></td>
 									<td class="text-end currency">Rp <?= number_format($item['disc'] ?? $item['discount'] ?? 0, 0, ',', '.') ?></td>
-									<td>
-										<?php if (!empty($item['sns'])): ?>
-											<?php foreach ($item['sns'] as $sn): ?>
-												<span class="serial-number">
-													<i class="fas fa-barcode me-1"></i><?= esc($sn['sn'] ?? '') ?>
-												</span>
-											<?php endforeach; ?>
-										<?php else: ?>
-											<span class="text-muted">-</span>
-										<?php endif; ?>
-									</td>
 									<td class="text-end currency"><strong>Rp <?= number_format($item['amount'] ?? $item['subtotal'] ?? 0, 0, ',', '.') ?></strong></td>
 								</tr>
 							<?php endforeach; ?>
