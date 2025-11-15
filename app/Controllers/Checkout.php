@@ -169,8 +169,8 @@ class Checkout extends BaseController
             
             $grandTotal = $subtotal - $discount + $tax;
 
-            // Generate invoice number
-            $invoiceNo = $this->salesModel->generateInvoiceNo();
+            // Generate invoice number for online sales (channel = '2')
+            $invoiceNo = $this->salesModel->generateInvoiceNo('2');
 
             // Create sales record
             $saleData = [

@@ -296,29 +296,14 @@
 			<div class="alert-validation" id="validation-alert"></div>
 			
 			<div class="row g-3">
-				<div class="col-md-3">
-					<label class="form-label">Nomor Invoice <span class="text-danger">*</span></label>
-					<div class="input-group">
-						<span class="input-group-text bg-light"><i class="fas fa-file-invoice"></i></span>
-						<?= form_input([
-							'name' => 'invoice_no',
-							'class' => 'form-control',
-							'value' => set_value('invoice_no', @$invoice_no ?? ''),
-							'readonly' => 'readonly',
-							'id' => 'invoice_no'
-						]) ?>
-					</div>
-					<small class="text-muted"><i class="fas fa-info-circle"></i> Dibuat otomatis oleh sistem</small>
-				</div>
-				
-				<div class="col-md-3">
+				<div class="col-md-6">
 					<label class="form-label">Nama Pelanggan <span class="text-danger">*</span></label>
 					<div class="input-group">
 						<span class="input-group-text bg-light"><i class="fas fa-user"></i></span>
 						<?= form_input([
 							'name' => 'customer_name',
 							'type' => 'text',
-							'class' => 'form-control',
+							'class' => 'form-control rounded-0',
 							'id' => 'customer_name',
 							'value' => set_value('customer_name', ''),
 							'placeholder' => 'Masukkan nama pelanggan',
@@ -331,7 +316,7 @@
 				<div class="col-md-6">
 					<label class="form-label d-block">Plat Kendaraan <span class="text-danger">*</span></label>
 					<div class="row g-2 align-items-center">
-						<div class="col-4">
+						<div class="col-3">
 							<div class="input-group">
 								<span class="input-group-text bg-light"><i class="fas fa-car"></i></span>
 								<?= form_input([
@@ -361,7 +346,7 @@
 								]) ?>
 							</div>
 						</div>
-						<div class="col-4">
+						<div class="col-3">
 							<div class="input-group">
 								<?= form_input([
 									'name' => 'plate_suffix',

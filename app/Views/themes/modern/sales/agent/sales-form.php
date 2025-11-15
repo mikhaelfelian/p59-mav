@@ -207,7 +207,6 @@
 	<form method="post" action="<?= $config->baseURL ?>agent/sales/store" id="form-sales" novalidate>
 		<?= form_hidden('sales_channel', '1') ?>
 		<?= form_hidden('agent_id', $agentId ?? '') ?>
-		<?= form_hidden('invoice_no', $invoice_no ?? '') ?>
 
 		<!-- Cart Items Section -->
 		<div class="sales-form-section">
