@@ -300,10 +300,13 @@ class SalesConfirm extends \App\Controllers\BaseController
                 }
 
                 // Get available unused serial numbers for this item
+                // Exclude serial numbers that are already assigned to this sales_item_id
                 $availableSns = $this->itemSnModel
                     ->select('item_sn.*')
                     ->where('item_sn.item_id', $item['item_id'])
                     ->where('item_sn.is_sell', '0')
+                    ->join('sales_item_sn', 'sales_item_sn.item_sn_id = item_sn.id AND sales_item_sn.sales_item_id = ' . (int)$item['id'], 'left')
+                    ->where('sales_item_sn.id IS NULL')
                     ->orderBy('item_sn.created_at', 'ASC')
                     ->findAll();
 

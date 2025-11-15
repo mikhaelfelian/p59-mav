@@ -313,7 +313,34 @@ helper('angka');
 								$requiredQty = (int)($item['qty'] ?? 1);
 								$assignedCount = count($item['pending_sns'] ?? []);
 								$needsMore = $requiredQty > $assignedCount;
-								$availableCount = count($item['available_sns'] ?? []);
+								
+								// Collect assigned serial number IDs from pending_sns
+								$assignedSnIds = [];
+								if (!empty($item['pending_sns'])) {
+									foreach ($item['pending_sns'] as $pendingSn) {
+										// Handle both object and array
+										$itemSnId = is_object($pendingSn) ? ($pendingSn->item_sn_id ?? null) : ($pendingSn['item_sn_id'] ?? null);
+										if ($itemSnId) {
+											$assignedSnIds[] = (int)$itemSnId;
+										}
+									}
+								}
+								
+								// Filter available_sns to only show is_sell='0' serial numbers that are not already assigned
+								$filteredAvailableSns = [];
+								if (!empty($item['available_sns'])) {
+									foreach ($item['available_sns'] as $sn) {
+										// Handle both object and array
+										$isSell = is_object($sn) ? ($sn->is_sell ?? '0') : ($sn['is_sell'] ?? '0');
+										$snId = is_object($sn) ? ($sn->id ?? null) : ($sn['id'] ?? null);
+										
+										// Only include serial numbers where is_sell='0' and not already assigned
+										if (($isSell === '0' || $isSell === 0) && $snId && !in_array((int)$snId, $assignedSnIds, true)) {
+											$filteredAvailableSns[] = $sn;
+										}
+									}
+								}
+								$availableCount = count($filteredAvailableSns);
 								?>
 								
 								<?php if ($needsMore): ?>
@@ -329,13 +356,24 @@ helper('angka');
 												<?= csrf_field() ?>
 												<div class="mb-3">
 													<label class="form-label">Pilih Serial Number:</label>
-													<select class="form-select form-select-sm" name="item_sn_ids[]" multiple size="5" required>
-														<?php foreach ($item['available_sns'] as $sn): 
+													<div class="mb-2">
+														<input type="text" class="form-control form-control-sm sn-search-input" 
+															id="sn-search-<?= $item['id'] ?? '' ?>" 
+															placeholder="Cari serial number..." 
+															autocomplete="off">
+													</div>
+													<select class="form-select form-select-sm sn-select" 
+														id="sn-select-<?= $item['id'] ?? '' ?>" 
+														name="item_sn_ids[]" 
+														multiple 
+														size="5" 
+														required>
+														<?php foreach ($filteredAvailableSns as $sn): 
 															// Handle both object and array
 															$snId = is_object($sn) ? ($sn->id ?? '') : ($sn['id'] ?? '');
 															$snValue = is_object($sn) ? ($sn->sn ?? '-') : ($sn['sn'] ?? '-');
 														?>
-															<option value="<?= $snId ?>"><?= esc($snValue) ?></option>
+															<option value="<?= $snId ?>" data-sn="<?= esc($snValue) ?>"><?= esc($snValue) ?></option>
 														<?php endforeach; ?>
 													</select>
 													<small class="text-muted">Gunakan Ctrl/Cmd untuk memilih multiple</small>
@@ -380,6 +418,60 @@ helper('angka');
 
 <script>
 $(document).ready(function() {
+	// Filter serial number dropdown based on search input
+	$(document).on('input', '.sn-search-input', function() {
+		var searchTerm = $(this).val().toLowerCase();
+		var searchId = $(this).attr('id');
+		var selectId = searchId.replace('sn-search-', 'sn-select-');
+		var $select = $('#' + selectId);
+		
+		if ($select.length === 0) {
+			return;
+		}
+		
+		// Store all options if not already stored
+		if (!$select.data('all-options')) {
+			var allOptions = [];
+			$select.find('option').each(function() {
+				allOptions.push({
+					value: $(this).val(),
+					text: $(this).text(),
+					dataSn: $(this).data('sn') || $(this).text(),
+					selected: $(this).prop('selected')
+				});
+			});
+			$select.data('all-options', allOptions);
+		}
+		
+		var allOptions = $select.data('all-options');
+		var selectedValues = [];
+		
+		// Get currently selected values to preserve selection
+		$select.find('option:selected').each(function() {
+			selectedValues.push($(this).val());
+		});
+		
+		// Clear and repopulate select with filtered options
+		$select.empty();
+		
+		$.each(allOptions, function(index, option) {
+			var snValue = option.dataSn.toLowerCase();
+			if (searchTerm === '' || snValue.indexOf(searchTerm) !== -1) {
+				var $newOption = $('<option></option>')
+					.attr('value', option.value)
+					.attr('data-sn', option.dataSn)
+					.text(option.text);
+				
+				// Restore selection if it was previously selected
+				if (selectedValues.indexOf(option.value) !== -1) {
+					$newOption.prop('selected', true);
+				}
+				
+				$select.append($newOption);
+			}
+		});
+	});
+	
 	// Handle assign SN form submission
 	$('.assign-sn-form').on('submit', function(e) {
 		e.preventDefault();
