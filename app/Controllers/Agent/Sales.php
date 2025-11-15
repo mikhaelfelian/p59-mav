@@ -1653,7 +1653,7 @@ class Sales extends BaseController
             }
 
             $this->data['title'] = 'Detail Penjualan';
-            $this->data['currentModule'] = $this->currentModule;
+            $this->data['currentModule'] = 'Agen &laquo; ' . $sale['agent_name'];
             $this->data['config'] = $this->config;
             $this->data['sale'] = $sale;
             $this->data['items'] = $items;
