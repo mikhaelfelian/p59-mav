@@ -1,0 +1,156 @@
+- 1 sn 1 row
+- sn yg sdh ditambahkan jgn tampil di dropdown (tdk boleh kembar di cart)
+- jika sdh ad sn, qty tidak bs drubah
+- agent di hide jika bukan agent
+- chargeCustomerForPaymentGatewayFee = false maka (originalAmount - paymentGatewayAdminFee) 
+originalAmount, paymentGatewayAdminFee, totalReceive, chargeCustomerForPaymentGatewayFee
+
+if chargeCustomerForPaymentGatewayFee == true { totalReceive = originalAmount }
+if chargeCustomerForPaymentGatewayFee == false {totalReceive = originalAmount - paymentGatewayAdminFee}
+
+ditambahkan dibawah pajak berupa -4.500
+
+label di ganti jangan verifikasi, aktivasi garansi
+1 sn 1 aktivasi,
+daftar aktivasi berupa sn | produk | kode | qty | aksi |
+
+
+- Table beban sales_fee dynamic as a refrence to handling shipment, insurance fee, etc
+
+
+====================================================
+Bonus Cashback rule :
+- mengikat ke agen, jika lebih dari x hari tidak akan mendapat cashback
+- Dalam waktu x hari, jika transaksi mencapai nominal x rupiah maka mendapatkan cashcack Y dan berlaku kelipatan
+- Di tempelkan ke agen buat tab baru
+
+ITEM
+- pada "Input Serial Number (SN)" ditambahkan tab "SN terjual" tanpa form input (v)
+- Tambahkan status "Tampil di Agent" (v)
+
+Pada agent
+	- Menu katalog tidak perlu status ada SN / Tidak (v)
+	- Harga yang tampil disini adalah harga agent (v)
+	- Item pada agent tidak perlu dropdown "Paling relevan" (v)
+	- Item pada agent tidak perlu "QTY" pada tabel (v)
+	- Item pada agent perlu "Kode" pada tabel (v)
+	- "24/halaman" letakkan pada pagination (v)
+	- Filter pencarian di buat floating buttom right show as modal. 
+	  Show with icon search (v)
+
+	- Ada 1 menu untuk daftar tagihan berdasarkan invoice
+	- Tambahkan form bayar, bisa klik beberapa invoice maupun tunggal. Platform hanya PG / transfer manual
+	   * Bisa multiple payment nota (tapi tidak bisa parsial)
+	   * Tapi kalo cuman 1 nota, bisa pembayaran parsial (nyicil) / full
+   
+	SN
+		- pilihan tanggal "Tanggal Aktif" di SN, maksimal backdate 2 minggu dari hari ini dan tidak bisa future (future di blok) (v)
+		- Tanggal expired akan menghitung dari x hari pada item garansi (v)
+		- Informasi pada tabel data pembelian di tambahkan kurang bayar berapa pada tabel (v)
+
+	ORDER
+		- Ketika agent order, bisa menggunakan alamat "yang terdaftar" atau alamat lain (spt opencart) (v)
+		- Pilihan pembayaran "Pay Now" dan "Pay Later" berupa radio button. (v)
+		  Dan aktif jika ada kredit limit jika tidak ada langsung muncul platform pembayaran  (v)
+		- Ketika di klik order ada pilihan buat paylater / transfer manual / via payment gateway (v)
+		- Ada icon "cart" + qty seperti online shop di header (v)
+		- Ada button "Lanjut Belanja" pada atas tabel aksi (v)
+		- header tabel pelanggan dll di hapus pada menu cart / keranjang (v)
+		- Pilihan alamat :  (v)
+		  * Gunakan Alamat saat ini atau Alamat lain di bawah payment
+		- Tambahkan note (text) (v)
+		- Agent tidak perlu input pajak dan diskon (v)
+
+Pada Admin
+- Setelah assign SN, maka perlu klik "terima" pada agen lalu SN akan masuk ke stok agen "sales.is_receive='1'"
+  setelah update 1 ==> SN akan masuk ke stok agen. tambahkan opsi "Terima Semua" / "Terima satu per satu" (v)
+- tambahkan filter untk mencari SN (bisa tembak barcode, jangan langsung multiple) (v)
+- tambahkan page tersendiri untuk pelaporan data penjualan online (assign serial, tambah biaya, no resi, dan kurir)
+
+
+setelah assign, neclose hrs e g perlu
+biaya msh ada di agen
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+- Tambahkan form bayar, bisa klik beberapa invoice maupun tunggal. Platform hanya PG / transfer manual
+   * Bisa multiple payment nota (tapi tidak bisa parsial)
+   * Tapi kalo cuman 1 nota, bisa pembayaran parsial (nyicil) / full
+- pilihan tanggal "Tanggal Aktif" di SN, maksimal backdate 2 minggu dari hari ini dan tidak bisa future (future di blok)
+- Tanggal expired akan menghitung dari x hari pada item garansi
+- Pilihan pembayaran "Pay Now" dan "Pay Later" berupa radio button. 
+  Dan aktif jika ada kredit limit jika tidak ada langsung muncul platform pembayaran
+- Agent tidak perlu input pajak dan diskon
+- Harga yang tampil disini adalah harga agent
+- Ada icon "cart" + qty seperti online shop di header
+- Informasi pada tabel data pembelian di tambahkan kurang bayar berapa pada tabel
+- Ada button "Lanjut Belanja" pada atas tabel aksi
+- header tabel pelanggan dll di hapus pada menu cart / keranjang
+- Pilihan alamat : 
+  * Gunakan Alamat saat ini atau Alamat lain di bawah payment
+- Tambahkan note (text)
+
+Pada Admin
+- Setelah assign SN, maka perlu klik "terima" pada agen lalu SN akan masuk ke stok agen "sales.is_receive='1'"
+  setelah update 1 ==> SN akan masuk ke stok agen. tambahkan opsi "Terima Semua" / "Terima satu per satu"
+- tambahkan filter untk mencari SN (bisa tembak barcode, jangan langsung multiple)
+- tambahkan page tersendiri untuk pelaporan data penjualan online (assign serial, tambah biaya, no resi, dan kurir
