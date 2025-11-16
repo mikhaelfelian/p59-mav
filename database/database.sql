@@ -2,7 +2,7 @@
 -- Host:                         127.0.0.1
 -- Server version:               10.4.32-MariaDB - mariadb.org binary distribution
 -- Server OS:                    Win64
--- HeidiSQL Version:             12.8.0.6908
+-- HeidiSQL Version:             12.11.0.7065
 -- --------------------------------------------------------
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
@@ -14,7 +14,7 @@
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
--- Dumping structure for table db_p59_beebot.agent
+-- Dumping structure for table db_p59_mav.agent
 DROP TABLE IF EXISTS `agent`;
 CREATE TABLE IF NOT EXISTS `agent` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS `agent` (
   UNIQUE KEY `code` (`code`)
 ) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci COMMENT='Master data table for agents per province Indonesia';
 
--- Dumping data for table db_p59_beebot.agent: ~33 rows (approximately)
+-- Dumping data for table db_p59_mav.agent: ~33 rows (approximately)
 DELETE FROM `agent`;
 INSERT INTO `agent` (`id`, `code`, `name`, `email`, `phone`, `address`, `latitude`, `longitude`, `province_id`, `regency_id`, `district_id`, `village_id`, `postal_code`, `country`, `tax_number`, `credit_limit`, `payment_terms`, `is_active`, `created_at`, `updated_at`) VALUES
 	(1, 'AGT000001', 'Agen Aceh', 'agen.aceh@example.com', '0811000001', 'Jl. Banda Aceh No.1, Aceh', 5.55210000, 95.32380000, 1, NULL, NULL, NULL, '23111', 'Indonesia', NULL, 0.00, 30, 1, '2025-10-24 10:33:04', '2025-10-24 10:33:04'),
@@ -78,7 +78,7 @@ INSERT INTO `agent` (`id`, `code`, `name`, `email`, `phone`, `address`, `latitud
 	(32, 'AGT000032', 'Agen Maluku Utara', 'agen.malut@example.com', '0811000032', 'Jl. Ternate No.32, Maluku Utara', 0.78930000, 127.38900000, 32, NULL, NULL, NULL, '97711', 'Indonesia', NULL, 0.00, 30, 1, '2025-10-24 10:33:04', '2025-10-24 10:33:04'),
 	(33, 'AGT000033', 'Agen Papua', 'agen.papua@example.com', '0811000033', 'Jl. Jayapura No.33, Papua', -2.53370000, 140.71810000, 33, NULL, NULL, NULL, '99111', 'Indonesia', NULL, 0.00, 30, 1, '2025-10-24 10:33:04', '2025-10-24 10:33:04');
 
--- Dumping structure for table db_p59_beebot.agent_cashback_rule
+-- Dumping structure for table db_p59_mav.agent_cashback_rule
 DROP TABLE IF EXISTS `agent_cashback_rule`;
 CREATE TABLE IF NOT EXISTS `agent_cashback_rule` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -98,10 +98,10 @@ CREATE TABLE IF NOT EXISTS `agent_cashback_rule` (
   KEY `is_active` (`is_active`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
--- Dumping data for table db_p59_beebot.agent_cashback_rule: ~0 rows (approximately)
+-- Dumping data for table db_p59_mav.agent_cashback_rule: ~0 rows (approximately)
 DELETE FROM `agent_cashback_rule`;
 
--- Dumping structure for table db_p59_beebot.artikel
+-- Dumping structure for table db_p59_mav.artikel
 DROP TABLE IF EXISTS `artikel`;
 CREATE TABLE IF NOT EXISTS `artikel` (
   `id_artikel` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -122,13 +122,13 @@ CREATE TABLE IF NOT EXISTS `artikel` (
   PRIMARY KEY (`id_artikel`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC;
 
--- Dumping data for table db_p59_beebot.artikel: ~2 rows (approximately)
+-- Dumping data for table db_p59_mav.artikel: ~2 rows (approximately)
 DELETE FROM `artikel`;
 INSERT INTO `artikel` (`id_artikel`, `judul_artikel`, `konten`, `excerp`, `meta_description`, `slug`, `status`, `template_file`, `search_engine_index`, `id_file_picker`, `tgl_terbit`, `tgl_create`, `id_user_create`, `tgl_update`, `id_user_update`) VALUES
 	(1, 'About', '<p>Hi, sobat Jagowebdev.</p>\r\n<p>Pertama tama kami ingin mengucapkan terima kasih karena sobat sudah bersedia mampir di Jagowebdev. Pada kesempatan ini kami ingin memperkenalkan sedikit tentang Jagowebdev.</p>\r\n<p>Jagowebdev merupakan media untuk sharing seputar pemrograman web development. Bahasa pemrograman yang dibahas diantaranya: PHP, MySQL, HTML, CSS, dan Javascript. Selain itu dibahas juga mengenai beberapa framework yang populer digunakan seperti frameword codeigniter yang berbasis PHP, framework jQuery yang berbasis Javascript, dan framework bootstrap yang berbasis CSS.</p>\r\n<p>Jagowebdev juga telah merilis produk produk seperti e-book, cheatsheet, dan aplikasi. Ebook bertujuan untuk membehas suatu tema secara komprehensif, karena jika hanya membaca artikel maupun menonton video, pemahaman yang didapat tidak utuh dan runtut. Dengan belajar melalui ebook, diharapkan pembaca dapat memiliki pemahaman yang utuh dan runtut.</p>\r\n<p>Tentunya belajar tidak disertai praktik tidak akan efektif, untuk itu, kami di Jagowebdev ini juga mengembangkan beberapa aplikasi yang dapat Anda gunakan sebagai sarana belajar maupun sebagai pondasi untuk mengembangkan aplikasi, diantaranya PHP Admin Template.</p>\r\n<p>Dengan pengalaman dan jam terbang yang tinggi dibidang pemrograman, kami yakin dan percaya diri bahwa materi materi yang kami sajikan berkualitas bagus, karena kami tahu persis seluk beluk pemrograman mulai dari konsep hingga implementasi, baik pemrograman dengan coding backend seperti PHP dan database maupun front end seperti, maupun ilmu desain yaitu desain user interface (UI) dan user experience (UX) yang baik.</p>\r\n<p>Kami berharap semoga materi materi yang ada di jagowebdev ini dapat membawa manfaat bagi kita semua.</p>\r\n<p>Salam,</p>\r\n<p>&nbsp;</p>\r\n<p>Agus Prawoto Hadi</p>', 'Jagowebdev merupakan media sharing seputar pemrograman web development, mulai dari backend, front end, hingga desain User Interface dan User Experience', '[excerp]', 'about', 'published', 'default.php', 'Y', 58, '2021-05-30 13:26:59', '0000-00-00 00:00:00', 8, '2022-06-19 12:42:44', 1),
 	(2, 'Tanpa Loginssss', '<h3>Demo Module Tanpa Login</h3>\r\n<p>Halaman ini merupakan contoh implementasi module tanpa loginxx</p>\r\n<p>Umumnya ketika mengembangkan aplikasi Admin Template, halaman halaman yang ada pada apliksi tersebut di proteksi dengan login, dimana hanya user yang sudah login saja yang dapat mengakses halaman tersebut.</p>\r\n<p>Pada kasus tertentu, kita membutuhkan halaman yang dapat diakses oleh semua orang, seperti misal pada aplikasi antrian berbasis web yang kami kembangkan sebelumnya. Pada aplikasi tersebut, terdapat halaman layar monitor yang menampilkan antrian terakhir sehingga halaman tersebut harus on terus, jika halaman tersebut diproteksi dengan login, maka ketika halaman tersebut idle beberapa waktu, maka session akan berakhir dan halaman menjadi tidak bisa diakses.</p>\r\n<p>Hal penting yang perlu diperhatikan bahwa fitur ini hanya untuk kasus khusus saja (satu atau dua halaman) dan tidak ditujukan untuk pengembangan frontend dimana admin template nya sebagai backend, karena akan mengakibatkan aplikasi menjadi rumit dan sulit terkontrol. Untuk pengembangan frontend maka harus dikembangkan tersendiri, terpisah dari backend.</p>\r\n<p><img title="Tower Bridge London" src="../public/files/uploads/Tower Bridge London.jpg" alt="Tower Bridge London" width="1280" height="720" /></p>\r\n<p>Untuk kembali ke aplikasi Admin Template, silakan klik tautan berikut: <a href="{{BASE_URL}}">{{BASE_URL}}</a></p>\r\n<p>Salam,</p>\r\n<p>&nbsp;</p>\r\n<p>Tim Jagowebdev</p>', 'Pada kasus tertentu kita memerlukan halaman yang dapat diakses oleh semua orang, Admin Template', 'Implementasi module pada Aplikasi Admin Template tanpa perlu login ke sistem', 'tanpalogin', 'published', '', 'N', 53, '2022-06-19 12:00:59', '2022-06-19 19:44:04', 1, '2025-10-21 19:42:34', 1);
 
--- Dumping structure for table db_p59_beebot.artikel_author
+-- Dumping structure for table db_p59_mav.artikel_author
 DROP TABLE IF EXISTS `artikel_author`;
 CREATE TABLE IF NOT EXISTS `artikel_author` (
   `id_artikel` int(10) unsigned NOT NULL,
@@ -136,7 +136,7 @@ CREATE TABLE IF NOT EXISTS `artikel_author` (
   PRIMARY KEY (`id_artikel`,`id_author`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC;
 
--- Dumping data for table db_p59_beebot.artikel_author: ~5 rows (approximately)
+-- Dumping data for table db_p59_mav.artikel_author: ~5 rows (approximately)
 DELETE FROM `artikel_author`;
 INSERT INTO `artikel_author` (`id_artikel`, `id_author`) VALUES
 	(1, 1),
@@ -145,7 +145,7 @@ INSERT INTO `artikel_author` (`id_artikel`, `id_author`) VALUES
 	(4, 1),
 	(4, 3);
 
--- Dumping structure for table db_p59_beebot.artikel_kategori
+-- Dumping structure for table db_p59_mav.artikel_kategori
 DROP TABLE IF EXISTS `artikel_kategori`;
 CREATE TABLE IF NOT EXISTS `artikel_kategori` (
   `id_artikel` int(10) unsigned NOT NULL,
@@ -153,14 +153,14 @@ CREATE TABLE IF NOT EXISTS `artikel_kategori` (
   PRIMARY KEY (`id_artikel`,`id_kategori`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC;
 
--- Dumping data for table db_p59_beebot.artikel_kategori: ~3 rows (approximately)
+-- Dumping data for table db_p59_mav.artikel_kategori: ~3 rows (approximately)
 DELETE FROM `artikel_kategori`;
 INSERT INTO `artikel_kategori` (`id_artikel`, `id_kategori`) VALUES
 	(1, 3),
 	(2, 3),
 	(4, 3);
 
--- Dumping structure for table db_p59_beebot.customer
+-- Dumping structure for table db_p59_mav.customer
 DROP TABLE IF EXISTS `customer`;
 CREATE TABLE IF NOT EXISTS `customer` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -191,14 +191,50 @@ CREATE TABLE IF NOT EXISTS `customer` (
   KEY `regency_id` (`regency_id`),
   KEY `district_id` (`district_id`),
   KEY `village_id` (`village_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci COMMENT='Master data table for customers with contact and location information';
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci COMMENT='Master data table for customers with contact and location information';
 
--- Dumping data for table db_p59_beebot.customer: ~0 rows (approximately)
+-- Dumping data for table db_p59_mav.customer: ~9 rows (approximately)
 DELETE FROM `customer`;
 INSERT INTO `customer` (`id`, `code`, `name`, `plat_code`, `plat_number`, `plat_last`, `email`, `phone`, `address`, `province_id`, `regency_id`, `district_id`, `village_id`, `postal_code`, `country`, `tax_number`, `status`, `created_at`, `updated_at`) VALUES
-	(1, NULL, 'Mikhael Felian', 'B', '4575', 'PBP', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Indonesia', NULL, 'active', '2025-11-04 21:52:48', '2025-11-04 21:52:48');
+	(1, NULL, 'Mikhael Felian', 'B', '4575', 'PBP', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Indonesia', NULL, 'active', '2025-11-04 21:52:48', '2025-11-04 21:52:48'),
+	(2, NULL, 'Irfan Rizky TES', 'b', '1210', 'BPB', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Indonesia', NULL, 'active', '2025-11-09 19:15:03', '2025-11-09 19:15:03'),
+	(3, NULL, 'Hari Irfan Susatya', 'B', '1210', 'BSQ', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Indonesia', NULL, 'active', '2025-11-09 20:20:27', '2025-11-09 20:20:27'),
+	(4, NULL, 'Mikhael', 'B', '1210', 'BSD', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Indonesia', NULL, 'active', '2025-11-09 20:55:20', '2025-11-09 20:55:20'),
+	(5, NULL, 'Irfan Rizky', 'B', '1211', 'AIR', '', '', NULL, NULL, NULL, NULL, NULL, NULL, 'Indonesia', NULL, 'active', '2025-11-09 22:30:53', '2025-11-09 22:30:53'),
+	(6, NULL, 'Hari Irfan Susatya', 'B', '1145', 'PDJ', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Indonesia', NULL, 'active', '2025-11-09 22:35:02', '2025-11-09 22:35:02'),
+	(7, NULL, 'Maulana', 'H', '1292', 'ZZH', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Indonesia', NULL, 'active', '2025-11-09 22:58:07', '2025-11-09 22:58:07'),
+	(8, NULL, 'Arhan Satria U', 'B', '1266', 'HPH', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Indonesia', NULL, 'active', '2025-11-10 08:36:57', '2025-11-10 08:36:57'),
+	(9, NULL, 'Hotman Paris Hutapea', 'B', '666', 'HPH', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Indonesia', NULL, 'active', '2025-11-10 08:53:53', '2025-11-10 08:53:53'),
+	(10, NULL, 'Yadi', 'E', '1281', 'AUE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Indonesia', NULL, 'active', '2025-11-11 09:34:20', '2025-11-11 09:34:20'),
+	(11, NULL, 'Abdul Moein', 'B', '1098', 'PBP', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Indonesia', NULL, 'active', '2025-11-11 18:32:59', '2025-11-11 18:32:59'),
+	(12, NULL, 'UMUM', 'B', '1200', 'SDR', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Indonesia', NULL, 'active', '2025-11-14 23:17:23', '2025-11-14 23:17:23'),
+	(13, NULL, 'Roy Suryo', 'B', '1255', 'PDJ', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Indonesia', NULL, 'active', '2025-11-15 08:23:30', '2025-11-15 08:23:30');
 
--- Dumping structure for table db_p59_beebot.identitas
+-- Dumping structure for table db_p59_mav.fee_type
+DROP TABLE IF EXISTS `fee_type`;
+CREATE TABLE IF NOT EXISTS `fee_type` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `code` varchar(50) NOT NULL COMMENT 'Unique code, e.g., SHIPMENT, INSURANCE, HANDLING',
+  `name` varchar(160) NOT NULL COMMENT 'Display name, e.g., Ongkos Kirim, Asuransi',
+  `description` text DEFAULT NULL COMMENT 'Optional description',
+  `status` enum('0','1') NOT NULL DEFAULT '1' COMMENT '0=inactive, 1=active',
+  `created_at` datetime DEFAULT current_timestamp(),
+  `updated_at` datetime DEFAULT NULL ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `code` (`code`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci COMMENT='Master table for fee types (shipment, insurance, handling, etc.)';
+
+-- Dumping data for table db_p59_mav.fee_type: ~5 rows (approximately)
+DELETE FROM `fee_type`;
+INSERT INTO `fee_type` (`id`, `code`, `name`, `description`, `status`, `created_at`, `updated_at`) VALUES
+	(1, 'SHIPMENT', 'Ongkos Kirim', 'Biaya pengiriman barang', '1', '2025-11-12 15:46:16', NULL),
+	(2, 'INSURANCE', 'Asuransi', 'Biaya asuransi pengiriman', '0', '2025-11-12 15:46:16', '2025-11-12 22:50:01'),
+	(3, 'HANDLING', 'Biaya Handling', 'Biaya penanganan barang', '0', '2025-11-12 15:46:16', '2025-11-12 22:49:51'),
+	(4, 'PACKAGING', 'Biaya Kemasan', 'Biaya pengemasan barang', '0', '2025-11-12 15:46:16', '2025-11-12 22:49:54'),
+	(5, 'OTHER', 'Biaya Lainnya', 'Biaya tambahan lainnya', '1', '2025-11-12 15:46:16', NULL);
+
+-- Dumping structure for table db_p59_mav.identitas
 DROP TABLE IF EXISTS `identitas`;
 CREATE TABLE IF NOT EXISTS `identitas` (
   `nama` varchar(255) NOT NULL,
@@ -210,12 +246,12 @@ CREATE TABLE IF NOT EXISTS `identitas` (
   PRIMARY KEY (`nama`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dumping data for table db_p59_beebot.identitas: ~1 rows (approximately)
+-- Dumping data for table db_p59_mav.identitas: ~1 rows (approximately)
 DELETE FROM `identitas`;
 INSERT INTO `identitas` (`nama`, `alamat`, `id_wilayah_kelurahan`, `email`, `no_telp`, `url_website`) VALUES
 	('Multi Automobile Vision', 'Sekaran, Gunung Pati, Kota Semarang', 39824, 'bpk@mail.unnes.ac.id', '085876666696', 'https://jagowebdev.com');
 
--- Dumping structure for table db_p59_beebot.item
+-- Dumping structure for table db_p59_mav.item
 DROP TABLE IF EXISTS `item`;
 CREATE TABLE IF NOT EXISTS `item` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -234,118 +270,119 @@ CREATE TABLE IF NOT EXISTS `item` (
   `agent_price` decimal(10,2) NOT NULL DEFAULT 0.00,
   `is_stockable` enum('0','1') NOT NULL DEFAULT '1',
   `is_catalog` enum('0','1') NOT NULL DEFAULT '1',
+  `is_agen` enum('0','1') NOT NULL DEFAULT '1',
   `status` enum('0','1') NOT NULL DEFAULT '1',
   `product_rules` text DEFAULT NULL,
   `warranty` int(11) unsigned DEFAULT NULL COMMENT 'Warranty period in months',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=102 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
--- Dumping data for table db_p59_beebot.item: ~101 rows (approximately)
+-- Dumping data for table db_p59_mav.item: ~101 rows (approximately)
 DELETE FROM `item`;
-INSERT INTO `item` (`id`, `user_id`, `category_id`, `brand_id`, `created_at`, `updated_at`, `sku`, `name`, `slug`, `description`, `short_description`, `image`, `price`, `agent_price`, `is_stockable`, `is_catalog`, `status`, `product_rules`, `warranty`) VALUES
-	(1, 1, 1, 1, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00001', 'ASUS Zenbook 14', 'asus-zenbook-14', 'Laptop ringan dengan performa tinggi.', 'Ultrabook 14 inci.', '', 14500.00, 0.00, '1', '0', '1', NULL, NULL),
-	(2, 1, 2, 7, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00002', 'Samsung Galaxy S24', 'samsung-galaxy-s24', 'Smartphone flagship terbaru dari Samsung.', 'Layar AMOLED 120Hz.', '', 12500.00, 0.00, '1', '0', '1', NULL, NULL),
-	(3, 1, 1, 2, '2025-10-24 10:29:29', '2025-11-04 21:25:33', 'SKU00003', 'Acer Aspire 7', 'acer-aspire-7', '<p>Laptop gaming entry level.</p>', 'Ryzen 5, GTX1650.', '1761742423_0357935c3cd0cb12990f.png', 15000.00, 8000.00, '1', '1', '1', '{"min_order":"","max_order":"","unit":"","backorder":"0","notes":""}', 36),
-	(4, 1, 2, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00004', 'Apple iPhone 15', 'apple-iphone-15', 'iPhone generasi terbaru dengan chip A17.', '128GB Storage.', '', 22000.00, 0.00, '1', '1', '1', NULL, NULL),
-	(5, 1, 2, 8, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00005', 'Xiaomi 14T Pro', 'xiaomi-14t-pro', 'Smartphone flagship dengan kamera Leica.', 'Fast charging 120W.', '', 9500.00, 0.00, '1', '1', '1', NULL, NULL),
-	(6, 1, 1, 3, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00006', 'Lenovo IdeaPad 5', 'lenovo-ideapad-5', 'Laptop multimedia dengan layar IPS.', 'Ryzen 7, 16GB RAM.', '', 11200.00, 0.00, '1', '1', '1', NULL, NULL),
-	(7, 1, 2, 9, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00007', 'Oppo Find X6', 'oppo-find-x6', 'Smartphone kamera superior.', 'Flagship Snapdragon 8 Gen 2.', '', 9800.00, 0.00, '1', '1', '1', NULL, NULL),
-	(8, 1, 2, 10, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00008', 'Realme GT Neo 6', 'realme-gt-neo-6', 'Performa tinggi untuk gaming.', '240W charging.', '', 8700.00, 0.00, '1', '1', '1', NULL, NULL),
-	(9, 1, 1, 4, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00009', 'HP Pavilion 15', 'hp-pavilion-15', 'Laptop all-rounder untuk kerja dan kuliah.', 'Intel i5 Gen13.', '', 9700.00, 0.00, '1', '1', '1', NULL, NULL),
-	(10, 1, 1, 5, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00010', 'Dell Inspiron 14', 'dell-inspiron-14', 'Laptop produktivitas modern.', 'SSD 512GB.', '', 9900.00, 0.00, '1', '1', '1', NULL, NULL),
-	(11, 1, 1, 1, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00012', 'Produk Elektronik 1', 'produk-elektronik-1', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 18321.54, 0.00, '1', '1', '1', NULL, NULL),
-	(12, 1, 2, 10, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00013', 'Produk Elektronik 2', 'produk-elektronik-2', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 15252.20, 0.00, '1', '1', '1', NULL, NULL),
-	(13, 1, 4, 2, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00014', 'Produk Elektronik 3', 'produk-elektronik-3', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 15494.12, 0.00, '1', '1', '1', NULL, NULL),
-	(14, 1, 1, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00015', 'Produk Elektronik 4', 'produk-elektronik-4', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 12720.03, 0.00, '1', '1', '1', NULL, NULL),
-	(15, 1, 5, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00016', 'Produk Elektronik 5', 'produk-elektronik-5', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 9261.33, 0.00, '1', '1', '1', NULL, NULL),
-	(16, 1, 4, 1, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00017', 'Produk Elektronik 6', 'produk-elektronik-6', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 17465.53, 0.00, '1', '1', '1', NULL, NULL),
-	(17, 1, 1, 8, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00018', 'Produk Elektronik 7', 'produk-elektronik-7', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 17186.92, 0.00, '1', '1', '1', NULL, NULL),
-	(18, 1, 4, 10, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00019', 'Produk Elektronik 8', 'produk-elektronik-8', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 13384.19, 0.00, '1', '1', '1', NULL, NULL),
-	(19, 1, 1, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00020', 'Produk Elektronik 9', 'produk-elektronik-9', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 16688.64, 0.00, '1', '1', '1', NULL, NULL),
-	(20, 1, 1, 4, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00021', 'Produk Elektronik 10', 'produk-elektronik-10', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 8718.21, 0.00, '1', '1', '1', NULL, NULL),
-	(21, 1, 2, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00022', 'Produk Elektronik 11', 'produk-elektronik-11', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 16863.36, 0.00, '1', '1', '1', NULL, NULL),
-	(22, 1, 3, 8, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00023', 'Produk Elektronik 12', 'produk-elektronik-12', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 13677.41, 0.00, '1', '1', '1', NULL, NULL),
-	(23, 1, 3, 2, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00024', 'Produk Elektronik 13', 'produk-elektronik-13', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 18882.01, 0.00, '1', '1', '1', NULL, NULL),
-	(24, 1, 2, 5, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00025', 'Produk Elektronik 14', 'produk-elektronik-14', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 11270.60, 0.00, '1', '1', '1', NULL, NULL),
-	(25, 1, 5, 8, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00026', 'Produk Elektronik 15', 'produk-elektronik-15', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 11833.80, 0.00, '1', '1', '1', NULL, NULL),
-	(26, 1, 5, 5, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00027', 'Produk Elektronik 16', 'produk-elektronik-16', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 7398.18, 0.00, '1', '1', '1', NULL, NULL),
-	(27, 1, 3, 5, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00028', 'Produk Elektronik 17', 'produk-elektronik-17', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 12341.50, 0.00, '1', '1', '1', NULL, NULL),
-	(28, 1, 1, 1, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00029', 'Produk Elektronik 18', 'produk-elektronik-18', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 17569.02, 0.00, '1', '1', '1', NULL, NULL),
-	(29, 1, 1, 1, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00030', 'Produk Elektronik 19', 'produk-elektronik-19', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 17300.93, 0.00, '1', '1', '1', NULL, NULL),
-	(30, 1, 1, 7, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00031', 'Produk Elektronik 20', 'produk-elektronik-20', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 19711.12, 0.00, '1', '1', '1', NULL, NULL),
-	(31, 1, 1, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00032', 'Produk Elektronik 21', 'produk-elektronik-21', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 9764.83, 0.00, '1', '1', '1', NULL, NULL),
-	(32, 1, 1, 3, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00033', 'Produk Elektronik 22', 'produk-elektronik-22', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 18986.19, 0.00, '1', '1', '1', NULL, NULL),
-	(33, 1, 1, 5, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00034', 'Produk Elektronik 23', 'produk-elektronik-23', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 5244.82, 0.00, '1', '1', '1', NULL, NULL),
-	(34, 1, 4, 9, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00035', 'Produk Elektronik 24', 'produk-elektronik-24', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 6958.61, 0.00, '1', '1', '1', NULL, NULL),
-	(35, 1, 5, 4, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00036', 'Produk Elektronik 25', 'produk-elektronik-25', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 5078.84, 0.00, '1', '1', '1', NULL, NULL),
-	(36, 1, 5, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00037', 'Produk Elektronik 26', 'produk-elektronik-26', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 18424.82, 0.00, '1', '1', '1', NULL, NULL),
-	(37, 1, 5, 9, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00038', 'Produk Elektronik 27', 'produk-elektronik-27', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 11856.76, 0.00, '1', '1', '1', NULL, NULL),
-	(38, 1, 4, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00039', 'Produk Elektronik 28', 'produk-elektronik-28', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 11070.44, 0.00, '1', '1', '1', NULL, NULL),
-	(39, 1, 2, 7, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00040', 'Produk Elektronik 29', 'produk-elektronik-29', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 5503.12, 0.00, '1', '1', '1', NULL, NULL),
-	(40, 1, 2, 4, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00041', 'Produk Elektronik 30', 'produk-elektronik-30', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 16347.72, 0.00, '1', '1', '1', NULL, NULL),
-	(41, 1, 5, 9, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00042', 'Produk Elektronik 31', 'produk-elektronik-31', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 14233.49, 0.00, '1', '1', '1', NULL, NULL),
-	(42, 1, 4, 4, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00043', 'Produk Elektronik 32', 'produk-elektronik-32', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 17290.38, 0.00, '1', '1', '1', NULL, NULL),
-	(43, 1, 1, 9, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00044', 'Produk Elektronik 33', 'produk-elektronik-33', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 18926.23, 0.00, '1', '1', '1', NULL, NULL),
-	(44, 1, 1, 2, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00045', 'Produk Elektronik 34', 'produk-elektronik-34', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 7258.40, 0.00, '1', '1', '1', NULL, NULL),
-	(45, 1, 2, 2, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00046', 'Produk Elektronik 35', 'produk-elektronik-35', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 19663.87, 0.00, '1', '1', '1', NULL, NULL),
-	(46, 1, 2, 7, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00047', 'Produk Elektronik 36', 'produk-elektronik-36', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 7132.76, 0.00, '1', '1', '1', NULL, NULL),
-	(47, 1, 5, 10, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00048', 'Produk Elektronik 37', 'produk-elektronik-37', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 19696.04, 0.00, '1', '1', '1', NULL, NULL),
-	(48, 1, 1, 8, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00049', 'Produk Elektronik 38', 'produk-elektronik-38', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 13099.09, 0.00, '1', '1', '1', NULL, NULL),
-	(49, 1, 2, 10, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00050', 'Produk Elektronik 39', 'produk-elektronik-39', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 16134.41, 0.00, '1', '1', '1', NULL, NULL),
-	(50, 1, 5, 4, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00051', 'Produk Elektronik 40', 'produk-elektronik-40', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 17077.66, 0.00, '1', '1', '1', NULL, NULL),
-	(51, 1, 1, 2, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00052', 'Produk Elektronik 41', 'produk-elektronik-41', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 10583.61, 0.00, '1', '1', '1', NULL, NULL),
-	(52, 1, 3, 1, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00053', 'Produk Elektronik 42', 'produk-elektronik-42', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 5591.94, 0.00, '1', '1', '1', NULL, NULL),
-	(53, 1, 5, 9, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00054', 'Produk Elektronik 43', 'produk-elektronik-43', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 6597.70, 0.00, '1', '1', '1', NULL, NULL),
-	(54, 1, 1, 2, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00055', 'Produk Elektronik 44', 'produk-elektronik-44', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 11833.99, 0.00, '1', '1', '1', NULL, NULL),
-	(55, 1, 5, 9, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00056', 'Produk Elektronik 45', 'produk-elektronik-45', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 13581.11, 0.00, '1', '1', '1', NULL, NULL),
-	(56, 1, 3, 4, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00057', 'Produk Elektronik 46', 'produk-elektronik-46', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 11971.23, 0.00, '1', '1', '1', NULL, NULL),
-	(57, 1, 2, 2, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00058', 'Produk Elektronik 47', 'produk-elektronik-47', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 16008.27, 0.00, '1', '1', '1', NULL, NULL),
-	(58, 1, 2, 3, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00059', 'Produk Elektronik 48', 'produk-elektronik-48', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 7438.13, 0.00, '1', '1', '1', NULL, NULL),
-	(59, 1, 2, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00060', 'Produk Elektronik 49', 'produk-elektronik-49', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 7827.07, 0.00, '1', '1', '1', NULL, NULL),
-	(60, 1, 2, 7, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00061', 'Produk Elektronik 50', 'produk-elektronik-50', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 15336.18, 0.00, '1', '1', '1', NULL, NULL),
-	(61, 1, 2, 9, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00062', 'Produk Elektronik 51', 'produk-elektronik-51', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 5563.50, 0.00, '1', '1', '1', NULL, NULL),
-	(62, 1, 4, 3, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00063', 'Produk Elektronik 52', 'produk-elektronik-52', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 11003.44, 0.00, '1', '1', '1', NULL, NULL),
-	(63, 1, 1, 5, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00064', 'Produk Elektronik 53', 'produk-elektronik-53', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 5060.68, 0.00, '1', '1', '1', NULL, NULL),
-	(64, 1, 3, 9, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00065', 'Produk Elektronik 54', 'produk-elektronik-54', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 12761.77, 0.00, '1', '1', '1', NULL, NULL),
-	(65, 1, 1, 7, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00066', 'Produk Elektronik 55', 'produk-elektronik-55', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 9303.39, 0.00, '1', '1', '1', NULL, NULL),
-	(66, 1, 2, 1, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00067', 'Produk Elektronik 56', 'produk-elektronik-56', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 19703.20, 0.00, '1', '1', '1', NULL, NULL),
-	(67, 1, 5, 3, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00068', 'Produk Elektronik 57', 'produk-elektronik-57', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 15064.90, 0.00, '1', '1', '1', NULL, NULL),
-	(68, 1, 4, 3, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00069', 'Produk Elektronik 58', 'produk-elektronik-58', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 8205.90, 0.00, '1', '1', '1', NULL, NULL),
-	(69, 1, 2, 3, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00070', 'Produk Elektronik 59', 'produk-elektronik-59', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 19719.79, 0.00, '1', '1', '1', NULL, NULL),
-	(70, 1, 2, 3, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00071', 'Produk Elektronik 60', 'produk-elektronik-60', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 16023.65, 0.00, '1', '1', '1', NULL, NULL),
-	(71, 1, 4, 8, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00072', 'Produk Elektronik 61', 'produk-elektronik-61', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 9458.07, 0.00, '1', '1', '1', NULL, NULL),
-	(72, 1, 2, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00073', 'Produk Elektronik 62', 'produk-elektronik-62', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 19006.60, 0.00, '1', '1', '1', NULL, NULL),
-	(73, 1, 5, 2, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00074', 'Produk Elektronik 63', 'produk-elektronik-63', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 15159.91, 0.00, '1', '1', '1', NULL, NULL),
-	(74, 1, 1, 10, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00075', 'Produk Elektronik 64', 'produk-elektronik-64', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 19614.90, 0.00, '1', '1', '1', NULL, NULL),
-	(75, 1, 5, 5, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00076', 'Produk Elektronik 65', 'produk-elektronik-65', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 14874.64, 0.00, '1', '1', '1', NULL, NULL),
-	(76, 1, 5, 7, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00077', 'Produk Elektronik 66', 'produk-elektronik-66', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 10369.07, 0.00, '1', '1', '1', NULL, NULL),
-	(77, 1, 5, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00078', 'Produk Elektronik 67', 'produk-elektronik-67', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 17910.37, 0.00, '1', '1', '1', NULL, NULL),
-	(78, 1, 4, 1, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00079', 'Produk Elektronik 68', 'produk-elektronik-68', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 7864.86, 0.00, '1', '1', '1', NULL, NULL),
-	(79, 1, 4, 1, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00080', 'Produk Elektronik 69', 'produk-elektronik-69', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 5608.52, 0.00, '1', '1', '1', NULL, NULL),
-	(80, 1, 1, 3, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00081', 'Produk Elektronik 70', 'produk-elektronik-70', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 6330.54, 0.00, '1', '1', '1', NULL, NULL),
-	(81, 1, 4, 10, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00082', 'Produk Elektronik 71', 'produk-elektronik-71', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 5012.95, 0.00, '1', '1', '1', NULL, NULL),
-	(82, 1, 1, 2, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00083', 'Produk Elektronik 72', 'produk-elektronik-72', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 15111.21, 0.00, '1', '1', '1', NULL, NULL),
-	(83, 1, 5, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00084', 'Produk Elektronik 73', 'produk-elektronik-73', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 18547.67, 0.00, '1', '1', '1', NULL, NULL),
-	(84, 1, 5, 10, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00085', 'Produk Elektronik 74', 'produk-elektronik-74', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 5810.92, 0.00, '1', '1', '1', NULL, NULL),
-	(85, 1, 2, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00086', 'Produk Elektronik 75', 'produk-elektronik-75', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 19086.59, 0.00, '1', '1', '1', NULL, NULL),
-	(86, 1, 5, 7, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00087', 'Produk Elektronik 76', 'produk-elektronik-76', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 15032.35, 0.00, '1', '1', '1', NULL, NULL),
-	(87, 1, 2, 7, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00088', 'Produk Elektronik 77', 'produk-elektronik-77', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 7250.08, 0.00, '1', '1', '1', NULL, NULL),
-	(88, 1, 5, 10, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00089', 'Produk Elektronik 78', 'produk-elektronik-78', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 19133.02, 0.00, '1', '1', '1', NULL, NULL),
-	(89, 1, 5, 1, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00090', 'Produk Elektronik 79', 'produk-elektronik-79', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 9889.47, 0.00, '1', '1', '1', NULL, NULL),
-	(90, 1, 3, 5, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00091', 'Produk Elektronik 80', 'produk-elektronik-80', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 14565.89, 0.00, '1', '1', '1', NULL, NULL),
-	(91, 1, 5, 9, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00092', 'Produk Elektronik 81', 'produk-elektronik-81', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 8255.32, 0.00, '1', '1', '1', NULL, NULL),
-	(92, 1, 4, 7, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00093', 'Produk Elektronik 82', 'produk-elektronik-82', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 7146.38, 0.00, '1', '1', '1', NULL, NULL),
-	(93, 1, 5, 9, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00094', 'Produk Elektronik 83', 'produk-elektronik-83', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 13816.59, 0.00, '1', '1', '1', NULL, NULL),
-	(94, 1, 3, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00095', 'Produk Elektronik 84', 'produk-elektronik-84', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 7375.43, 0.00, '1', '1', '1', NULL, NULL),
-	(95, 1, 2, 10, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00096', 'Produk Elektronik 85', 'produk-elektronik-85', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 16986.77, 0.00, '1', '1', '1', NULL, NULL),
-	(96, 1, 2, 7, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00097', 'Produk Elektronik 86', 'produk-elektronik-86', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 14804.72, 0.00, '1', '1', '1', NULL, NULL),
-	(97, 1, 2, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00098', 'Produk Elektronik 87', 'produk-elektronik-87', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 15735.18, 0.00, '1', '1', '1', NULL, NULL),
-	(98, 1, 1, 10, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00099', 'Produk Elektronik 88', 'produk-elektronik-88', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 14086.99, 0.00, '1', '1', '1', NULL, NULL),
-	(99, 1, 2, 4, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00100', 'Produk Elektronik 89', 'produk-elektronik-89', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 7109.53, 0.00, '1', '1', '1', NULL, NULL),
-	(100, 1, 3, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00101', 'Produk Elektronik 90', 'produk-elektronik-90', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 18414.00, 0.00, '1', '1', '1', NULL, NULL),
-	(101, 1, 1, 4, '2025-11-01 13:11:05', '2025-11-01 13:12:27', '000001', 'HP Z210 Tower Server', 'hp-z210-tower-server', '<p data-start="120" data-end="169">???? <strong data-start="123" data-end="169">HP Z210 Tower Server &ndash; Spesifikasi Singkat</strong></p>\r\n<p>&nbsp;</p>\r\n<ul data-start="171" data-end="517">\r\n<li data-start="171" data-end="241">\r\n<p data-start="173" data-end="241"><strong data-start="173" data-end="186">Prosesor:</strong> Intel&reg; Xeon&reg; E3-1225 (atau varian lain seri Xeon E3)</p>\r\n</li>\r\n<li data-start="242" data-end="293">\r\n<p data-start="244" data-end="293"><strong data-start="244" data-end="255">Memori:</strong> DDR3 hingga 32GB ECC / 16GB non-ECC</p>\r\n</li>\r\n<li data-start="294" data-end="346">\r\n<p data-start="296" data-end="346"><strong data-start="296" data-end="312">Penyimpanan:</strong> HDD/SSD SATA, dukungan RAID 0/1</p>\r\n</li>\r\n<li data-start="347" data-end="413">\r\n<p data-start="349" data-end="413"><strong data-start="349" data-end="360">Grafis:</strong> Intel&reg; HD Graphics P3000 / NVIDIA&reg; Quadro&reg; NVS 295</p>\r\n</li>\r\n<li data-start="414" data-end="462">\r\n<p data-start="416" data-end="462"><strong data-start="416" data-end="425">Daya:</strong> PSU 400W, PFC aktif, efisiensi 90%</p>\r\n</li>\r\n<li data-start="463" data-end="517">\r\n<p data-start="465" data-end="517"><strong data-start="465" data-end="478">Jaringan:</strong> Intel&reg; 82579LM PCIe Gigabit Ethernet</p>\r\n</li>\r\n</ul>', 'ffff', '', 17000000.00, 14500000.00, '1', '1', '1', NULL, NULL);
+INSERT INTO `item` (`id`, `user_id`, `category_id`, `brand_id`, `created_at`, `updated_at`, `sku`, `name`, `slug`, `description`, `short_description`, `image`, `price`, `agent_price`, `is_stockable`, `is_catalog`, `is_agen`, `status`, `product_rules`, `warranty`) VALUES
+	(1, 1, 1, 1, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00001', 'ASUS Zenbook 14', 'asus-zenbook-14', 'Laptop ringan dengan performa tinggi.', 'Ultrabook 14 inci.', '', 14500.00, 0.00, '1', '0', '1', '1', NULL, NULL),
+	(2, 1, 2, 7, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00002', 'Samsung Galaxy S24', 'samsung-galaxy-s24', 'Smartphone flagship terbaru dari Samsung.', 'Layar AMOLED 120Hz.', '', 12500.00, 0.00, '1', '0', '1', '1', NULL, NULL),
+	(3, 1, 1, 2, '2025-10-24 10:29:29', '2025-11-15 17:53:37', 'SKU00003', 'Acer Aspire 7', 'acer-aspire-7', '<p>Laptop gaming entry level.</p>', 'Ryzen 5, GTX1650.', '1763131959_1f2d6c279deb91d4a2d9.jpg', 15000.00, 8000.00, '1', '1', '1', '1', '{"min_order":"","max_order":"","unit":"","backorder":"0","notes":""}', 36),
+	(4, 1, 2, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00004', 'Apple iPhone 15', 'apple-iphone-15', 'iPhone generasi terbaru dengan chip A17.', '128GB Storage.', '', 22000.00, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(5, 1, 2, 8, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00005', 'Xiaomi 14T Pro', 'xiaomi-14t-pro', 'Smartphone flagship dengan kamera Leica.', 'Fast charging 120W.', '', 9500.00, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(6, 1, 1, 3, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00006', 'Lenovo IdeaPad 5', 'lenovo-ideapad-5', 'Laptop multimedia dengan layar IPS.', 'Ryzen 7, 16GB RAM.', '', 11200.00, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(7, 1, 2, 9, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00007', 'Oppo Find X6', 'oppo-find-x6', 'Smartphone kamera superior.', 'Flagship Snapdragon 8 Gen 2.', '', 9800.00, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(8, 1, 2, 10, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00008', 'Realme GT Neo 6', 'realme-gt-neo-6', 'Performa tinggi untuk gaming.', '240W charging.', '', 8700.00, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(9, 1, 1, 4, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00009', 'HP Pavilion 15', 'hp-pavilion-15', 'Laptop all-rounder untuk kerja dan kuliah.', 'Intel i5 Gen13.', '', 9700.00, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(10, 1, 1, 5, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00010', 'Dell Inspiron 14', 'dell-inspiron-14', 'Laptop produktivitas modern.', 'SSD 512GB.', '', 9900.00, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(11, 1, 1, 1, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00012', 'Produk Elektronik 1', 'produk-elektronik-1', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 18321.54, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(12, 1, 2, 10, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00013', 'Produk Elektronik 2', 'produk-elektronik-2', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 15252.20, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(13, 1, 4, 2, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00014', 'Produk Elektronik 3', 'produk-elektronik-3', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 15494.12, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(14, 1, 1, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00015', 'Produk Elektronik 4', 'produk-elektronik-4', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 12720.03, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(15, 1, 5, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00016', 'Produk Elektronik 5', 'produk-elektronik-5', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 9261.33, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(16, 1, 4, 1, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00017', 'Produk Elektronik 6', 'produk-elektronik-6', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 17465.53, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(17, 1, 1, 8, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00018', 'Produk Elektronik 7', 'produk-elektronik-7', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 17186.92, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(18, 1, 4, 10, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00019', 'Produk Elektronik 8', 'produk-elektronik-8', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 13384.19, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(19, 1, 1, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00020', 'Produk Elektronik 9', 'produk-elektronik-9', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 16688.64, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(20, 1, 1, 4, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00021', 'Produk Elektronik 10', 'produk-elektronik-10', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 8718.21, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(21, 1, 2, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00022', 'Produk Elektronik 11', 'produk-elektronik-11', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 16863.36, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(22, 1, 3, 8, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00023', 'Produk Elektronik 12', 'produk-elektronik-12', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 13677.41, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(23, 1, 3, 2, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00024', 'Produk Elektronik 13', 'produk-elektronik-13', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 18882.01, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(24, 1, 2, 5, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00025', 'Produk Elektronik 14', 'produk-elektronik-14', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 11270.60, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(25, 1, 5, 8, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00026', 'Produk Elektronik 15', 'produk-elektronik-15', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 11833.80, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(26, 1, 5, 5, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00027', 'Produk Elektronik 16', 'produk-elektronik-16', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 7398.18, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(27, 1, 3, 5, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00028', 'Produk Elektronik 17', 'produk-elektronik-17', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 12341.50, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(28, 1, 1, 1, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00029', 'Produk Elektronik 18', 'produk-elektronik-18', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 17569.02, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(29, 1, 1, 1, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00030', 'Produk Elektronik 19', 'produk-elektronik-19', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 17300.93, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(30, 1, 1, 7, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00031', 'Produk Elektronik 20', 'produk-elektronik-20', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 19711.12, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(31, 1, 1, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00032', 'Produk Elektronik 21', 'produk-elektronik-21', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 9764.83, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(32, 1, 1, 3, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00033', 'Produk Elektronik 22', 'produk-elektronik-22', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 18986.19, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(33, 1, 1, 5, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00034', 'Produk Elektronik 23', 'produk-elektronik-23', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 5244.82, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(34, 1, 4, 9, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00035', 'Produk Elektronik 24', 'produk-elektronik-24', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 6958.61, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(35, 1, 5, 4, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00036', 'Produk Elektronik 25', 'produk-elektronik-25', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 5078.84, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(36, 1, 5, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00037', 'Produk Elektronik 26', 'produk-elektronik-26', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 18424.82, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(37, 1, 5, 9, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00038', 'Produk Elektronik 27', 'produk-elektronik-27', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 11856.76, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(38, 1, 4, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00039', 'Produk Elektronik 28', 'produk-elektronik-28', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 11070.44, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(39, 1, 2, 7, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00040', 'Produk Elektronik 29', 'produk-elektronik-29', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 5503.12, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(40, 1, 2, 4, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00041', 'Produk Elektronik 30', 'produk-elektronik-30', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 16347.72, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(41, 1, 5, 9, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00042', 'Produk Elektronik 31', 'produk-elektronik-31', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 14233.49, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(42, 1, 4, 4, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00043', 'Produk Elektronik 32', 'produk-elektronik-32', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 17290.38, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(43, 1, 1, 9, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00044', 'Produk Elektronik 33', 'produk-elektronik-33', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 18926.23, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(44, 1, 1, 2, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00045', 'Produk Elektronik 34', 'produk-elektronik-34', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 7258.40, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(45, 1, 2, 2, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00046', 'Produk Elektronik 35', 'produk-elektronik-35', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 19663.87, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(46, 1, 2, 7, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00047', 'Produk Elektronik 36', 'produk-elektronik-36', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 7132.76, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(47, 1, 5, 10, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00048', 'Produk Elektronik 37', 'produk-elektronik-37', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 19696.04, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(48, 1, 1, 8, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00049', 'Produk Elektronik 38', 'produk-elektronik-38', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 13099.09, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(49, 1, 2, 10, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00050', 'Produk Elektronik 39', 'produk-elektronik-39', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 16134.41, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(50, 1, 5, 4, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00051', 'Produk Elektronik 40', 'produk-elektronik-40', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 17077.66, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(51, 1, 1, 2, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00052', 'Produk Elektronik 41', 'produk-elektronik-41', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 10583.61, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(52, 1, 3, 1, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00053', 'Produk Elektronik 42', 'produk-elektronik-42', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 5591.94, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(53, 1, 5, 9, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00054', 'Produk Elektronik 43', 'produk-elektronik-43', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 6597.70, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(54, 1, 1, 2, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00055', 'Produk Elektronik 44', 'produk-elektronik-44', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 11833.99, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(55, 1, 5, 9, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00056', 'Produk Elektronik 45', 'produk-elektronik-45', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 13581.11, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(56, 1, 3, 4, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00057', 'Produk Elektronik 46', 'produk-elektronik-46', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 11971.23, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(57, 1, 2, 2, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00058', 'Produk Elektronik 47', 'produk-elektronik-47', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 16008.27, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(58, 1, 2, 3, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00059', 'Produk Elektronik 48', 'produk-elektronik-48', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 7438.13, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(59, 1, 2, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00060', 'Produk Elektronik 49', 'produk-elektronik-49', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 7827.07, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(60, 1, 2, 7, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00061', 'Produk Elektronik 50', 'produk-elektronik-50', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 15336.18, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(61, 1, 2, 9, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00062', 'Produk Elektronik 51', 'produk-elektronik-51', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 5563.50, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(62, 1, 4, 3, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00063', 'Produk Elektronik 52', 'produk-elektronik-52', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 11003.44, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(63, 1, 1, 5, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00064', 'Produk Elektronik 53', 'produk-elektronik-53', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 5060.68, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(64, 1, 3, 9, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00065', 'Produk Elektronik 54', 'produk-elektronik-54', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 12761.77, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(65, 1, 1, 7, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00066', 'Produk Elektronik 55', 'produk-elektronik-55', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 9303.39, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(66, 1, 2, 1, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00067', 'Produk Elektronik 56', 'produk-elektronik-56', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 19703.20, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(67, 1, 5, 3, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00068', 'Produk Elektronik 57', 'produk-elektronik-57', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 15064.90, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(68, 1, 4, 3, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00069', 'Produk Elektronik 58', 'produk-elektronik-58', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 8205.90, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(69, 1, 2, 3, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00070', 'Produk Elektronik 59', 'produk-elektronik-59', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 19719.79, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(70, 1, 2, 3, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00071', 'Produk Elektronik 60', 'produk-elektronik-60', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 16023.65, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(71, 1, 4, 8, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00072', 'Produk Elektronik 61', 'produk-elektronik-61', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 9458.07, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(72, 1, 2, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00073', 'Produk Elektronik 62', 'produk-elektronik-62', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 19006.60, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(73, 1, 5, 2, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00074', 'Produk Elektronik 63', 'produk-elektronik-63', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 15159.91, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(74, 1, 1, 10, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00075', 'Produk Elektronik 64', 'produk-elektronik-64', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 19614.90, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(75, 1, 5, 5, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00076', 'Produk Elektronik 65', 'produk-elektronik-65', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 14874.64, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(76, 1, 5, 7, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00077', 'Produk Elektronik 66', 'produk-elektronik-66', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 10369.07, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(77, 1, 5, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00078', 'Produk Elektronik 67', 'produk-elektronik-67', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 17910.37, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(78, 1, 4, 1, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00079', 'Produk Elektronik 68', 'produk-elektronik-68', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 7864.86, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(79, 1, 4, 1, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00080', 'Produk Elektronik 69', 'produk-elektronik-69', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 5608.52, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(80, 1, 1, 3, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00081', 'Produk Elektronik 70', 'produk-elektronik-70', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 6330.54, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(81, 1, 4, 10, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00082', 'Produk Elektronik 71', 'produk-elektronik-71', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 5012.95, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(82, 1, 1, 2, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00083', 'Produk Elektronik 72', 'produk-elektronik-72', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 15111.21, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(83, 1, 5, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00084', 'Produk Elektronik 73', 'produk-elektronik-73', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 18547.67, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(84, 1, 5, 10, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00085', 'Produk Elektronik 74', 'produk-elektronik-74', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 5810.92, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(85, 1, 2, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00086', 'Produk Elektronik 75', 'produk-elektronik-75', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 19086.59, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(86, 1, 5, 7, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00087', 'Produk Elektronik 76', 'produk-elektronik-76', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 15032.35, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(87, 1, 2, 7, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00088', 'Produk Elektronik 77', 'produk-elektronik-77', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 7250.08, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(88, 1, 5, 10, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00089', 'Produk Elektronik 78', 'produk-elektronik-78', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 19133.02, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(89, 1, 5, 1, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00090', 'Produk Elektronik 79', 'produk-elektronik-79', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 9889.47, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(90, 1, 3, 5, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00091', 'Produk Elektronik 80', 'produk-elektronik-80', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 14565.89, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(91, 1, 5, 9, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00092', 'Produk Elektronik 81', 'produk-elektronik-81', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 8255.32, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(92, 1, 4, 7, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00093', 'Produk Elektronik 82', 'produk-elektronik-82', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 7146.38, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(93, 1, 5, 9, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00094', 'Produk Elektronik 83', 'produk-elektronik-83', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 13816.59, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(94, 1, 3, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00095', 'Produk Elektronik 84', 'produk-elektronik-84', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 7375.43, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(95, 1, 2, 10, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00096', 'Produk Elektronik 85', 'produk-elektronik-85', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 16986.77, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(96, 1, 2, 7, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00097', 'Produk Elektronik 86', 'produk-elektronik-86', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 14804.72, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(97, 1, 2, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00098', 'Produk Elektronik 87', 'produk-elektronik-87', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 15735.18, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(98, 1, 1, 10, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00099', 'Produk Elektronik 88', 'produk-elektronik-88', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 14086.99, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(99, 1, 2, 4, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00100', 'Produk Elektronik 89', 'produk-elektronik-89', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 7109.53, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(100, 1, 3, 6, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'SKU00101', 'Produk Elektronik 90', 'produk-elektronik-90', 'Barang elektronik berkualitas tinggi.', 'Deskripsi singkat barang elektronik.', '', 18414.00, 0.00, '1', '1', '1', '1', NULL, NULL),
+	(101, 1, 1, 4, '2025-11-01 13:11:05', '2025-11-01 13:12:27', '000001', 'HP Z210 Tower Server', 'hp-z210-tower-server', '<p data-start="120" data-end="169">???? <strong data-start="123" data-end="169">HP Z210 Tower Server &ndash; Spesifikasi Singkat</strong></p>\r\n<p>&nbsp;</p>\r\n<ul data-start="171" data-end="517">\r\n<li data-start="171" data-end="241">\r\n<p data-start="173" data-end="241"><strong data-start="173" data-end="186">Prosesor:</strong> Intel&reg; Xeon&reg; E3-1225 (atau varian lain seri Xeon E3)</p>\r\n</li>\r\n<li data-start="242" data-end="293">\r\n<p data-start="244" data-end="293"><strong data-start="244" data-end="255">Memori:</strong> DDR3 hingga 32GB ECC / 16GB non-ECC</p>\r\n</li>\r\n<li data-start="294" data-end="346">\r\n<p data-start="296" data-end="346"><strong data-start="296" data-end="312">Penyimpanan:</strong> HDD/SSD SATA, dukungan RAID 0/1</p>\r\n</li>\r\n<li data-start="347" data-end="413">\r\n<p data-start="349" data-end="413"><strong data-start="349" data-end="360">Grafis:</strong> Intel&reg; HD Graphics P3000 / NVIDIA&reg; Quadro&reg; NVS 295</p>\r\n</li>\r\n<li data-start="414" data-end="462">\r\n<p data-start="416" data-end="462"><strong data-start="416" data-end="425">Daya:</strong> PSU 400W, PFC aktif, efisiensi 90%</p>\r\n</li>\r\n<li data-start="463" data-end="517">\r\n<p data-start="465" data-end="517"><strong data-start="465" data-end="478">Jaringan:</strong> Intel&reg; 82579LM PCIe Gigabit Ethernet</p>\r\n</li>\r\n</ul>', 'ffff', '', 17000000.00, 14500000.00, '1', '1', '1', '1', NULL, NULL);
 
--- Dumping structure for table db_p59_beebot.item_agent
+-- Dumping structure for table db_p59_mav.item_agent
 DROP TABLE IF EXISTS `item_agent`;
 CREATE TABLE IF NOT EXISTS `item_agent` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -357,12 +394,12 @@ CREATE TABLE IF NOT EXISTS `item_agent` (
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_item_agent_user_item` (`user_id`,`item_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
--- Dumping data for table db_p59_beebot.item_agent: ~0 rows (approximately)
+-- Dumping data for table db_p59_mav.item_agent: ~0 rows (approximately)
 DELETE FROM `item_agent`;
 
--- Dumping structure for table db_p59_beebot.item_brand
+-- Dumping structure for table db_p59_mav.item_brand
 DROP TABLE IF EXISTS `item_brand`;
 CREATE TABLE IF NOT EXISTS `item_brand` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -377,7 +414,7 @@ CREATE TABLE IF NOT EXISTS `item_brand` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
--- Dumping data for table db_p59_beebot.item_brand: ~10 rows (approximately)
+-- Dumping data for table db_p59_mav.item_brand: ~10 rows (approximately)
 DELETE FROM `item_brand`;
 INSERT INTO `item_brand` (`id`, `user_id`, `created_at`, `updated_at`, `code`, `name`, `slug`, `description`, `status`) VALUES
 	(1, 1, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'BR25001', 'ASUS', 'asus', 'Brand laptop & smartphone', '1'),
@@ -391,7 +428,7 @@ INSERT INTO `item_brand` (`id`, `user_id`, `created_at`, `updated_at`, `code`, `
 	(9, 1, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'BR25009', 'Oppo', 'oppo', 'Smartphone', '1'),
 	(10, 1, '2025-10-24 10:29:29', '2025-10-24 10:29:29', 'BR25010', 'Realme', 'realme', 'Smartphone & tablet', '1');
 
--- Dumping structure for table db_p59_beebot.item_category
+-- Dumping structure for table db_p59_mav.item_category
 DROP TABLE IF EXISTS `item_category`;
 CREATE TABLE IF NOT EXISTS `item_category` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -406,7 +443,7 @@ CREATE TABLE IF NOT EXISTS `item_category` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
--- Dumping data for table db_p59_beebot.item_category: ~5 rows (approximately)
+-- Dumping data for table db_p59_mav.item_category: ~5 rows (approximately)
 DELETE FROM `item_category`;
 INSERT INTO `item_category` (`id`, `created_at`, `updated_at`, `user_id`, `code`, `category`, `slug`, `description`, `status`) VALUES
 	(1, '2025-10-24 10:29:29', '2025-10-30 22:26:25', 1, 'CA25001', 'Laptop', 'laptop', 'Semua jenis laptop', '1'),
@@ -415,7 +452,7 @@ INSERT INTO `item_category` (`id`, `created_at`, `updated_at`, `user_id`, `code`
 	(4, '2025-10-24 10:29:29', '2025-10-30 22:26:25', 1, 'CA25004', 'Aksesoris', 'aksesoris', 'Peralatan tambahan elektronik', '1'),
 	(5, '2025-10-24 10:29:29', '2025-10-30 22:26:26', 1, 'CA25005', 'Monitor', 'monitor', 'Monitor komputer berbagai ukuran', '1');
 
--- Dumping structure for table db_p59_beebot.item_promo_rule
+-- Dumping structure for table db_p59_mav.item_promo_rule
 DROP TABLE IF EXISTS `item_promo_rule`;
 CREATE TABLE IF NOT EXISTS `item_promo_rule` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -433,12 +470,14 @@ CREATE TABLE IF NOT EXISTS `item_promo_rule` (
   PRIMARY KEY (`id`),
   KEY `item_id` (`item_id`),
   KEY `status` (`status`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
--- Dumping data for table db_p59_beebot.item_promo_rule: ~0 rows (approximately)
+-- Dumping data for table db_p59_mav.item_promo_rule: ~0 rows (approximately)
 DELETE FROM `item_promo_rule`;
+INSERT INTO `item_promo_rule` (`id`, `item_id`, `bonus_item_id`, `min_qty`, `bonus_qty`, `is_multiple`, `start_date`, `end_date`, `status`, `notes`, `created_at`, `updated_at`) VALUES
+	(2, 4, 3, 5, 1, 1, '2025-11-10', NULL, 'active', '', '2025-11-10 22:27:51', '2025-11-10 22:27:51');
 
--- Dumping structure for table db_p59_beebot.item_rule
+-- Dumping structure for table db_p59_mav.item_rule
 DROP TABLE IF EXISTS `item_rule`;
 CREATE TABLE IF NOT EXISTS `item_rule` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -463,10 +502,10 @@ CREATE TABLE IF NOT EXISTS `item_rule` (
   CONSTRAINT `item_rule_item_id_foreign` FOREIGN KEY (`item_id`) REFERENCES `item` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
--- Dumping data for table db_p59_beebot.item_rule: ~0 rows (approximately)
+-- Dumping data for table db_p59_mav.item_rule: ~0 rows (approximately)
 DELETE FROM `item_rule`;
 
--- Dumping structure for table db_p59_beebot.item_sn
+-- Dumping structure for table db_p59_mav.item_sn
 DROP TABLE IF EXISTS `item_sn`;
 CREATE TABLE IF NOT EXISTS `item_sn` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -475,6 +514,7 @@ CREATE TABLE IF NOT EXISTS `item_sn` (
   `agent_id` bigint(20) unsigned NOT NULL,
   `user_id` bigint(20) unsigned NOT NULL,
   `sn` varchar(100) NOT NULL,
+  `barcode` varchar(100) DEFAULT NULL COMMENT 'Barcode for the serial number',
   `sn_replaced` varchar(100) DEFAULT NULL,
   `is_sell` enum('0','1') NOT NULL DEFAULT '0' COMMENT '0 = not sold, 1 = sold',
   `is_activated` enum('0','1') NOT NULL DEFAULT '0' COMMENT '0 = not activated, 1 = activated',
@@ -487,18 +527,62 @@ CREATE TABLE IF NOT EXISTS `item_sn` (
   UNIQUE KEY `unique_sn` (`sn`),
   KEY `idx_item_agent` (`item_id`,`agent_id`),
   KEY `idx_sn` (`sn`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci COMMENT='Stores serial numbers (SN) of items for tracking activation, expiration, replacement, and sales per agent. Adds a reference to item_variant.id to link each serial number to a specific variant when applicable.';
+) ENGINE=InnoDB AUTO_INCREMENT=51 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci COMMENT='Stores serial numbers (SN) of items for tracking activation, expiration, replacement, and sales per agent. Adds a reference to item_variant.id to link each serial number to a specific variant when applicable.';
 
--- Dumping data for table db_p59_beebot.item_sn: ~5 rows (approximately)
+-- Dumping data for table db_p59_mav.item_sn: ~50 rows (approximately)
 DELETE FROM `item_sn`;
-INSERT INTO `item_sn` (`id`, `item_id`, `variant_id`, `agent_id`, `user_id`, `sn`, `sn_replaced`, `is_sell`, `is_activated`, `created_at`, `updated_at`, `activated_at`, `expired_at`, `replaced_at`) VALUES
-	(1, 3, NULL, 1, 1, 'SN001234567', NULL, '1', '1', '2025-11-04 11:39:59', '2025-11-04 15:13:16', '2025-11-04 14:52:48', '2028-11-04 14:52:48', NULL),
-	(2, 3, NULL, 1, 1, 'SN001234568', NULL, '1', '1', '2025-11-04 11:39:59', '2025-11-04 15:13:22', '2025-11-04 14:52:48', '2028-11-04 14:52:48', NULL),
-	(3, 3, NULL, 1, 1, 'SN001234569', NULL, '0', '0', '2025-11-04 11:39:59', '2025-11-05 17:33:33', '2025-11-05 17:33:33', '2028-11-05 17:33:33', NULL),
-	(4, 3, NULL, 1, 1, 'SN001234570', NULL, '0', '0', '2025-11-04 11:39:59', '2025-11-04 11:39:59', NULL, NULL, NULL),
-	(5, 3, NULL, 1, 1, 'SN001234571', NULL, '0', '0', '2025-11-04 11:39:59', '2025-11-04 11:39:59', NULL, NULL, NULL);
+INSERT INTO `item_sn` (`id`, `item_id`, `variant_id`, `agent_id`, `user_id`, `sn`, `barcode`, `sn_replaced`, `is_sell`, `is_activated`, `created_at`, `updated_at`, `activated_at`, `expired_at`, `replaced_at`) VALUES
+	(1, 3, NULL, 1, 1, 'SN001234567', NULL, NULL, '1', '1', '2025-11-04 11:39:59', '2025-11-04 15:13:16', '2025-11-04 14:52:48', '2028-11-04 14:52:48', NULL),
+	(2, 3, NULL, 1, 1, 'SN001234568', NULL, NULL, '1', '1', '2025-11-04 11:39:59', '2025-11-04 15:13:22', '2025-11-04 14:52:48', '2028-11-04 14:52:48', NULL),
+	(3, 3, NULL, 1, 1, 'SN001234569', NULL, NULL, '1', '1', '2025-11-04 11:39:59', '2025-11-09 11:49:19', '2025-11-09 11:47:58', '2028-11-09 11:47:58', NULL),
+	(4, 3, NULL, 1, 1, 'SN001234570', NULL, NULL, '1', '1', '2025-11-04 11:39:59', '2025-11-09 12:15:03', '2025-11-09 12:15:03', '2028-11-09 12:15:03', NULL),
+	(5, 3, NULL, 1, 1, 'SN001234571', NULL, NULL, '1', '1', '2025-11-04 11:39:59', '2025-11-09 13:20:27', '2025-11-09 13:20:27', '2028-11-09 13:20:27', NULL),
+	(6, 3, NULL, 1, 1, 'SN001234572', NULL, NULL, '1', '1', '2025-11-09 13:54:47', '2025-11-09 13:55:20', '2025-11-09 13:55:20', '2028-11-09 13:55:20', NULL),
+	(7, 3, NULL, 1, 1, 'SN001234573', NULL, NULL, '1', '1', '2025-11-09 13:54:47', '2025-11-09 15:35:02', '2025-11-09 15:35:02', '2028-11-09 15:35:02', NULL),
+	(8, 3, NULL, 1, 1, 'SN001234574', NULL, NULL, '1', '1', '2025-11-09 13:54:47', '2025-11-10 01:36:57', '2025-11-10 01:36:57', '2028-11-10 01:36:57', NULL),
+	(9, 3, NULL, 1, 1, 'SN001234575', NULL, NULL, '1', '1', '2025-11-09 13:54:47', '2025-11-10 01:53:53', '2025-11-10 01:53:53', '2028-11-10 01:53:53', NULL),
+	(10, 3, NULL, 1, 1, 'SN001234576', NULL, NULL, '1', '1', '2025-11-09 13:54:47', '2025-11-11 03:34:36', '2025-11-11 03:34:36', '2028-11-11 03:34:36', NULL),
+	(11, 4, NULL, 1, 1, '58264013', NULL, NULL, '1', '1', '2025-11-11 02:36:58', '2025-11-11 02:57:58', '2025-11-11 02:57:58', NULL, NULL),
+	(12, 4, NULL, 1, 1, '01948237', NULL, NULL, '1', '1', '2025-11-11 02:36:58', '2025-11-11 03:35:11', '2025-11-11 03:35:11', NULL, NULL),
+	(13, 4, NULL, 0, 1, '73502981', NULL, NULL, '0', '0', '2025-11-11 02:36:58', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(14, 4, NULL, 0, 1, '40637215', NULL, NULL, '0', '0', '2025-11-11 02:36:58', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(15, 4, NULL, 0, 1, '84297130', NULL, NULL, '0', '0', '2025-11-11 02:36:58', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(16, 4, NULL, 0, 1, '15738460', NULL, NULL, '0', '0', '2025-11-11 02:36:58', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(17, 4, NULL, 0, 1, '93028547', NULL, NULL, '0', '0', '2025-11-11 02:36:58', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(18, 4, NULL, 0, 1, '64812039', NULL, NULL, '0', '0', '2025-11-11 02:36:58', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(19, 4, NULL, 0, 1, '27091384', NULL, NULL, '0', '0', '2025-11-11 02:36:58', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(20, 4, NULL, 0, 1, '59130827', NULL, NULL, '0', '0', '2025-11-11 02:36:58', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(21, 4, NULL, 0, 1, '38492015', NULL, NULL, '0', '0', '2025-11-11 02:36:58', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(22, 4, NULL, 0, 1, '75204319', NULL, NULL, '0', '0', '2025-11-11 02:36:58', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(23, 4, NULL, 0, 1, '02845761', NULL, NULL, '0', '0', '2025-11-11 02:36:58', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(24, 4, NULL, 0, 1, '91350742', NULL, NULL, '0', '0', '2025-11-11 02:36:58', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(25, 4, NULL, 0, 1, '64019285', NULL, NULL, '0', '0', '2025-11-11 02:36:58', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(26, 4, NULL, 0, 1, '30571824', NULL, NULL, '0', '0', '2025-11-11 02:36:58', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(27, 4, NULL, 0, 1, '89420317', NULL, NULL, '0', '0', '2025-11-11 02:36:58', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(28, 4, NULL, 0, 1, '21984753', NULL, NULL, '0', '0', '2025-11-11 02:36:58', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(29, 4, NULL, 0, 1, '56843097', NULL, NULL, '0', '0', '2025-11-11 02:36:58', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(30, 4, NULL, 0, 1, '74291608', NULL, NULL, '0', '0', '2025-11-11 02:36:58', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(32, 3, NULL, 1, 1, '75920486', NULL, NULL, '0', '0', '2025-11-11 14:09:09', '2025-11-15 12:04:33', NULL, NULL, NULL),
+	(33, 3, NULL, 0, 1, '31678245', NULL, NULL, '0', '0', '2025-11-11 14:09:09', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(34, 3, NULL, 0, 1, '84019327', NULL, NULL, '0', '0', '2025-11-11 14:09:09', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(35, 3, NULL, 0, 1, '29057613', NULL, NULL, '0', '0', '2025-11-11 14:09:09', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(36, 3, NULL, 0, 1, '63718402', NULL, NULL, '0', '0', '2025-11-11 14:09:09', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(37, 3, NULL, 0, 1, '91820547', NULL, NULL, '0', '0', '2025-11-11 14:09:09', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(38, 3, NULL, 0, 1, '50372914', NULL, NULL, '0', '0', '2025-11-11 14:09:09', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(39, 3, NULL, 0, 1, '27461038', NULL, NULL, '0', '0', '2025-11-11 14:09:09', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(40, 3, NULL, 0, 1, '85913270', NULL, NULL, '0', '0', '2025-11-11 14:09:09', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(41, 3, NULL, 0, 1, '04192857', NULL, NULL, '0', '0', '2025-11-11 14:09:09', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(42, 3, NULL, 0, 1, '37204689', NULL, NULL, '0', '0', '2025-11-11 14:09:09', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(43, 3, NULL, 0, 1, '62058134', NULL, NULL, '0', '0', '2025-11-11 14:09:09', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(44, 3, NULL, 0, 1, '93501742', NULL, NULL, '0', '0', '2025-11-11 14:09:09', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(45, 3, NULL, 0, 1, '78426091', NULL, NULL, '0', '0', '2025-11-11 14:09:09', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(46, 3, NULL, 0, 1, '15239840', NULL, NULL, '0', '0', '2025-11-11 14:09:09', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(47, 3, NULL, 0, 1, '40718263', NULL, NULL, '0', '0', '2025-11-11 14:09:09', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(48, 3, NULL, 0, 1, '86973105', NULL, NULL, '0', '0', '2025-11-11 14:09:09', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(49, 3, NULL, 0, 1, '23094718', NULL, NULL, '0', '0', '2025-11-11 14:09:09', '2025-11-13 14:04:48', NULL, NULL, NULL),
+	(50, 3, NULL, 0, 1, '54861092', NULL, NULL, '0', '0', '2025-11-11 14:09:09', '2025-11-13 14:04:48', NULL, NULL, NULL);
 
--- Dumping structure for table db_p59_beebot.item_spec
+-- Dumping structure for table db_p59_mav.item_spec
 DROP TABLE IF EXISTS `item_spec`;
 CREATE TABLE IF NOT EXISTS `item_spec` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -516,14 +600,14 @@ CREATE TABLE IF NOT EXISTS `item_spec` (
   KEY `slug` (`slug`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci COMMENT='Master specification';
 
--- Dumping data for table db_p59_beebot.item_spec: ~3 rows (approximately)
+-- Dumping data for table db_p59_mav.item_spec: ~3 rows (approximately)
 DELETE FROM `item_spec`;
 INSERT INTO `item_spec` (`id`, `user_id`, `created_at`, `updated_at`, `name`, `slug`, `description`, `status`) VALUES
 	(1, 1, '2025-10-22 08:23:40', '2025-10-30 20:06:26', 'CPU', 'cpu', '-', '1'),
 	(2, 1, '2025-10-22 08:23:48', '2025-10-30 22:28:50', 'RAM', '-', '-', '1'),
 	(3, 1, '2025-10-22 08:24:16', '2025-10-22 08:24:16', 'Storage', 'storage', '-', '1');
 
--- Dumping structure for table db_p59_beebot.item_spec_id
+-- Dumping structure for table db_p59_mav.item_spec_id
 DROP TABLE IF EXISTS `item_spec_id`;
 CREATE TABLE IF NOT EXISTS `item_spec_id` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -538,9 +622,9 @@ CREATE TABLE IF NOT EXISTS `item_spec_id` (
   KEY `item_spec_id` (`item_spec_id`),
   KEY `user_id` (`user_id`),
   KEY `unique_item_spec` (`item_id`,`item_spec_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=99 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci COMMENT='Stores links between items and specifications, with optional value and user tracking.';
+) ENGINE=InnoDB AUTO_INCREMENT=108 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci COMMENT='Stores links between items and specifications, with optional value and user tracking.';
 
--- Dumping data for table db_p59_beebot.item_spec_id: ~11 rows (approximately)
+-- Dumping data for table db_p59_mav.item_spec_id: ~11 rows (approximately)
 DELETE FROM `item_spec_id`;
 INSERT INTO `item_spec_id` (`id`, `item_id`, `item_spec_id`, `user_id`, `value`, `created_at`, `updated_at`) VALUES
 	(7, 4, 1, 1, '1 Ghz', '2025-10-24 08:15:18', '2025-10-24 08:15:18'),
@@ -548,14 +632,14 @@ INSERT INTO `item_spec_id` (`id`, `item_id`, `item_spec_id`, `user_id`, `value`,
 	(9, 5, 1, 1, '1 Ghz', '2025-10-24 14:01:46', '2025-10-24 14:01:46'),
 	(10, 5, 2, 1, 'XEON', '2025-10-24 14:01:46', '2025-10-24 14:01:46'),
 	(11, 6, 1, 4, '5555', '2025-10-24 14:15:45', '2025-10-24 14:15:45'),
-	(90, 101, 1, 1, 'Intel® Xeon® E3-1225 3.10 Ghz', '2025-11-01 13:12:27', '2025-11-01 13:12:27'),
+	(90, 101, 1, 1, 'IntelÂ® XeonÂ® E3-1225 3.10 Ghz', '2025-11-01 13:12:27', '2025-11-01 13:12:27'),
 	(91, 101, 2, 1, 'DDR3 hingga 32GB ECC / 16GB non-ECC', '2025-11-01 13:12:27', '2025-11-01 13:12:27'),
 	(92, 101, 3, 1, 'HDD/SSD SATA, dukungan RAID 0/1', '2025-11-01 13:12:27', '2025-11-01 13:12:27'),
-	(96, 3, 1, 1, '1 Ghz', '2025-11-04 21:25:33', '2025-11-04 21:25:33'),
-	(97, 3, 2, 1, '128 GB', '2025-11-04 21:25:33', '2025-11-04 21:25:33'),
-	(98, 3, 3, 1, '1 TB SSD NVME', '2025-11-04 21:25:33', '2025-11-04 21:25:33');
+	(105, 3, 1, 1, '1 Ghz', '2025-11-15 17:53:37', '2025-11-15 17:53:37'),
+	(106, 3, 2, 1, '128 GB', '2025-11-15 17:53:37', '2025-11-15 17:53:37'),
+	(107, 3, 3, 1, '1 TB SSD NVME', '2025-11-15 17:53:37', '2025-11-15 17:53:37');
 
--- Dumping structure for table db_p59_beebot.item_variant
+-- Dumping structure for table db_p59_mav.item_variant
 DROP TABLE IF EXISTS `item_variant`;
 CREATE TABLE IF NOT EXISTS `item_variant` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -569,12 +653,12 @@ CREATE TABLE IF NOT EXISTS `item_variant` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_sku_variant` (`sku_variant`),
   KEY `idx_item_variant` (`item_id`,`variant_name`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci COMMENT='This table stores product variants under the same item. Each variant can have a unique SKU, price, and stock level, allowing the POS system to manage product options (e.g. size, color, or packaging type) separately.';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci COMMENT='This table stores product variants under the same item. Each variant can have a unique SKU, price, and stock level, allowing the POS system to manage product options (e.g. size, color, or packaging type) separately.';
 
--- Dumping data for table db_p59_beebot.item_variant: ~0 rows (approximately)
+-- Dumping data for table db_p59_mav.item_variant: ~0 rows (approximately)
 DELETE FROM `item_variant`;
 
--- Dumping structure for table db_p59_beebot.menu
+-- Dumping structure for table db_p59_mav.menu
 DROP TABLE IF EXISTS `menu`;
 CREATE TABLE IF NOT EXISTS `menu` (
   `id_menu` smallint(5) unsigned NOT NULL AUTO_INCREMENT,
@@ -589,12 +673,10 @@ CREATE TABLE IF NOT EXISTS `menu` (
   `urut` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id_menu`) USING BTREE,
   KEY `menu_module` (`id_module`) USING BTREE,
-  KEY `menu_menu` (`id_parent`),
-  CONSTRAINT `menu_menu` FOREIGN KEY (`id_parent`) REFERENCES `menu` (`id_menu`) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT `menu_module` FOREIGN KEY (`id_module`) REFERENCES `module` (`id_module`) ON DELETE SET NULL ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=59 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci ROW_FORMAT=COMPACT COMMENT='Tabel menu aplikasi';
+  KEY `menu_menu` (`id_parent`)
+) ENGINE=InnoDB AUTO_INCREMENT=69 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci ROW_FORMAT=COMPACT COMMENT='Tabel menu aplikasi';
 
--- Dumping data for table db_p59_beebot.menu: ~21 rows (approximately)
+-- Dumping data for table db_p59_mav.menu: ~28 rows (approximately)
 DELETE FROM `menu`;
 INSERT INTO `menu` (`id_menu`, `nama_menu`, `id_menu_kategori`, `class`, `url`, `id_module`, `id_parent`, `aktif`, `new`, `urut`) VALUES
 	(1, 'User', 1, 'fas fa-users', 'builtin/user', 5, NULL, 1, 0, 3),
@@ -609,7 +691,6 @@ INSERT INTO `menu` (`id_menu`, `nama_menu`, `id_menu_kategori`, `class`, `url`, 
 	(11, 'Setting Layout', 1, 'fas fa-brush', 'builtin/setting-layout', 15, 8, 1, 0, 2),
 	(23, 'Setting Registrasi', 1, 'fas fa-user-plus', 'builtin/setting-registrasi', 34, 8, 1, 0, 3),
 	(36, 'Dashboard', 5, 'fas fa-tachometer-alt', 'dashboard', 46, NULL, 1, 0, 0),
-	(37, 'Tanpa Login', NULL, 'fas fa-globe', 'tanpalogin', NULL, NULL, 1, 0, 2),
 	(38, 'Module Permission', 1, 'fas fa-shield-alt', 'builtin/permission', 51, NULL, 1, 0, 4),
 	(39, 'Role Permission', 1, 'far fa-user', 'builtin/role-permission', 52, 2, 1, 0, 1),
 	(48, 'Kategori', 9, 'fas fa-sitemap', 'item-category', 85, NULL, 1, 0, 1),
@@ -619,10 +700,15 @@ INSERT INTO `menu` (`id_menu`, `nama_menu`, `id_menu_kategori`, `class`, `url`, 
 	(53, 'Perusahaan', 1, 'fas fa-house-chimney-crack', 'identitas', 90, NULL, 1, 0, 0),
 	(55, 'Agen', 9, 'fas fa-building-user', 'agent', 92, NULL, 1, 0, 6),
 	(56, 'Penjualan', 10, 'fas fa-cart-plus', 'sales/add', 101, NULL, 1, 0, 0),
-	(57, 'Platform', 9, 'fas fa-circle-dollar-to-slot', 'platform', 100, NULL, 1, 0, 5),
-	(58, 'Data Penjualan', 10, 'fas fa-list-check', 'sales', 101, NULL, 1, 0, 0);
+	(57, 'Konfigurasi Pembayaran', 9, 'fas fa-circle-dollar-to-slot', 'platform', 100, NULL, 1, 0, 5),
+	(58, 'Data Penjualan', 10, 'fas fa-list-check', 'sales', 101, NULL, 1, 0, 0),
+	(62, 'Data Pembelian', 11, 'fas fa-list-check', 'agent/sales', 105, NULL, 1, 0, 1),
+	(63, 'Data Serial Number', 11, 'fas fa-check-to-slot', 'agent/sales/sn', 108, NULL, 1, 0, 2),
+	(65, 'Katalog', 0, 'fas fa-box-open', 'agent/item', 107, NULL, 1, 0, 0),
+	(67, 'Katalog', 12, 'fas fa-box-open', 'agent/item', 107, NULL, 1, 0, 0),
+	(68, 'Data Penjualan', 11, 'fas fa-list-check', 'agent/sales', 105, NULL, 1, 0, 0);
 
--- Dumping structure for table db_p59_beebot.menu_kategori
+-- Dumping structure for table db_p59_mav.menu_kategori
 DROP TABLE IF EXISTS `menu_kategori`;
 CREATE TABLE IF NOT EXISTS `menu_kategori` (
   `id_menu_kategori` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -632,67 +718,83 @@ CREATE TABLE IF NOT EXISTS `menu_kategori` (
   `show_title` enum('Y','N') DEFAULT NULL,
   `urut` tinyint(3) unsigned DEFAULT NULL,
   PRIMARY KEY (`id_menu_kategori`)
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dumping data for table db_p59_beebot.menu_kategori: ~3 rows (approximately)
+-- Dumping data for table db_p59_mav.menu_kategori: ~6 rows (approximately)
 DELETE FROM `menu_kategori`;
 INSERT INTO `menu_kategori` (`id_menu_kategori`, `nama_kategori`, `deskripsi`, `aktif`, `show_title`, `urut`) VALUES
-	(1, 'Pengaturan', 'Menu pengaturan aplikasi', 'Y', 'Y', 4),
+	(1, 'Pengaturan', 'Menu pengaturan aplikasi', 'Y', 'Y', 6),
 	(5, 'Dashboard', 'Multipurpose dashboard', 'Y', 'Y', 1),
-	(9, 'Master', 'Master Data', 'Y', 'Y', 2),
-	(10, 'Transaksi', 'Transaksi Meliputi POS', 'Y', 'Y', 3);
+	(9, 'Master', 'Master Data', 'Y', 'Y', 3),
+	(10, 'Transaksi (Offline)', 'Transaksi melalui POS', 'Y', 'Y', 4),
+	(11, 'Transaksi (Online)', 'Transaksi melalui Agen', 'Y', 'Y', 5),
+	(12, 'Order', NULL, 'Y', 'Y', 2);
 
--- Dumping structure for table db_p59_beebot.menu_role
+-- Dumping structure for table db_p59_mav.menu_role
 DROP TABLE IF EXISTS `menu_role`;
 CREATE TABLE IF NOT EXISTS `menu_role` (
   `id_menu` smallint(5) unsigned NOT NULL,
   `id_role` smallint(5) unsigned NOT NULL,
   KEY `module_role_module` (`id_menu`),
-  KEY `module_role_role` (`id_role`),
-  CONSTRAINT `menu_role_menu` FOREIGN KEY (`id_menu`) REFERENCES `menu` (`id_menu`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `menu_role_role` FOREIGN KEY (`id_role`) REFERENCES `role` (`id_role`) ON DELETE CASCADE ON UPDATE CASCADE
+  KEY `module_role_role` (`id_role`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci ROW_FORMAT=COMPACT COMMENT='Tabel hak akses dari menu aplikasi';
 
--- Dumping data for table db_p59_beebot.menu_role: ~32 rows (approximately)
+-- Dumping data for table db_p59_mav.menu_role: ~51 rows (approximately)
 DELETE FROM `menu_role`;
 INSERT INTO `menu_role` (`id_menu`, `id_role`) VALUES
 	(2, 1),
 	(3, 1),
 	(6, 1),
 	(1, 1),
-	(1, 2),
 	(8, 1),
 	(7, 1),
-	(8, 2),
 	(9, 1),
 	(11, 1),
-	(11, 2),
 	(23, 1),
 	(36, 1),
 	(37, 1),
-	(37, 2),
 	(39, 1),
 	(38, 1),
 	(10, 1),
 	(4, 1),
 	(4, 3),
-	(49, 3),
 	(53, 1),
 	(53, 3),
-	(50, 3),
-	(50, 4),
+	(56, 3),
+	(49, 1),
+	(49, 3),
+	(49, 5),
+	(51, 1),
 	(51, 3),
-	(51, 4),
-	(48, 3),
-	(48, 4),
+	(51, 5),
+	(50, 1),
+	(50, 3),
+	(50, 5),
+	(55, 1),
 	(55, 3),
-	(55, 4),
+	(55, 5),
+	(48, 1),
+	(48, 3),
+	(48, 5),
+	(58, 3),
+	(60, 4),
+	(61, 1),
+	(61, 3),
+	(64, 1),
+	(64, 3),
+	(64, 4),
+	(59, 4),
+	(65, 4),
+	(67, 4),
+	(66, 4),
 	(57, 1),
 	(57, 3),
-	(56, 3),
-	(58, 3);
+	(62, 4),
+	(68, 1),
+	(68, 3),
+	(63, 4);
 
--- Dumping structure for table db_p59_beebot.migrations
+-- Dumping structure for table db_p59_mav.migrations
 DROP TABLE IF EXISTS `migrations`;
 CREATE TABLE IF NOT EXISTS `migrations` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -703,9 +805,9 @@ CREATE TABLE IF NOT EXISTS `migrations` (
   `time` int(11) NOT NULL,
   `batch` int(11) unsigned NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=55 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=72 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
--- Dumping data for table db_p59_beebot.migrations: ~53 rows (approximately)
+-- Dumping data for table db_p59_mav.migrations: ~61 rows (approximately)
 DELETE FROM `migrations`;
 INSERT INTO `migrations` (`id`, `version`, `class`, `group`, `namespace`, `time`, `batch`) VALUES
 	(1, '2025-10-21-000001', 'App\\Database\\Migrations\\CreateModuleStatusTable', 'default', 'App', 1761056779, 1),
@@ -761,9 +863,26 @@ INSERT INTO `migrations` (`id`, `version`, `class`, `group`, `namespace`, `time`
 	(51, '2025-11-05-000001', 'App\\Database\\Migrations\\CreateSalesDetailTable', 'default', 'App', 1762261859, 24),
 	(52, '2025-11-04-141748', 'App\\Database\\Migrations\\AddWarrantyToItem', 'default', 'App', 1762265964, 25),
 	(53, '2025-11-04-143612', 'App\\Database\\Migrations\\AddPlateFieldsToCustomer', 'default', 'App', 1762267072, 26),
-	(54, '2025-11-04-144725', 'App\\Database\\Migrations\\AddPlatFieldsToCustomer', 'default', 'App', 1762267646, 27);
+	(54, '2025-11-04-144725', 'App\\Database\\Migrations\\AddPlatFieldsToCustomer', 'default', 'App', 1762267646, 27),
+	(55, '2025-11-08-000001', 'App\\Database\\Migrations\\AddGatewayFieldsToPlatform', 'default', 'App', 1762593241, 28),
+	(56, '2025-11-08-000002', 'App\\Database\\Migrations\\RemoveStatusSysFromPlatform', 'default', 'App', 1762593576, 29),
+	(57, '2025-11-08-000003', 'App\\Database\\Migrations\\AddStatusAgentAndStatusPosToPlatform', 'default', 'App', 1762594378, 30),
+	(58, '2025-11-08-000004', 'App\\Database\\Migrations\\AddSettlementTimeToSales', 'default', 'App', 1762595725, 31),
+	(59, '2025-11-09-000001', 'App\\Database\\Migrations\\CreateSalesPaymentsTable', 'default', 'App', 1762688726, 32),
+	(60, '2025-11-10-000001', 'App\\Database\\Migrations\\CreateSalesPaymentLogTable', 'default', 'App', 1762852368, 33),
+	(61, '2025-11-11-120501', 'App\\Database\\Migrations\\AddStatusColumnsToPlatform', 'default', 'App', 1762862628, 34),
+	(62, '2025-11-15-120000', 'App\\Database\\Migrations\\AlterItemSnAddFields', 'default', 'App', 1762877052, 35),
+	(63, '2025-11-11-140000', 'App\\Database\\Migrations\\AddFieldsToSalesItemSn', 'default', 'App', 1762921980, 36),
+	(64, '2025-11-12-100000', 'App\\Database\\Migrations\\CreateFeeTypeTable', 'default', 'App', 1762962376, 37),
+	(65, '2025-11-12-100001', 'App\\Database\\Migrations\\CreateSalesFeeTable', 'default', 'App', 1762962376, 37),
+	(66, '2025-11-12-100002', 'App\\Database\\Migrations\\AddTaxTypeToSalesTable', 'default', 'App', 1762962376, 37),
+	(67, '2025-11-14-031747', 'App\\Database\\Migrations\\AddDeliveryAddressAndNoteToSales', 'default', 'App', 1763090672, 38),
+	(68, '2025-11-15-100000', 'App\\Database\\Migrations\\AddBarcodeToItemSn', 'default', 'App', 1763126795, 39),
+	(69, '2025-11-15-120000', 'App\\Database\\Migrations\\CreateSalesGatewayLogsTable', 'default', 'App', 1763168458, 40),
+	(70, '2025-01-20-000001', 'App\\Database\\Migrations\\AddIsReceiveToSalesItemSn', 'default', 'App', 1763203906, 41),
+	(71, '2025-11-15-120511', 'App\\Database\\Migrations\\AddAdminNoteToSales', 'default', 'App', 1763208870, 42);
 
--- Dumping structure for table db_p59_beebot.module
+-- Dumping structure for table db_p59_mav.module
 DROP TABLE IF EXISTS `module`;
 CREATE TABLE IF NOT EXISTS `module` (
   `id_module` smallint(5) unsigned NOT NULL AUTO_INCREMENT,
@@ -774,11 +893,10 @@ CREATE TABLE IF NOT EXISTS `module` (
   `deskripsi` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`id_module`),
   UNIQUE KEY `module_nama` (`nama_module`),
-  KEY `module_module_status` (`id_module_status`),
-  CONSTRAINT `module_module_status` FOREIGN KEY (`id_module_status`) REFERENCES `module_status` (`id_module_status`) ON DELETE SET NULL ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=104 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci ROW_FORMAT=DYNAMIC COMMENT='Tabel modul aplikasi';
+  KEY `module_module_status` (`id_module_status`)
+) ENGINE=InnoDB AUTO_INCREMENT=110 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci ROW_FORMAT=DYNAMIC COMMENT='Tabel modul aplikasi';
 
--- Dumping data for table db_p59_beebot.module: ~32 rows (approximately)
+-- Dumping data for table db_p59_mav.module: ~36 rows (approximately)
 DELETE FROM `module`;
 INSERT INTO `module` (`id_module`, `nama_module`, `judul_module`, `id_module_status`, `login`, `deskripsi`) VALUES
 	(1, 'builtin/menu', 'Menu Manager', 1, 'Y', 'Administrasi Menu'),
@@ -799,7 +917,7 @@ INSERT INTO `module` (`id_module`, `nama_module`, `judul_module`, `id_module_sta
 	(86, 'item-brand', 'Item Brand Management', 1, 'Y', 'Manage item brands with CRUD operations'),
 	(87, 'item-spec', 'Item Specification Management', 1, 'Y', 'Manage item specifications with CRUD operations'),
 	(88, 'item', 'Item Management', 1, 'Y', 'Manage items with CRUD operations and dynamic spec'),
-	(89, 'frontend', 'Home', 1, 'N', 'Hassle-Free National Warranty – Anytime, Anywhere'),
+	(89, 'frontend', 'Home', 1, 'N', 'Hassle-Free National Warranty â€“ Anytime, Anywher'),
 	(90, 'identitas', 'Identitas', 1, 'Y', 'Modul Identitas Perusahaan'),
 	(91, 'item-agent', 'Manajemen Harga Agen', 1, 'Y', 'Mengelola harga khusus produk untuk agen'),
 	(92, 'agent', 'Data Agen', 1, 'Y', 'Pengelolaan data agen dengan informasi lengkap lok'),
@@ -812,9 +930,14 @@ INSERT INTO `module` (`id_module`, `nama_module`, `judul_module`, `id_module_sta
 	(100, 'platform', 'Platform', 1, 'Y', 'Platform Management'),
 	(101, 'sales', 'Sales', 1, 'Y', 'Sales Management'),
 	(102, 'cart', 'Cart', 1, 'N', 'Shopping Cart & Checkout'),
-	(103, 'checkout', 'Checkout', 1, 'N', 'Order Checkout & Payment');
+	(103, 'checkout', 'Checkout', 1, 'N', 'Order Checkout & Payment'),
+	(104, 'agent/payment', 'Agent Payment', 1, 'Y', 'Payment Result Pages - Redirect pages for payment '),
+	(105, 'agent/sales', 'Agent Sales', 1, 'Y', 'Penjualan Agen'),
+	(107, 'agent/item', 'Agent Item', 1, 'Y', 'Data katalog untuk agen'),
+	(108, 'agent/salesconfirm', 'Agent Sales Confirm', 1, 'Y', 'Konfimasi Penjualan dari agen'),
+	(109, 'agent/dashboard', 'Agen Dashboard', 1, 'Y', 'Dashboard agen');
 
--- Dumping structure for table db_p59_beebot.module_permission
+-- Dumping structure for table db_p59_mav.module_permission
 DROP TABLE IF EXISTS `module_permission`;
 CREATE TABLE IF NOT EXISTS `module_permission` (
   `id_module_permission` smallint(5) unsigned NOT NULL AUTO_INCREMENT,
@@ -823,11 +946,10 @@ CREATE TABLE IF NOT EXISTS `module_permission` (
   `judul_permission` varchar(255) DEFAULT NULL,
   `keterangan` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id_module_permission`) USING BTREE,
-  UNIQUE KEY `id_module_nama_permission` (`id_module`,`nama_permission`) USING BTREE,
-  CONSTRAINT `module_permission_module` FOREIGN KEY (`id_module`) REFERENCES `module` (`id_module`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=291 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC;
+  UNIQUE KEY `id_module_nama_permission` (`id_module`,`nama_permission`) USING BTREE
+) ENGINE=InnoDB AUTO_INCREMENT=625 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC;
 
--- Dumping data for table db_p59_beebot.module_permission: ~143 rows (approximately)
+-- Dumping data for table db_p59_mav.module_permission: ~462 rows (approximately)
 DELETE FROM `module_permission`;
 INSERT INTO `module_permission` (`id_module_permission`, `id_module`, `nama_permission`, `judul_permission`, `keterangan`) VALUES
 	(1, 1, 'create', 'Create Data', 'Hak akses untuk menambah data'),
@@ -990,9 +1112,336 @@ INSERT INTO `module_permission` (`id_module_permission`, `id_module`, `nama_perm
 	(287, 101, 'delete_all', 'Delete All Data', 'Hak akses untuk menghapus semua data'),
 	(288, 101, 'read_own', 'Read Own Data', 'Hak akses untuk membaca data miliknya sendiri'),
 	(289, 101, 'update_own', 'Update Own Data', 'Hak akses untuk mengupdate data miliknya sendiri'),
-	(290, 101, 'delete_own', 'Delete Own Data', 'Hak akses untuk menghapus data miliknya sendiri');
+	(290, 101, 'delete_own', 'Delete Own Data', 'Hak akses untuk menghapus data miliknya sendiri'),
+	(291, 1, 'read', 'Read Data', 'Hak akses untuk read'),
+	(292, 1, 'read_own', 'Read Own Data', 'Hak akses untuk read own'),
+	(293, 1, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(294, 1, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(295, 1, 'update', 'Update Data', 'Hak akses untuk update'),
+	(296, 1, 'update_own', 'Update Own Data', 'Hak akses untuk update own'),
+	(297, 1, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(298, 1, 'delete_own', 'Delete Own Data', 'Hak akses untuk delete own'),
+	(299, 1, 'export', 'Export Data', 'Hak akses untuk export'),
+	(300, 1, 'import', 'Import Data', 'Hak akses untuk import'),
+	(301, 2, 'read', 'Read Data', 'Hak akses untuk read'),
+	(302, 2, 'read_own', 'Read Own Data', 'Hak akses untuk read own'),
+	(303, 2, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(304, 2, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(305, 2, 'update', 'Update Data', 'Hak akses untuk update'),
+	(306, 2, 'update_own', 'Update Own Data', 'Hak akses untuk update own'),
+	(307, 2, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(308, 2, 'delete_own', 'Delete Own Data', 'Hak akses untuk delete own'),
+	(309, 2, 'export', 'Export Data', 'Hak akses untuk export'),
+	(310, 2, 'import', 'Import Data', 'Hak akses untuk import'),
+	(311, 3, 'read', 'Read Data', 'Hak akses untuk read'),
+	(312, 3, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(313, 3, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(314, 3, 'update', 'Update Data', 'Hak akses untuk update'),
+	(315, 3, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(316, 3, 'export', 'Export Data', 'Hak akses untuk export'),
+	(317, 3, 'import', 'Import Data', 'Hak akses untuk import'),
+	(318, 4, 'read', 'Read Data', 'Hak akses untuk read'),
+	(319, 4, 'read_own', 'Read Own Data', 'Hak akses untuk read own'),
+	(320, 4, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(321, 4, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(322, 4, 'update', 'Update Data', 'Hak akses untuk update'),
+	(323, 4, 'update_own', 'Update Own Data', 'Hak akses untuk update own'),
+	(324, 4, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(325, 4, 'delete_own', 'Delete Own Data', 'Hak akses untuk delete own'),
+	(326, 4, 'export', 'Export Data', 'Hak akses untuk export'),
+	(327, 4, 'import', 'Import Data', 'Hak akses untuk import'),
+	(328, 5, 'read', 'Read Data', 'Hak akses untuk read'),
+	(329, 5, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(330, 5, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(331, 5, 'update', 'Update Data', 'Hak akses untuk update'),
+	(332, 5, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(333, 5, 'export', 'Export Data', 'Hak akses untuk export'),
+	(334, 5, 'import', 'Import Data', 'Hak akses untuk import'),
+	(335, 6, 'read', 'Read Data', 'Hak akses untuk read'),
+	(336, 6, 'read_own', 'Read Own Data', 'Hak akses untuk read own'),
+	(337, 6, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(338, 6, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(339, 6, 'update', 'Update Data', 'Hak akses untuk update'),
+	(340, 6, 'update_own', 'Update Own Data', 'Hak akses untuk update own'),
+	(341, 6, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(342, 6, 'delete_own', 'Delete Own Data', 'Hak akses untuk delete own'),
+	(343, 6, 'export', 'Export Data', 'Hak akses untuk export'),
+	(344, 6, 'import', 'Import Data', 'Hak akses untuk import'),
+	(345, 7, 'read', 'Read Data', 'Hak akses untuk read'),
+	(346, 7, 'read_own', 'Read Own Data', 'Hak akses untuk read own'),
+	(347, 7, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(348, 7, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(349, 7, 'update', 'Update Data', 'Hak akses untuk update'),
+	(350, 7, 'update_own', 'Update Own Data', 'Hak akses untuk update own'),
+	(351, 7, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(352, 7, 'delete_own', 'Delete Own Data', 'Hak akses untuk delete own'),
+	(353, 7, 'export', 'Export Data', 'Hak akses untuk export'),
+	(354, 7, 'import', 'Import Data', 'Hak akses untuk import'),
+	(355, 8, 'read', 'Read Data', 'Hak akses untuk read'),
+	(356, 8, 'read_own', 'Read Own Data', 'Hak akses untuk read own'),
+	(357, 8, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(358, 8, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(359, 8, 'update', 'Update Data', 'Hak akses untuk update'),
+	(360, 8, 'update_own', 'Update Own Data', 'Hak akses untuk update own'),
+	(361, 8, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(362, 8, 'delete_own', 'Delete Own Data', 'Hak akses untuk delete own'),
+	(363, 8, 'export', 'Export Data', 'Hak akses untuk export'),
+	(364, 8, 'import', 'Import Data', 'Hak akses untuk import'),
+	(365, 15, 'read', 'Read Data', 'Hak akses untuk read'),
+	(366, 15, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(367, 15, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(368, 15, 'update', 'Update Data', 'Hak akses untuk update'),
+	(369, 15, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(370, 15, 'export', 'Export Data', 'Hak akses untuk export'),
+	(371, 15, 'import', 'Import Data', 'Hak akses untuk import'),
+	(372, 16, 'read', 'Read Data', 'Hak akses untuk read'),
+	(373, 16, 'read_own', 'Read Own Data', 'Hak akses untuk read own'),
+	(374, 16, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(375, 16, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(376, 16, 'update', 'Update Data', 'Hak akses untuk update'),
+	(377, 16, 'update_own', 'Update Own Data', 'Hak akses untuk update own'),
+	(378, 16, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(379, 16, 'delete_own', 'Delete Own Data', 'Hak akses untuk delete own'),
+	(380, 16, 'export', 'Export Data', 'Hak akses untuk export'),
+	(381, 16, 'import', 'Import Data', 'Hak akses untuk import'),
+	(382, 34, 'read', 'Read Data', 'Hak akses untuk read'),
+	(383, 34, 'read_own', 'Read Own Data', 'Hak akses untuk read own'),
+	(384, 34, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(385, 34, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(386, 34, 'update', 'Update Data', 'Hak akses untuk update'),
+	(387, 34, 'update_own', 'Update Own Data', 'Hak akses untuk update own'),
+	(388, 34, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(389, 34, 'delete_own', 'Delete Own Data', 'Hak akses untuk delete own'),
+	(390, 34, 'export', 'Export Data', 'Hak akses untuk export'),
+	(391, 34, 'import', 'Import Data', 'Hak akses untuk import'),
+	(392, 46, 'read', 'Read Data', 'Hak akses untuk read'),
+	(393, 46, 'read_own', 'Read Own Data', 'Hak akses untuk read own'),
+	(394, 46, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(395, 46, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(396, 46, 'update', 'Update Data', 'Hak akses untuk update'),
+	(397, 46, 'update_own', 'Update Own Data', 'Hak akses untuk update own'),
+	(398, 46, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(399, 46, 'delete_own', 'Delete Own Data', 'Hak akses untuk delete own'),
+	(400, 46, 'export', 'Export Data', 'Hak akses untuk export'),
+	(401, 46, 'import', 'Import Data', 'Hak akses untuk import'),
+	(402, 51, 'read', 'Read Data', 'Hak akses untuk read'),
+	(403, 51, 'read_own', 'Read Own Data', 'Hak akses untuk read own'),
+	(404, 51, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(405, 51, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(406, 51, 'update', 'Update Data', 'Hak akses untuk update'),
+	(407, 51, 'update_own', 'Update Own Data', 'Hak akses untuk update own'),
+	(408, 51, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(409, 51, 'delete_own', 'Delete Own Data', 'Hak akses untuk delete own'),
+	(410, 51, 'export', 'Export Data', 'Hak akses untuk export'),
+	(411, 51, 'import', 'Import Data', 'Hak akses untuk import'),
+	(412, 52, 'read', 'Read Data', 'Hak akses untuk read'),
+	(413, 52, 'read_own', 'Read Own Data', 'Hak akses untuk read own'),
+	(414, 52, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(415, 52, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(416, 52, 'update', 'Update Data', 'Hak akses untuk update'),
+	(417, 52, 'update_own', 'Update Own Data', 'Hak akses untuk update own'),
+	(418, 52, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(419, 52, 'delete_own', 'Delete Own Data', 'Hak akses untuk delete own'),
+	(420, 52, 'export', 'Export Data', 'Hak akses untuk export'),
+	(421, 52, 'import', 'Import Data', 'Hak akses untuk import'),
+	(422, 85, 'read', 'Read Data', 'Hak akses untuk read'),
+	(423, 85, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(424, 85, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(425, 85, 'update', 'Update Data', 'Hak akses untuk update'),
+	(426, 85, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(427, 85, 'export', 'Export Data', 'Hak akses untuk export'),
+	(428, 85, 'import', 'Import Data', 'Hak akses untuk import'),
+	(429, 86, 'read', 'Read Data', 'Hak akses untuk read'),
+	(430, 86, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(431, 86, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(432, 86, 'update', 'Update Data', 'Hak akses untuk update'),
+	(433, 86, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(434, 86, 'export', 'Export Data', 'Hak akses untuk export'),
+	(435, 86, 'import', 'Import Data', 'Hak akses untuk import'),
+	(436, 87, 'read', 'Read Data', 'Hak akses untuk read'),
+	(437, 87, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(438, 87, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(439, 87, 'update', 'Update Data', 'Hak akses untuk update'),
+	(440, 87, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(441, 87, 'export', 'Export Data', 'Hak akses untuk export'),
+	(442, 87, 'import', 'Import Data', 'Hak akses untuk import'),
+	(443, 88, 'read', 'Read Data', 'Hak akses untuk read'),
+	(444, 88, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(445, 88, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(446, 88, 'update', 'Update Data', 'Hak akses untuk update'),
+	(447, 88, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(448, 88, 'export', 'Export Data', 'Hak akses untuk export'),
+	(449, 88, 'import', 'Import Data', 'Hak akses untuk import'),
+	(450, 89, 'read', 'Read Data', 'Hak akses untuk read'),
+	(451, 89, 'read_own', 'Read Own Data', 'Hak akses untuk read own'),
+	(452, 89, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(453, 89, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(454, 89, 'update', 'Update Data', 'Hak akses untuk update'),
+	(455, 89, 'update_own', 'Update Own Data', 'Hak akses untuk update own'),
+	(456, 89, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(457, 89, 'delete_own', 'Delete Own Data', 'Hak akses untuk delete own'),
+	(458, 89, 'export', 'Export Data', 'Hak akses untuk export'),
+	(459, 89, 'import', 'Import Data', 'Hak akses untuk import'),
+	(460, 90, 'read', 'Read Data', 'Hak akses untuk read'),
+	(461, 90, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(462, 90, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(463, 90, 'update', 'Update Data', 'Hak akses untuk update'),
+	(464, 90, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(465, 90, 'export', 'Export Data', 'Hak akses untuk export'),
+	(466, 90, 'import', 'Import Data', 'Hak akses untuk import'),
+	(467, 91, 'read', 'Read Data', 'Hak akses untuk read'),
+	(468, 91, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(469, 91, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(470, 91, 'update', 'Update Data', 'Hak akses untuk update'),
+	(471, 91, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(472, 91, 'export', 'Export Data', 'Hak akses untuk export'),
+	(473, 91, 'import', 'Import Data', 'Hak akses untuk import'),
+	(474, 92, 'read', 'Read Data', 'Hak akses untuk read'),
+	(475, 92, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(476, 92, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(477, 92, 'update', 'Update Data', 'Hak akses untuk update'),
+	(478, 92, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(479, 92, 'export', 'Export Data', 'Hak akses untuk export'),
+	(480, 92, 'import', 'Import Data', 'Hak akses untuk import'),
+	(481, 93, 'read', 'Read Data', 'Hak akses untuk read'),
+	(482, 93, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(483, 93, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(484, 93, 'update', 'Update Data', 'Hak akses untuk update'),
+	(485, 93, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(486, 93, 'export', 'Export Data', 'Hak akses untuk export'),
+	(487, 93, 'import', 'Import Data', 'Hak akses untuk import'),
+	(488, 94, 'read', 'Read Data', 'Hak akses untuk read'),
+	(489, 94, 'read_own', 'Read Own Data', 'Hak akses untuk read own'),
+	(490, 94, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(491, 94, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(492, 94, 'update', 'Update Data', 'Hak akses untuk update'),
+	(493, 94, 'update_own', 'Update Own Data', 'Hak akses untuk update own'),
+	(494, 94, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(495, 94, 'delete_own', 'Delete Own Data', 'Hak akses untuk delete own'),
+	(496, 94, 'export', 'Export Data', 'Hak akses untuk export'),
+	(497, 94, 'import', 'Import Data', 'Hak akses untuk import'),
+	(498, 95, 'read', 'Read Data', 'Hak akses untuk read'),
+	(499, 95, 'read_own', 'Read Own Data', 'Hak akses untuk read own'),
+	(500, 95, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(501, 95, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(502, 95, 'update', 'Update Data', 'Hak akses untuk update'),
+	(503, 95, 'update_own', 'Update Own Data', 'Hak akses untuk update own'),
+	(504, 95, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(505, 95, 'delete_own', 'Delete Own Data', 'Hak akses untuk delete own'),
+	(506, 95, 'export', 'Export Data', 'Hak akses untuk export'),
+	(507, 95, 'import', 'Import Data', 'Hak akses untuk import'),
+	(508, 97, 'read', 'Read Data', 'Hak akses untuk read'),
+	(509, 97, 'read_all', 'Read All Data', 'Hak akses untuk read all'),
+	(510, 97, 'read_own', 'Read Own Data', 'Hak akses untuk read own'),
+	(511, 97, 'create', 'Create Data', 'Hak akses untuk create'),
+	(512, 97, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(513, 97, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(514, 97, 'update', 'Update Data', 'Hak akses untuk update'),
+	(515, 97, 'update_all', 'Update All Data', 'Hak akses untuk update all'),
+	(516, 97, 'update_own', 'Update Own Data', 'Hak akses untuk update own'),
+	(517, 97, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(518, 97, 'delete_all', 'Delete All Data', 'Hak akses untuk delete all'),
+	(519, 97, 'delete_own', 'Delete Own Data', 'Hak akses untuk delete own'),
+	(520, 97, 'export', 'Export Data', 'Hak akses untuk export'),
+	(521, 97, 'import', 'Import Data', 'Hak akses untuk import'),
+	(522, 98, 'read', 'Read Data', 'Hak akses untuk read'),
+	(523, 98, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(524, 98, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(525, 98, 'update', 'Update Data', 'Hak akses untuk update'),
+	(526, 98, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(527, 98, 'export', 'Export Data', 'Hak akses untuk export'),
+	(528, 98, 'import', 'Import Data', 'Hak akses untuk import'),
+	(529, 99, 'read', 'Read Data', 'Hak akses untuk read'),
+	(530, 99, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(531, 99, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(532, 99, 'update', 'Update Data', 'Hak akses untuk update'),
+	(533, 99, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(534, 99, 'export', 'Export Data', 'Hak akses untuk export'),
+	(535, 99, 'import', 'Import Data', 'Hak akses untuk import'),
+	(536, 100, 'read', 'Read Data', 'Hak akses untuk read'),
+	(537, 100, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(538, 100, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(539, 100, 'update', 'Update Data', 'Hak akses untuk update'),
+	(540, 100, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(541, 100, 'export', 'Export Data', 'Hak akses untuk export'),
+	(542, 100, 'import', 'Import Data', 'Hak akses untuk import'),
+	(543, 101, 'read', 'Read Data', 'Hak akses untuk read'),
+	(544, 101, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(545, 101, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(546, 101, 'update', 'Update Data', 'Hak akses untuk update'),
+	(547, 101, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(548, 101, 'export', 'Export Data', 'Hak akses untuk export'),
+	(549, 101, 'import', 'Import Data', 'Hak akses untuk import'),
+	(550, 102, 'read', 'Read Data', 'Hak akses untuk read'),
+	(551, 102, 'read_all', 'Read All Data', 'Hak akses untuk read all'),
+	(552, 102, 'read_own', 'Read Own Data', 'Hak akses untuk read own'),
+	(553, 102, 'create', 'Create Data', 'Hak akses untuk create'),
+	(554, 102, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(555, 102, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(556, 102, 'update', 'Update Data', 'Hak akses untuk update'),
+	(557, 102, 'update_all', 'Update All Data', 'Hak akses untuk update all'),
+	(558, 102, 'update_own', 'Update Own Data', 'Hak akses untuk update own'),
+	(559, 102, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(560, 102, 'delete_all', 'Delete All Data', 'Hak akses untuk delete all'),
+	(561, 102, 'delete_own', 'Delete Own Data', 'Hak akses untuk delete own'),
+	(562, 102, 'export', 'Export Data', 'Hak akses untuk export'),
+	(563, 102, 'import', 'Import Data', 'Hak akses untuk import'),
+	(564, 103, 'read', 'Read Data', 'Hak akses untuk read'),
+	(565, 103, 'read_all', 'Read All Data', 'Hak akses untuk read all'),
+	(566, 103, 'read_own', 'Read Own Data', 'Hak akses untuk read own'),
+	(567, 103, 'create', 'Create Data', 'Hak akses untuk create'),
+	(568, 103, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(569, 103, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(570, 103, 'update', 'Update Data', 'Hak akses untuk update'),
+	(571, 103, 'update_all', 'Update All Data', 'Hak akses untuk update all'),
+	(572, 103, 'update_own', 'Update Own Data', 'Hak akses untuk update own'),
+	(573, 103, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(574, 103, 'delete_all', 'Delete All Data', 'Hak akses untuk delete all'),
+	(575, 103, 'delete_own', 'Delete Own Data', 'Hak akses untuk delete own'),
+	(576, 103, 'export', 'Export Data', 'Hak akses untuk export'),
+	(577, 103, 'import', 'Import Data', 'Hak akses untuk import'),
+	(578, 104, 'read', 'Read Data', 'Hak akses untuk read'),
+	(579, 104, 'read_all', 'Read All Data', 'Hak akses untuk read all'),
+	(580, 104, 'read_own', 'Read Own Data', 'Hak akses untuk read own'),
+	(581, 104, 'create', 'Create Data', 'Hak akses untuk create'),
+	(582, 104, 'create_all', 'Create All Data', 'Hak akses untuk create all'),
+	(583, 104, 'create_own', 'Create Own Data', 'Hak akses untuk create own'),
+	(584, 104, 'update', 'Update Data', 'Hak akses untuk update'),
+	(585, 104, 'update_all', 'Update All Data', 'Hak akses untuk update all'),
+	(586, 104, 'update_own', 'Update Own Data', 'Hak akses untuk update own'),
+	(587, 104, 'delete', 'Delete Data', 'Hak akses untuk delete'),
+	(588, 104, 'delete_all', 'Delete All Data', 'Hak akses untuk delete all'),
+	(589, 104, 'delete_own', 'Delete Own Data', 'Hak akses untuk delete own'),
+	(590, 104, 'export', 'Export Data', 'Hak akses untuk export'),
+	(591, 104, 'import', 'Import Data', 'Hak akses untuk import'),
+	(592, 105, 'create', 'Create Data', 'Hak akses untuk membuat data'),
+	(593, 105, 'read_all', 'Read All Data', 'Hak akses untuk membaca semua data'),
+	(594, 105, 'update_all', 'Update All Data', 'Hak akses untuk mengupdate semua data'),
+	(595, 105, 'delete_all', 'Delete All Data', 'Hak akses untuk menghapus semua data'),
+	(596, 105, 'read_own', 'Read Own Data', 'Hak akses untuk membaca data miliknya sendiri'),
+	(597, 105, 'update_own', 'Update Own Data', 'Hak akses untuk mengupdate data miliknya sendiri'),
+	(598, 105, 'delete_own', 'Delete Own Data', 'Hak akses untuk menghapus data miliknya sendiri'),
+	(599, 106, 'create', 'Create Data', 'Hak akses untuk membuat data'),
+	(600, 106, 'read_all', 'Read All Data', 'Hak akses untuk membaca semua data'),
+	(601, 106, 'update_all', 'Update All Data', 'Hak akses untuk mengupdate semua data'),
+	(602, 106, 'delete_all', 'Delete All Data', 'Hak akses untuk menghapus semua data'),
+	(603, 106, 'read_own', 'Read Own Data', 'Hak akses untuk membaca data miliknya sendiri'),
+	(604, 106, 'update_own', 'Update Own Data', 'Hak akses untuk mengupdate data miliknya sendiri'),
+	(605, 106, 'delete_own', 'Delete Own Data', 'Hak akses untuk menghapus data miliknya sendiri'),
+	(613, 107, 'read_all', 'Read Only', 'Hanya membaca saja'),
+	(614, 108, 'create', 'Create Data', 'Hak akses untuk membuat data'),
+	(615, 108, 'read_all', 'Read All Data', 'Hak akses untuk membaca semua data'),
+	(616, 108, 'update_all', 'Update All Data', 'Hak akses untuk mengupdate semua data'),
+	(617, 108, 'delete_all', 'Delete All Data', 'Hak akses untuk menghapus semua data'),
+	(618, 108, 'read_own', 'Read Own Data', 'Hak akses untuk membaca data miliknya sendiri'),
+	(619, 108, 'update_own', 'Update Own Data', 'Hak akses untuk mengupdate data miliknya sendiri'),
+	(620, 108, 'delete_own', 'Delete Own Data', 'Hak akses untuk menghapus data miliknya sendiri'),
+	(621, 109, 'create', 'Create Data', 'Hak akses untuk membuat data'),
+	(622, 109, 'read_all', 'Read All Data', 'Hak akses untuk membaca semua data'),
+	(623, 109, 'update_all', 'Update All Data', 'Hak akses untuk mengupdate semua data'),
+	(624, 109, 'delete_all', 'Delete All Data', 'Hak akses untuk menghapus semua data');
 
--- Dumping structure for table db_p59_beebot.module_status
+-- Dumping structure for table db_p59_mav.module_status
 DROP TABLE IF EXISTS `module_status`;
 CREATE TABLE IF NOT EXISTS `module_status` (
   `id_module_status` tinyint(1) NOT NULL AUTO_INCREMENT,
@@ -1001,14 +1450,14 @@ CREATE TABLE IF NOT EXISTS `module_status` (
   PRIMARY KEY (`id_module_status`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci ROW_FORMAT=DYNAMIC COMMENT='Tabel status modul, seperti: aktif, non aktif, dalam perbaikan';
 
--- Dumping data for table db_p59_beebot.module_status: ~3 rows (approximately)
+-- Dumping data for table db_p59_mav.module_status: ~3 rows (approximately)
 DELETE FROM `module_status`;
 INSERT INTO `module_status` (`id_module_status`, `nama_status`, `keterangan`) VALUES
 	(1, 'Aktif', NULL),
 	(2, 'Tidak Aktif', NULL),
 	(3, 'Dalam Perbaikan', 'Hanya role developer yang dapat mengakses module dengan status ini');
 
--- Dumping structure for table db_p59_beebot.platform
+-- Dumping structure for table db_p59_mav.platform
 DROP TABLE IF EXISTS `platform`;
 CREATE TABLE IF NOT EXISTS `platform` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -1019,19 +1468,26 @@ CREATE TABLE IF NOT EXISTS `platform` (
   `platform` varchar(160) DEFAULT NULL,
   `description` text DEFAULT NULL,
   `status` enum('0','1') NOT NULL DEFAULT '1',
+  `status_kredit` enum('0','1') NOT NULL DEFAULT '0',
   `status_sys` enum('0','1') NOT NULL DEFAULT '0',
+  `status_agent` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Status aktif untuk agent/post: 1=active, 0=inactive',
+  `status_pos` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Status aktif untuk POS: 1=active, 0=inactive',
+  `gw_code` varchar(50) DEFAULT NULL COMMENT 'Gateway code (e.g., midtrans, stripe)',
+  `gw_status` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Gateway status: 1=active, 0=inactive',
+  `logo` varchar(255) DEFAULT NULL COMMENT 'Logo file path for gateway',
   PRIMARY KEY (`id`),
   KEY `idx_user` (`user_id`),
   KEY `idx_code` (`code`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci COMMENT='This table stores available platforms (marketplaces or system integrations) for sales, configuration, and synchronization.';
 
--- Dumping data for table db_p59_beebot.platform: ~2 rows (approximately)
+-- Dumping data for table db_p59_mav.platform: ~3 rows (approximately)
 DELETE FROM `platform`;
-INSERT INTO `platform` (`id`, `user_id`, `created_at`, `updated_at`, `code`, `platform`, `description`, `status`, `status_sys`) VALUES
-	(2, 1, '2025-11-01 23:54:46', '2025-11-01 23:54:46', 'TN', 'Tunai', '', '1', '1'),
-	(3, 1, '2025-11-01 23:55:10', '2025-11-01 23:55:10', 'TF', 'Transfer', 'Transfer manual ke ', '1', '1');
+INSERT INTO `platform` (`id`, `user_id`, `created_at`, `updated_at`, `code`, `platform`, `description`, `status`, `status_kredit`, `status_sys`, `status_agent`, `status_pos`, `gw_code`, `gw_status`, `logo`) VALUES
+	(1, 1, '2025-11-01 23:54:46', '2025-11-14 19:44:40', 'TN', 'Tunai', '', '1', '0', '1', 0, 1, '', 0, NULL),
+	(2, 1, '2025-11-01 23:55:10', '2025-11-14 19:44:41', 'TF', 'Transfer', 'Transfer manual ke ', '1', '0', '1', 0, 0, '', 0, NULL),
+	(3, 1, '2025-11-08 16:22:14', '2025-11-14 19:44:42', 'BCA VA', 'BCA Virtual Account', '-', '1', '0', '0', 1, 0, 'BCA_VA', 1, NULL);
 
--- Dumping structure for table db_p59_beebot.role
+-- Dumping structure for table db_p59_mav.role
 DROP TABLE IF EXISTS `role`;
 CREATE TABLE IF NOT EXISTS `role` (
   `id_role` smallint(5) unsigned NOT NULL AUTO_INCREMENT,
@@ -1041,92 +1497,28 @@ CREATE TABLE IF NOT EXISTS `role` (
   `id_module` smallint(5) unsigned DEFAULT NULL,
   PRIMARY KEY (`id_role`),
   UNIQUE KEY `role_nama` (`nama_role`),
-  KEY `role_module` (`id_module`),
-  CONSTRAINT `role_module` FOREIGN KEY (`id_module`) REFERENCES `module` (`id_module`) ON DELETE CASCADE ON UPDATE CASCADE
+  KEY `role_module` (`id_module`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci ROW_FORMAT=DYNAMIC COMMENT='Tabel yang berisi daftar role, role ini mengatur bagaimana user mengakses module, role ini nantinya diassign ke user';
 
--- Dumping data for table db_p59_beebot.role: ~3 rows (approximately)
+-- Dumping data for table db_p59_mav.role: ~4 rows (approximately)
 DELETE FROM `role`;
 INSERT INTO `role` (`id_role`, `nama_role`, `judul_role`, `keterangan`, `id_module`) VALUES
 	(1, 'admin', 'Administrator', 'Administrator', 46),
-	(2, 'user', 'User', 'Pengguna umum', 5),
 	(3, 'webdev', 'Web Developer', 'Pengembang aplikasi', 5),
 	(4, 'agen', 'Agen', 'Agen MAV', 46);
 
--- Dumping structure for table db_p59_beebot.role_module_permission
+-- Dumping structure for table db_p59_mav.role_module_permission
 DROP TABLE IF EXISTS `role_module_permission`;
 CREATE TABLE IF NOT EXISTS `role_module_permission` (
   `id_role` smallint(5) unsigned NOT NULL,
   `id_module_permission` smallint(5) unsigned NOT NULL,
   PRIMARY KEY (`id_role`,`id_module_permission`) USING BTREE,
-  KEY `role_permission_permission` (`id_module_permission`) USING BTREE,
-  CONSTRAINT `role_module_permission_module_permission` FOREIGN KEY (`id_module_permission`) REFERENCES `module_permission` (`id_module_permission`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `role_module_permission_role` FOREIGN KEY (`id_role`) REFERENCES `role` (`id_role`) ON DELETE CASCADE ON UPDATE CASCADE
+  KEY `role_permission_permission` (`id_module_permission`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC;
 
--- Dumping data for table db_p59_beebot.role_module_permission: ~382 rows (approximately)
+-- Dumping data for table db_p59_mav.role_module_permission: ~1.096 rows (approximately)
 DELETE FROM `role_module_permission`;
 INSERT INTO `role_module_permission` (`id_role`, `id_module_permission`) VALUES
-	(1, 1),
-	(1, 2),
-	(1, 3),
-	(1, 4),
-	(1, 5),
-	(1, 6),
-	(1, 7),
-	(1, 8),
-	(1, 10),
-	(1, 11),
-	(1, 23),
-	(1, 35),
-	(1, 37),
-	(1, 38),
-	(1, 39),
-	(1, 40),
-	(1, 41),
-	(1, 42),
-	(1, 43),
-	(1, 44),
-	(1, 45),
-	(1, 47),
-	(1, 48),
-	(1, 60),
-	(1, 72),
-	(1, 74),
-	(1, 75),
-	(1, 76),
-	(1, 77),
-	(1, 78),
-	(1, 79),
-	(1, 80),
-	(1, 81),
-	(1, 82),
-	(1, 84),
-	(1, 85),
-	(1, 97),
-	(1, 109),
-	(1, 111),
-	(1, 112),
-	(1, 113),
-	(1, 114),
-	(1, 115),
-	(1, 116),
-	(1, 117),
-	(1, 118),
-	(1, 119),
-	(1, 121),
-	(1, 122),
-	(1, 134),
-	(1, 146),
-	(1, 148),
-	(1, 149),
-	(1, 150),
-	(1, 152),
-	(1, 153),
-	(2, 182),
-	(2, 183),
-	(2, 185),
-	(2, 186),
 	(3, 1),
 	(3, 2),
 	(3, 3),
@@ -1288,6 +1680,328 @@ INSERT INTO `role_module_permission` (`id_role`, `id_module_permission`) VALUES
 	(3, 288),
 	(3, 289),
 	(3, 290),
+	(3, 291),
+	(3, 292),
+	(3, 293),
+	(3, 294),
+	(3, 295),
+	(3, 296),
+	(3, 297),
+	(3, 298),
+	(3, 299),
+	(3, 300),
+	(3, 301),
+	(3, 302),
+	(3, 303),
+	(3, 304),
+	(3, 305),
+	(3, 306),
+	(3, 307),
+	(3, 308),
+	(3, 309),
+	(3, 310),
+	(3, 311),
+	(3, 312),
+	(3, 313),
+	(3, 314),
+	(3, 315),
+	(3, 316),
+	(3, 317),
+	(3, 318),
+	(3, 319),
+	(3, 320),
+	(3, 321),
+	(3, 322),
+	(3, 323),
+	(3, 324),
+	(3, 325),
+	(3, 326),
+	(3, 327),
+	(3, 328),
+	(3, 329),
+	(3, 330),
+	(3, 331),
+	(3, 332),
+	(3, 333),
+	(3, 334),
+	(3, 335),
+	(3, 336),
+	(3, 337),
+	(3, 338),
+	(3, 339),
+	(3, 340),
+	(3, 341),
+	(3, 342),
+	(3, 343),
+	(3, 344),
+	(3, 345),
+	(3, 346),
+	(3, 347),
+	(3, 348),
+	(3, 349),
+	(3, 350),
+	(3, 351),
+	(3, 352),
+	(3, 353),
+	(3, 354),
+	(3, 355),
+	(3, 356),
+	(3, 357),
+	(3, 358),
+	(3, 359),
+	(3, 360),
+	(3, 361),
+	(3, 362),
+	(3, 363),
+	(3, 364),
+	(3, 365),
+	(3, 366),
+	(3, 367),
+	(3, 368),
+	(3, 369),
+	(3, 370),
+	(3, 371),
+	(3, 372),
+	(3, 373),
+	(3, 374),
+	(3, 375),
+	(3, 376),
+	(3, 377),
+	(3, 378),
+	(3, 379),
+	(3, 380),
+	(3, 381),
+	(3, 382),
+	(3, 383),
+	(3, 384),
+	(3, 385),
+	(3, 386),
+	(3, 387),
+	(3, 388),
+	(3, 389),
+	(3, 390),
+	(3, 391),
+	(3, 392),
+	(3, 393),
+	(3, 394),
+	(3, 395),
+	(3, 396),
+	(3, 397),
+	(3, 398),
+	(3, 399),
+	(3, 400),
+	(3, 401),
+	(3, 402),
+	(3, 403),
+	(3, 404),
+	(3, 405),
+	(3, 406),
+	(3, 407),
+	(3, 408),
+	(3, 409),
+	(3, 410),
+	(3, 411),
+	(3, 412),
+	(3, 413),
+	(3, 414),
+	(3, 415),
+	(3, 416),
+	(3, 417),
+	(3, 418),
+	(3, 419),
+	(3, 420),
+	(3, 421),
+	(3, 422),
+	(3, 423),
+	(3, 424),
+	(3, 425),
+	(3, 426),
+	(3, 427),
+	(3, 428),
+	(3, 429),
+	(3, 430),
+	(3, 431),
+	(3, 432),
+	(3, 433),
+	(3, 434),
+	(3, 435),
+	(3, 436),
+	(3, 437),
+	(3, 438),
+	(3, 439),
+	(3, 440),
+	(3, 441),
+	(3, 442),
+	(3, 443),
+	(3, 444),
+	(3, 445),
+	(3, 446),
+	(3, 447),
+	(3, 448),
+	(3, 449),
+	(3, 450),
+	(3, 451),
+	(3, 452),
+	(3, 453),
+	(3, 454),
+	(3, 455),
+	(3, 456),
+	(3, 457),
+	(3, 458),
+	(3, 459),
+	(3, 460),
+	(3, 461),
+	(3, 462),
+	(3, 463),
+	(3, 464),
+	(3, 465),
+	(3, 466),
+	(3, 467),
+	(3, 468),
+	(3, 469),
+	(3, 470),
+	(3, 471),
+	(3, 472),
+	(3, 473),
+	(3, 474),
+	(3, 475),
+	(3, 476),
+	(3, 477),
+	(3, 478),
+	(3, 479),
+	(3, 480),
+	(3, 481),
+	(3, 482),
+	(3, 483),
+	(3, 484),
+	(3, 485),
+	(3, 486),
+	(3, 487),
+	(3, 488),
+	(3, 489),
+	(3, 490),
+	(3, 491),
+	(3, 492),
+	(3, 493),
+	(3, 494),
+	(3, 495),
+	(3, 496),
+	(3, 497),
+	(3, 498),
+	(3, 499),
+	(3, 500),
+	(3, 501),
+	(3, 502),
+	(3, 503),
+	(3, 504),
+	(3, 505),
+	(3, 506),
+	(3, 507),
+	(3, 508),
+	(3, 509),
+	(3, 510),
+	(3, 511),
+	(3, 512),
+	(3, 513),
+	(3, 514),
+	(3, 515),
+	(3, 516),
+	(3, 517),
+	(3, 518),
+	(3, 519),
+	(3, 520),
+	(3, 521),
+	(3, 522),
+	(3, 523),
+	(3, 524),
+	(3, 525),
+	(3, 526),
+	(3, 527),
+	(3, 528),
+	(3, 529),
+	(3, 530),
+	(3, 531),
+	(3, 532),
+	(3, 533),
+	(3, 534),
+	(3, 535),
+	(3, 536),
+	(3, 537),
+	(3, 538),
+	(3, 539),
+	(3, 540),
+	(3, 541),
+	(3, 542),
+	(3, 543),
+	(3, 544),
+	(3, 545),
+	(3, 546),
+	(3, 547),
+	(3, 548),
+	(3, 549),
+	(3, 550),
+	(3, 551),
+	(3, 552),
+	(3, 553),
+	(3, 554),
+	(3, 555),
+	(3, 556),
+	(3, 557),
+	(3, 558),
+	(3, 559),
+	(3, 560),
+	(3, 561),
+	(3, 562),
+	(3, 563),
+	(3, 564),
+	(3, 565),
+	(3, 566),
+	(3, 567),
+	(3, 568),
+	(3, 569),
+	(3, 570),
+	(3, 571),
+	(3, 572),
+	(3, 573),
+	(3, 574),
+	(3, 575),
+	(3, 576),
+	(3, 577),
+	(3, 578),
+	(3, 579),
+	(3, 580),
+	(3, 581),
+	(3, 582),
+	(3, 583),
+	(3, 584),
+	(3, 585),
+	(3, 586),
+	(3, 587),
+	(3, 588),
+	(3, 589),
+	(3, 590),
+	(3, 591),
+	(3, 592),
+	(3, 593),
+	(3, 594),
+	(3, 595),
+	(3, 596),
+	(3, 597),
+	(3, 598),
+	(3, 599),
+	(3, 600),
+	(3, 601),
+	(3, 602),
+	(3, 603),
+	(3, 604),
+	(3, 605),
+	(3, 614),
+	(3, 615),
+	(3, 616),
+	(3, 617),
+	(3, 618),
+	(3, 619),
+	(3, 620),
 	(4, 1),
 	(4, 2),
 	(4, 3),
@@ -1448,9 +2162,480 @@ INSERT INTO `role_module_permission` (`id_role`, `id_module_permission`) VALUES
 	(4, 287),
 	(4, 288),
 	(4, 289),
-	(4, 290);
+	(4, 290),
+	(4, 592),
+	(4, 596),
+	(4, 597),
+	(4, 598),
+	(4, 613),
+	(4, 621),
+	(4, 622),
+	(4, 623),
+	(4, 624),
+	(5, 1),
+	(5, 2),
+	(5, 3),
+	(5, 4),
+	(5, 5),
+	(5, 6),
+	(5, 7),
+	(5, 8),
+	(5, 10),
+	(5, 11),
+	(5, 23),
+	(5, 35),
+	(5, 37),
+	(5, 38),
+	(5, 39),
+	(5, 40),
+	(5, 41),
+	(5, 42),
+	(5, 43),
+	(5, 44),
+	(5, 45),
+	(5, 47),
+	(5, 48),
+	(5, 60),
+	(5, 72),
+	(5, 74),
+	(5, 75),
+	(5, 76),
+	(5, 77),
+	(5, 78),
+	(5, 79),
+	(5, 80),
+	(5, 81),
+	(5, 82),
+	(5, 84),
+	(5, 85),
+	(5, 97),
+	(5, 109),
+	(5, 111),
+	(5, 112),
+	(5, 113),
+	(5, 114),
+	(5, 115),
+	(5, 116),
+	(5, 117),
+	(5, 118),
+	(5, 119),
+	(5, 121),
+	(5, 122),
+	(5, 134),
+	(5, 146),
+	(5, 148),
+	(5, 149),
+	(5, 150),
+	(5, 152),
+	(5, 153),
+	(5, 182),
+	(5, 183),
+	(5, 184),
+	(5, 185),
+	(5, 186),
+	(5, 187),
+	(5, 192),
+	(5, 193),
+	(5, 194),
+	(5, 195),
+	(5, 196),
+	(5, 197),
+	(5, 198),
+	(5, 199),
+	(5, 200),
+	(5, 201),
+	(5, 202),
+	(5, 203),
+	(5, 204),
+	(5, 205),
+	(5, 206),
+	(5, 207),
+	(5, 208),
+	(5, 209),
+	(5, 210),
+	(5, 211),
+	(5, 212),
+	(5, 213),
+	(5, 214),
+	(5, 215),
+	(5, 216),
+	(5, 217),
+	(5, 218),
+	(5, 219),
+	(5, 220),
+	(5, 221),
+	(5, 222),
+	(5, 223),
+	(5, 224),
+	(5, 225),
+	(5, 226),
+	(5, 227),
+	(5, 228),
+	(5, 229),
+	(5, 230),
+	(5, 231),
+	(5, 232),
+	(5, 233),
+	(5, 234),
+	(5, 235),
+	(5, 236),
+	(5, 237),
+	(5, 238),
+	(5, 239),
+	(5, 240),
+	(5, 241),
+	(5, 242),
+	(5, 243),
+	(5, 244),
+	(5, 245),
+	(5, 246),
+	(5, 247),
+	(5, 248),
+	(5, 249),
+	(5, 250),
+	(5, 251),
+	(5, 252),
+	(5, 253),
+	(5, 254),
+	(5, 255),
+	(5, 256),
+	(5, 257),
+	(5, 258),
+	(5, 259),
+	(5, 260),
+	(5, 261),
+	(5, 262),
+	(5, 263),
+	(5, 264),
+	(5, 265),
+	(5, 266),
+	(5, 267),
+	(5, 268),
+	(5, 269),
+	(5, 270),
+	(5, 271),
+	(5, 272),
+	(5, 273),
+	(5, 274),
+	(5, 275),
+	(5, 276),
+	(5, 277),
+	(5, 278),
+	(5, 279),
+	(5, 280),
+	(5, 281),
+	(5, 282),
+	(5, 283),
+	(5, 284),
+	(5, 285),
+	(5, 286),
+	(5, 287),
+	(5, 288),
+	(5, 289),
+	(5, 290),
+	(5, 291),
+	(5, 292),
+	(5, 293),
+	(5, 294),
+	(5, 295),
+	(5, 296),
+	(5, 297),
+	(5, 298),
+	(5, 299),
+	(5, 300),
+	(5, 301),
+	(5, 302),
+	(5, 303),
+	(5, 304),
+	(5, 305),
+	(5, 306),
+	(5, 307),
+	(5, 308),
+	(5, 309),
+	(5, 310),
+	(5, 311),
+	(5, 312),
+	(5, 313),
+	(5, 314),
+	(5, 315),
+	(5, 316),
+	(5, 317),
+	(5, 318),
+	(5, 319),
+	(5, 320),
+	(5, 321),
+	(5, 322),
+	(5, 323),
+	(5, 324),
+	(5, 325),
+	(5, 326),
+	(5, 327),
+	(5, 328),
+	(5, 329),
+	(5, 330),
+	(5, 331),
+	(5, 332),
+	(5, 333),
+	(5, 334),
+	(5, 335),
+	(5, 336),
+	(5, 337),
+	(5, 338),
+	(5, 339),
+	(5, 340),
+	(5, 341),
+	(5, 342),
+	(5, 343),
+	(5, 344),
+	(5, 345),
+	(5, 346),
+	(5, 347),
+	(5, 348),
+	(5, 349),
+	(5, 350),
+	(5, 351),
+	(5, 352),
+	(5, 353),
+	(5, 354),
+	(5, 355),
+	(5, 356),
+	(5, 357),
+	(5, 358),
+	(5, 359),
+	(5, 360),
+	(5, 361),
+	(5, 362),
+	(5, 363),
+	(5, 364),
+	(5, 365),
+	(5, 366),
+	(5, 367),
+	(5, 368),
+	(5, 369),
+	(5, 370),
+	(5, 371),
+	(5, 372),
+	(5, 373),
+	(5, 374),
+	(5, 375),
+	(5, 376),
+	(5, 377),
+	(5, 378),
+	(5, 379),
+	(5, 380),
+	(5, 381),
+	(5, 382),
+	(5, 383),
+	(5, 384),
+	(5, 385),
+	(5, 386),
+	(5, 387),
+	(5, 388),
+	(5, 389),
+	(5, 390),
+	(5, 391),
+	(5, 392),
+	(5, 393),
+	(5, 394),
+	(5, 395),
+	(5, 396),
+	(5, 397),
+	(5, 398),
+	(5, 399),
+	(5, 400),
+	(5, 401),
+	(5, 402),
+	(5, 403),
+	(5, 404),
+	(5, 405),
+	(5, 406),
+	(5, 407),
+	(5, 408),
+	(5, 409),
+	(5, 410),
+	(5, 411),
+	(5, 412),
+	(5, 413),
+	(5, 414),
+	(5, 415),
+	(5, 416),
+	(5, 417),
+	(5, 418),
+	(5, 419),
+	(5, 420),
+	(5, 421),
+	(5, 422),
+	(5, 423),
+	(5, 424),
+	(5, 425),
+	(5, 426),
+	(5, 427),
+	(5, 428),
+	(5, 429),
+	(5, 430),
+	(5, 431),
+	(5, 432),
+	(5, 433),
+	(5, 434),
+	(5, 435),
+	(5, 436),
+	(5, 437),
+	(5, 438),
+	(5, 439),
+	(5, 440),
+	(5, 441),
+	(5, 442),
+	(5, 443),
+	(5, 444),
+	(5, 445),
+	(5, 446),
+	(5, 447),
+	(5, 448),
+	(5, 449),
+	(5, 450),
+	(5, 451),
+	(5, 452),
+	(5, 453),
+	(5, 454),
+	(5, 455),
+	(5, 456),
+	(5, 457),
+	(5, 458),
+	(5, 459),
+	(5, 460),
+	(5, 461),
+	(5, 462),
+	(5, 463),
+	(5, 464),
+	(5, 465),
+	(5, 466),
+	(5, 467),
+	(5, 468),
+	(5, 469),
+	(5, 470),
+	(5, 471),
+	(5, 472),
+	(5, 473),
+	(5, 474),
+	(5, 475),
+	(5, 476),
+	(5, 477),
+	(5, 478),
+	(5, 479),
+	(5, 480),
+	(5, 481),
+	(5, 482),
+	(5, 483),
+	(5, 484),
+	(5, 485),
+	(5, 486),
+	(5, 487),
+	(5, 488),
+	(5, 489),
+	(5, 490),
+	(5, 491),
+	(5, 492),
+	(5, 493),
+	(5, 494),
+	(5, 495),
+	(5, 496),
+	(5, 497),
+	(5, 498),
+	(5, 499),
+	(5, 500),
+	(5, 501),
+	(5, 502),
+	(5, 503),
+	(5, 504),
+	(5, 505),
+	(5, 506),
+	(5, 507),
+	(5, 508),
+	(5, 509),
+	(5, 510),
+	(5, 511),
+	(5, 512),
+	(5, 513),
+	(5, 514),
+	(5, 515),
+	(5, 516),
+	(5, 517),
+	(5, 518),
+	(5, 519),
+	(5, 520),
+	(5, 521),
+	(5, 522),
+	(5, 523),
+	(5, 524),
+	(5, 525),
+	(5, 526),
+	(5, 527),
+	(5, 528),
+	(5, 529),
+	(5, 530),
+	(5, 531),
+	(5, 532),
+	(5, 533),
+	(5, 534),
+	(5, 535),
+	(5, 536),
+	(5, 537),
+	(5, 538),
+	(5, 539),
+	(5, 540),
+	(5, 541),
+	(5, 542),
+	(5, 543),
+	(5, 544),
+	(5, 545),
+	(5, 546),
+	(5, 547),
+	(5, 548),
+	(5, 549),
+	(5, 550),
+	(5, 551),
+	(5, 552),
+	(5, 553),
+	(5, 554),
+	(5, 555),
+	(5, 556),
+	(5, 557),
+	(5, 558),
+	(5, 559),
+	(5, 560),
+	(5, 561),
+	(5, 562),
+	(5, 563),
+	(5, 564),
+	(5, 565),
+	(5, 566),
+	(5, 567),
+	(5, 568),
+	(5, 569),
+	(5, 570),
+	(5, 571),
+	(5, 572),
+	(5, 573),
+	(5, 574),
+	(5, 575),
+	(5, 576),
+	(5, 577),
+	(5, 578),
+	(5, 579),
+	(5, 580),
+	(5, 581),
+	(5, 582),
+	(5, 583),
+	(5, 584),
+	(5, 585),
+	(5, 586),
+	(5, 587),
+	(5, 588),
+	(5, 589),
+	(5, 590),
+	(5, 591);
 
--- Dumping structure for table db_p59_beebot.sales
+-- Dumping structure for table db_p59_mav.sales
 DROP TABLE IF EXISTS `sales`;
 CREATE TABLE IF NOT EXISTS `sales` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -1460,30 +2645,37 @@ CREATE TABLE IF NOT EXISTS `sales` (
   `warehouse_id` bigint(20) unsigned DEFAULT NULL,
   `sale_channel` enum('1','2') NOT NULL COMMENT '1=offline, 2=online',
   `total_amount` decimal(16,2) NOT NULL DEFAULT 0.00,
+  `total_payment` decimal(16,2) NOT NULL DEFAULT 0.00,
+  `balance_due` decimal(16,2) NOT NULL DEFAULT 0.00,
   `discount_amount` decimal(16,2) NOT NULL DEFAULT 0.00,
   `tax_amount` decimal(16,2) NOT NULL DEFAULT 0.00,
+  `tax_type` enum('0','1','2') NOT NULL DEFAULT '0' COMMENT '0=no tax, 1=include tax (PPN termasuk), 2=added tax (PPN ditambahkan)',
   `grand_total` decimal(16,2) NOT NULL DEFAULT 0.00,
+  `delivery_address` text DEFAULT NULL COMMENT 'Delivery address for the order (can be agent registered address or custom address)',
+  `note` text DEFAULT NULL COMMENT 'Order notes/comments',
+  `admin_note` text DEFAULT NULL COMMENT 'Catatan admin untuk kurir, AWB, dll (hanya untuk admin)',
   `payment_status` enum('0','1','2') NOT NULL DEFAULT '0' COMMENT '0=unpaid,1=partial,2=paid',
+  `settlement_time` datetime DEFAULT NULL COMMENT 'Payment settlement time from gateway callback',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `invoice_no` (`invoice_no`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci COMMENT='Stores main sales transactions.';
+) ENGINE=InnoDB AUTO_INCREMENT=33 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci COMMENT='Stores main sales transactions.';
 
--- Dumping data for table db_p59_beebot.sales: ~1 rows (approximately)
+-- Dumping data for table db_p59_mav.sales: ~0 rows (approximately)
 DELETE FROM `sales`;
-INSERT INTO `sales` (`id`, `invoice_no`, `user_id`, `customer_id`, `warehouse_id`, `sale_channel`, `total_amount`, `discount_amount`, `tax_amount`, `grand_total`, `payment_status`, `created_at`, `updated_at`) VALUES
-	(1, 'INV202511040001', 1, 1, 1, '1', 15000.00, 0.00, 0.00, 15000.00, '0', '2025-11-04 14:52:48', '2025-11-04 14:52:48'),
-	(2, 'INV202511060001', 1, NULL, NULL, '1', 15000.00, 0.00, 0.00, 15000.00, '0', '2025-11-05 17:33:33', '2025-11-05 17:33:33');
+INSERT INTO `sales` (`id`, `invoice_no`, `user_id`, `customer_id`, `warehouse_id`, `sale_channel`, `total_amount`, `total_payment`, `balance_due`, `discount_amount`, `tax_amount`, `tax_type`, `grand_total`, `delivery_address`, `note`, `admin_note`, `payment_status`, `settlement_time`, `created_at`, `updated_at`) VALUES
+	(31, '25772511001', 4, NULL, 1, '2', 14508000.00, 0.00, 0.00, 0.00, 0.00, '0', 14508000.00, 'Jl. Banda Aceh No.1, Aceh\r\nAceh 23111\r\nIndonesia', 'TEST', 'TEST halo\nasdasa\nsasasa', '2', NULL, '2025-11-15 02:13:25', '2025-11-15 12:18:55'),
+	(32, '20622511002', 4, NULL, 1, '2', 8000.00, 0.00, 0.00, 0.00, 0.00, '0', 8000.00, 'Jl. Banda Aceh No.1, Aceh\r\nAceh 23111\r\nIndonesia', 'HALO', 'sdsdsd\ndsdsdsd\ndsdsdsd', '0', NULL, '2025-11-15 12:05:27', '2025-11-15 12:19:14');
 
--- Dumping structure for table db_p59_beebot.sales_detail
+-- Dumping structure for table db_p59_mav.sales_detail
 DROP TABLE IF EXISTS `sales_detail`;
 CREATE TABLE IF NOT EXISTS `sales_detail` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `sale_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to sales table',
   `item_id` int(11) unsigned NOT NULL COMMENT 'Foreign key to item table',
   `variant_id` int(11) unsigned DEFAULT NULL COMMENT 'Foreign key to item_variant table (optional)',
-  `sn` varchar(255) DEFAULT NULL COMMENT 'Serial number',
+  `sn` text DEFAULT NULL COMMENT 'Serial number',
   `item` varchar(255) DEFAULT NULL COMMENT 'Item name or reference',
   `price` decimal(15,2) NOT NULL DEFAULT 0.00 COMMENT 'Item price per unit',
   `qty` int(11) unsigned NOT NULL DEFAULT 1 COMMENT 'Quantity',
@@ -1495,38 +2687,143 @@ CREATE TABLE IF NOT EXISTS `sales_detail` (
   KEY `sale_id` (`sale_id`),
   KEY `item_id` (`item_id`),
   KEY `variant_id` (`variant_id`),
-  KEY `sn` (`sn`),
-  CONSTRAINT `sales_detail_item_id_foreign` FOREIGN KEY (`item_id`) REFERENCES `item` (`id`),
-  CONSTRAINT `sales_detail_sale_id_foreign` FOREIGN KEY (`sale_id`) REFERENCES `sales` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `sales_detail_variant_id_foreign` FOREIGN KEY (`variant_id`) REFERENCES `item_variant` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+  KEY `sn` (`sn`(1024))
+) ENGINE=InnoDB AUTO_INCREMENT=27 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
--- Dumping data for table db_p59_beebot.sales_detail: ~0 rows (approximately)
+-- Dumping data for table db_p59_mav.sales_detail: ~3 rows (approximately)
 DELETE FROM `sales_detail`;
 INSERT INTO `sales_detail` (`id`, `sale_id`, `item_id`, `variant_id`, `sn`, `item`, `price`, `qty`, `disc`, `amount`, `created_at`, `updated_at`) VALUES
-	(1, 1, 3, NULL, '[{"item_sn_id":"1","sn":"SN001234567"},{"item_sn_id":"2","sn":"SN001234568"}]', 'Acer Aspire 7', 15000.00, 1, 0.00, 15000.00, '2025-11-04 21:52:48', '2025-11-04 21:52:48'),
-	(2, 2, 3, NULL, '[{"item_sn_id":"3","sn":"SN001234569"}]', 'Acer Aspire 7', 15000.00, 1, 0.00, 15000.00, '2025-11-06 00:33:33', '2025-11-06 00:33:33');
+	(24, 31, 3, NULL, NULL, 'Acer Aspire 7', 8000.00, 1, 0.00, 8000.00, '2025-11-15 09:13:25', '2025-11-15 09:13:25'),
+	(25, 31, 101, NULL, NULL, 'HP Z210 Tower Server', 14500000.00, 1, 0.00, 14500000.00, '2025-11-15 09:13:25', '2025-11-15 09:13:25'),
+	(26, 32, 3, NULL, NULL, 'Acer Aspire 7', 8000.00, 1, 0.00, 8000.00, '2025-11-15 19:05:27', '2025-11-15 19:05:27');
 
--- Dumping structure for table db_p59_beebot.sales_item_sn
+-- Dumping structure for table db_p59_mav.sales_fee
+DROP TABLE IF EXISTS `sales_fee`;
+CREATE TABLE IF NOT EXISTS `sales_fee` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `sale_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to sales.id',
+  `fee_type_id` int(11) unsigned NOT NULL COMMENT 'Foreign key to fee_type.id',
+  `fee_name` varchar(255) DEFAULT NULL COMMENT 'Custom name override if needed',
+  `amount` decimal(16,2) NOT NULL DEFAULT 0.00 COMMENT 'Fee amount',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_sale_id` (`sale_id`),
+  KEY `idx_fee_type_id` (`fee_type_id`),
+  KEY `idx_sale_fee_type` (`sale_id`,`fee_type_id`),
+  CONSTRAINT `fk_sales_fee_fee_type_id` FOREIGN KEY (`fee_type_id`) REFERENCES `fee_type` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `fk_sales_fee_sale_id` FOREIGN KEY (`sale_id`) REFERENCES `sales` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci COMMENT='Stores fees for each sale transaction (shipment, insurance, handling, etc.)';
+
+-- Dumping data for table db_p59_mav.sales_fee: ~1 rows (approximately)
+DELETE FROM `sales_fee`;
+INSERT INTO `sales_fee` (`id`, `sale_id`, `fee_type_id`, `fee_name`, `amount`, `created_at`, `updated_at`) VALUES
+	(1, 31, 5, 'ttt', 7000.00, '2025-11-15 03:15:38', '2025-11-15 03:15:38');
+
+-- Dumping structure for table db_p59_mav.sales_gateway_logs
+DROP TABLE IF EXISTS `sales_gateway_logs`;
+CREATE TABLE IF NOT EXISTS `sales_gateway_logs` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `invoice_no` varchar(100) NOT NULL COMMENT 'Invoice number (orderId) sent to payment gateway - cannot be reused',
+  `order_id` varchar(100) NOT NULL COMMENT 'Same as invoice_no, for clarity and compatibility',
+  `platform_id` int(11) unsigned DEFAULT NULL COMMENT 'Foreign key to platform.id (which payment platform was used)',
+  `amount` decimal(20,2) NOT NULL DEFAULT 0.00 COMMENT 'Amount sent to payment gateway',
+  `payload` text DEFAULT NULL COMMENT 'Full JSON payload sent to payment gateway (for debugging)',
+  `response` text DEFAULT NULL COMMENT 'Full JSON response from payment gateway',
+  `status` varchar(50) DEFAULT NULL COMMENT 'Status from gateway (PENDING, PAID, FAILED, etc.)',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_unique_invoice_no` (`invoice_no`),
+  KEY `idx_order_id` (`order_id`),
+  KEY `idx_platform_id` (`platform_id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_created_at` (`created_at`),
+  CONSTRAINT `fk_sales_gateway_logs_platform_id` FOREIGN KEY (`platform_id`) REFERENCES `platform` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci COMMENT='Tracks all invoice numbers sent to payment gateway. Once an invoice number is sent, it cannot be reused (payment gateway rule).';
+
+-- Dumping data for table db_p59_mav.sales_gateway_logs: ~1 rows (approximately)
+DELETE FROM `sales_gateway_logs`;
+INSERT INTO `sales_gateway_logs` (`id`, `invoice_no`, `order_id`, `platform_id`, `amount`, `payload`, `response`, `status`, `created_at`, `updated_at`) VALUES
+	(4, '25772511001', '25772511001', 3, 14508000.00, '{"code":"BCA_VA","orderId":"25772511001","amount":14508000,"customer":{"firstName":"Customer","lastName":"Customer","email":"customer@example.com","phone":""}}', '{"code":"BCA_VA","orderId":"25772511001","description":"","originalAmount":14508000,"paymentGatewayAdminFee":4500,"chargeFee":0,"chargeCustomerForPaymentGatewayFee":false,"status":"PENDING","paymentCode":"35733974563549936122413","expiredAt":"2025-11-16T09:13:22"}', 'PENDING', '2025-11-15 02:13:25', '2025-11-15 02:13:25'),
+	(5, '20622511002', '20622511002', 3, 8000.00, '{"code":"BCA_VA","orderId":"20622511002","amount":8000,"customer":{"firstName":"Customer","lastName":"Customer","email":"customer@example.com","phone":""}}', '{"code":"BCA_VA","orderId":"20622511002","description":"","originalAmount":8000,"paymentGatewayAdminFee":4500,"chargeFee":0,"chargeCustomerForPaymentGatewayFee":false,"status":"PENDING","paymentCode":"35733749891029215277407","expiredAt":"2025-11-16T19:05:23"}', 'PENDING', '2025-11-15 12:05:27', '2025-11-15 12:05:27');
+
+-- Dumping structure for table db_p59_mav.sales_item_sn
 DROP TABLE IF EXISTS `sales_item_sn`;
 CREATE TABLE IF NOT EXISTS `sales_item_sn` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `sales_item_id` bigint(20) unsigned NOT NULL,
   `item_sn_id` bigint(20) unsigned NOT NULL,
   `sn` varchar(100) NOT NULL,
+  `no_hp` varchar(20) DEFAULT NULL COMMENT 'Phone number',
+  `plat_code` varchar(10) DEFAULT NULL COMMENT 'Vehicle plate code (e.g., B, H, D)',
+  `plat_number` varchar(10) DEFAULT NULL COMMENT 'Vehicle plate number (e.g., 4575)',
+  `plat_last` varchar(10) DEFAULT NULL COMMENT 'Vehicle plate last code (e.g., PBP, ABC)',
+  `file` varchar(255) DEFAULT NULL COMMENT 'File path or filename',
+  `activated_at` timestamp NULL DEFAULT NULL COMMENT 'Activation timestamp',
+  `expired_at` timestamp NULL DEFAULT NULL COMMENT 'Expiration timestamp',
+  `is_receive` enum('0','1') NOT NULL DEFAULT '0' COMMENT '0 = not received, 1 = received by agent',
+  `receive_at` timestamp NULL DEFAULT NULL COMMENT 'Timestamp when SN was received by agent',
+  `updated_at` timestamp NULL DEFAULT NULL COMMENT 'Last update timestamp',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `idx_sales_item_sn` (`sales_item_id`,`item_sn_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci COMMENT='Maps multiple serial numbers (SN) to one sales item.';
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci COMMENT='Maps multiple serial numbers (SN) to one sales item.';
 
--- Dumping data for table db_p59_beebot.sales_item_sn: ~2 rows (approximately)
+-- Dumping data for table db_p59_mav.sales_item_sn: ~0 rows (approximately)
 DELETE FROM `sales_item_sn`;
-INSERT INTO `sales_item_sn` (`id`, `sales_item_id`, `item_sn_id`, `sn`, `created_at`) VALUES
-	(1, 1, 1, 'SN001234567', '2025-11-04 14:52:48'),
-	(2, 1, 2, 'SN001234568', '2025-11-04 14:52:48'),
-	(3, 2, 3, 'SN001234569', '2025-11-05 17:33:33');
+INSERT INTO `sales_item_sn` (`id`, `sales_item_id`, `item_sn_id`, `sn`, `no_hp`, `plat_code`, `plat_number`, `plat_last`, `file`, `activated_at`, `expired_at`, `is_receive`, `receive_at`, `updated_at`, `created_at`) VALUES
+	(1, 24, 32, '75920486', NULL, NULL, NULL, NULL, NULL, NULL, NULL, '1', '2025-11-15 12:04:33', '2025-11-15 12:04:33', '2025-11-15 03:07:36');
 
--- Dumping structure for table db_p59_beebot.setting
+-- Dumping structure for table db_p59_mav.sales_payments
+DROP TABLE IF EXISTS `sales_payments`;
+CREATE TABLE IF NOT EXISTS `sales_payments` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `sale_id` bigint(20) unsigned NOT NULL COMMENT 'Foreign key to sales.id',
+  `platform_id` int(11) unsigned DEFAULT NULL COMMENT 'Foreign key to platform.id (optional)',
+  `method` enum('cash','transfer','qris','credit','other') NOT NULL DEFAULT 'cash' COMMENT 'Payment method used',
+  `amount` decimal(16,2) NOT NULL DEFAULT 0.00 COMMENT 'Payment amount',
+  `note` varchar(255) DEFAULT NULL COMMENT 'Additional notes or gateway response data',
+  `response` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_sale_id` (`sale_id`),
+  KEY `idx_platform_id` (`platform_id`),
+  KEY `idx_sale_platform` (`sale_id`,`platform_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci COMMENT='Stores payment details for each sale transaction. Links sales with payment platforms and methods.';
+
+-- Dumping data for table db_p59_mav.sales_payments: ~1 rows (approximately)
+DELETE FROM `sales_payments`;
+INSERT INTO `sales_payments` (`id`, `sale_id`, `platform_id`, `method`, `amount`, `note`, `response`, `created_at`, `updated_at`) VALUES
+	(22, 31, 3, 'other', 14508000.00, '', '{"code":"BCA_VA","orderId":"25772511001","description":"","originalAmount":14508000,"paymentGatewayAdminFee":4500,"chargeFee":0,"chargeCustomerForPaymentGatewayFee":false,"status":"PENDING","paymentCode":"35733974563549936122413","expiredAt":"2025-11-16T09:13:22"}', '2025-11-15 02:13:25', '2025-11-15 02:13:25'),
+	(23, 32, 3, 'other', 8000.00, '', '{"code":"BCA_VA","orderId":"20622511002","description":"","originalAmount":8000,"paymentGatewayAdminFee":4500,"chargeFee":0,"chargeCustomerForPaymentGatewayFee":false,"status":"PENDING","paymentCode":"35733749891029215277407","expiredAt":"2025-11-16T19:05:23"}', '2025-11-15 12:05:27', '2025-11-15 12:05:27');
+
+-- Dumping structure for table db_p59_mav.sales_payment_log
+DROP TABLE IF EXISTS `sales_payment_log`;
+CREATE TABLE IF NOT EXISTS `sales_payment_log` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `sale_id` bigint(20) unsigned DEFAULT NULL COMMENT 'Foreign key to sales.id (nullable for error cases)',
+  `platform_id` int(11) unsigned DEFAULT NULL COMMENT 'Foreign key to platform.id (optional)',
+  `response` text DEFAULT NULL COMMENT 'Raw gateway response or JSON response from payment gateway callback',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_sale_id` (`sale_id`),
+  KEY `idx_platform_id` (`platform_id`),
+  KEY `idx_sale_platform` (`sale_id`,`platform_id`),
+  KEY `idx_created_at` (`created_at`),
+  CONSTRAINT `fk_sales_payment_log_platform_id` FOREIGN KEY (`platform_id`) REFERENCES `platform` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_sales_payment_log_sale_id` FOREIGN KEY (`sale_id`) REFERENCES `sales` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci COMMENT='Stores payment gateway callback logs for audit and tracking purposes.';
+
+-- Dumping data for table db_p59_mav.sales_payment_log: ~1 rows (approximately)
+DELETE FROM `sales_payment_log`;
+INSERT INTO `sales_payment_log` (`id`, `sale_id`, `platform_id`, `response`, `created_at`, `updated_at`) VALUES
+	(3, 31, 3, '{"code":"BCA_VA","orderId":"25772511001","description":"","originalAmount":14508000,"paymentGatewayAdminFee":4500,"chargeFee":0,"chargeCustomerForPaymentGatewayFee":false,"status":"PENDING","paymentCode":"35733974563549936122413","expiredAt":"2025-11-16T09:13:22"}', '2025-11-15 02:13:25', '2025-11-15 02:13:25'),
+	(4, 32, 3, '{"code":"BCA_VA","orderId":"20622511002","description":"","originalAmount":8000,"paymentGatewayAdminFee":4500,"chargeFee":0,"chargeCustomerForPaymentGatewayFee":false,"status":"PENDING","paymentCode":"35733749891029215277407","expiredAt":"2025-11-16T19:05:23"}', '2025-11-15 12:05:27', '2025-11-15 12:05:27');
+
+-- Dumping structure for table db_p59_mav.setting
 DROP TABLE IF EXISTS `setting`;
 CREATE TABLE IF NOT EXISTS `setting` (
   `type` varchar(50) NOT NULL,
@@ -1535,7 +2832,7 @@ CREATE TABLE IF NOT EXISTS `setting` (
   PRIMARY KEY (`type`,`param`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC;
 
--- Dumping data for table db_p59_beebot.setting: ~23 rows (approximately)
+-- Dumping data for table db_p59_mav.setting: ~23 rows (approximately)
 DELETE FROM `setting`;
 INSERT INTO `setting` (`type`, `param`, `value`) VALUES
 	('app', 'background_logo', 'transparent'),
@@ -1548,12 +2845,13 @@ INSERT INTO `setting` (`type`, `param`, `value`) VALUES
 	('app', 'logo_app', 'logo_aplikasi.png'),
 	('app', 'logo_login', 'logo_login.png'),
 	('app', 'logo_register', 'logo_register.png'),
+	('app', 'ppn', '11'),
 	('layout', 'bootswatch_theme', 'cerulean'),
-	('layout', 'color_scheme', 'grey'),
+	('layout', 'color_scheme', 'light'),
 	('layout', 'font_family', 'poppins'),
 	('layout', 'font_size', '14.5'),
-	('layout', 'logo_background_color', 'dark'),
-	('layout', 'sidebar_color', 'dark'),
+	('layout', 'logo_background_color', 'light'),
+	('layout', 'sidebar_color', 'light'),
 	('register', 'default_page_id_module', '5'),
 	('register', 'default_page_id_role', '2'),
 	('register', 'default_page_type', 'id_module'),
@@ -1562,7 +2860,7 @@ INSERT INTO `setting` (`type`, `param`, `value`) VALUES
 	('register', 'id_role', '2'),
 	('register', 'metode_aktivasi', 'email');
 
--- Dumping structure for table db_p59_beebot.setting_user
+-- Dumping structure for table db_p59_mav.setting_user
 DROP TABLE IF EXISTS `setting_user`;
 CREATE TABLE IF NOT EXISTS `setting_user` (
   `id_user` int(11) unsigned NOT NULL,
@@ -1571,13 +2869,13 @@ CREATE TABLE IF NOT EXISTS `setting_user` (
   PRIMARY KEY (`id_user`,`type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci ROW_FORMAT=DYNAMIC;
 
--- Dumping data for table db_p59_beebot.setting_user: ~2 rows (approximately)
+-- Dumping data for table db_p59_mav.setting_user: ~2 rows (approximately)
 DELETE FROM `setting_user`;
 INSERT INTO `setting_user` (`id_user`, `type`, `param`) VALUES
 	(2, 'layout', '{"color_scheme":"blue-dark","sidebar_color":"dark","logo_background_color":"default","font_family":"open-sans","font_size":"15","bootswatch_theme":""}'),
 	(3, 'layout', '{"color_scheme":"green","bootswatch_theme":"default","sidebar_color":"dark","logo_background_color":"dark","font_family":"poppins","font_size":"14.5"}');
 
--- Dumping structure for table db_p59_beebot.tbl_sessions
+-- Dumping structure for table db_p59_mav.tbl_sessions
 DROP TABLE IF EXISTS `tbl_sessions`;
 CREATE TABLE IF NOT EXISTS `tbl_sessions` (
   `id` varchar(128) NOT NULL,
@@ -1588,13 +2886,14 @@ CREATE TABLE IF NOT EXISTS `tbl_sessions` (
   KEY `ci_sessions_timestamp` (`timestamp`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Dumping data for table db_p59_beebot.tbl_sessions: ~0 rows (approximately)
+-- Dumping data for table db_p59_mav.tbl_sessions: ~2 rows (approximately)
 DELETE FROM `tbl_sessions`;
 INSERT INTO `tbl_sessions` (`id`, `ip_address`, `timestamp`, `data`) VALUES
+	('kaldera_session:i3o8o5v7b37sstsnjihkda251jn3tla7', '::1', 4294967295, _binary 0x5f5f63695f6c6173745f726567656e65726174657c693a313736323738333636323b7765627c613a333a7b733a31303a226d6f64756c655f75726c223b733a33303a22687474703a2f2f6c6f63616c686f73742f7035392d6d61762f6c6f67696e223b733a31313a226e616d615f6d6f64756c65223b733a353a226c6f67696e223b733a31313a226d6574686f645f6e616d65223b733a353a22696e646578223b7d746f6b656e7c613a313a7b733a31363a226c6f67696e5f666f726d5f746f6b656e223b613a313a7b733a31383a22383134623963643165306538303235656139223b733a36343a2232633666616235343235666434303234306563636364363839383734383138356264313434663432393139653864323765653338643161353938656461646133223b7d7d5f63695f70726576696f75735f75726c7c733a33303a22687474703a2f2f6c6f63616c686f73742f7035392d6d61762f6c6f67696e223b),
 	('kopmensa_session:0c9079873ecedf2933d78f907e394647', '::1', 4294967295, _binary 0x5f5f63695f6c6173745f726567656e65726174657c693a313736313733333432323b7765627c613a333a7b733a31303a226d6f64756c655f75726c223b733a33303a22687474703a2f2f6c6f63616c686f73742f7035392d6d61762f6c6f67696e223b733a31313a226e616d615f6d6f64756c65223b733a353a226c6f67696e223b733a31313a226d6574686f645f6e616d65223b733a353a22696e646578223b7d746f6b656e7c613a313a7b733a31363a226c6f67696e5f666f726d5f746f6b656e223b613a313a7b733a31383a22396638366165623232626338646566376362223b733a36343a2230366232616331643132363431353537386530396462333964636566373339396130633761313961636433346333383236626633636433306530313030356638223b7d7d5f63695f70726576696f75735f75726c7c733a33303a22687474703a2f2f6c6f63616c686f73742f7035392d6d61762f6c6f67696e223b),
 	('mav_session:bc1b25e93d8cc470249abb0ac3c36e75', '::1', 4294967295, _binary 0x5f5f63695f6c6173745f726567656e65726174657c693a313736313034303737383b7765627c613a333a7b733a31303a226d6f64756c655f75726c223b733a33373a22687474703a2f2f6c6f63616c686f73742f7035392d6d61762f6275696c74696e2f6d656e75223b733a31313a226e616d615f6d6f64756c65223b733a31323a226275696c74696e2f6d656e75223b733a31313a226d6574686f645f6e616d65223b733a353a22696e646578223b7d);
 
--- Dumping structure for table db_p59_beebot.user
+-- Dumping structure for table db_p59_mav.user
 DROP TABLE IF EXISTS `user`;
 CREATE TABLE IF NOT EXISTS `user` (
   `id_user` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -1616,20 +2915,18 @@ CREATE TABLE IF NOT EXISTS `user` (
   KEY `user_role` (`default_page_id_role`),
   KEY `user_module` (`default_page_id_module`),
   KEY `idx_username` (`username`),
-  KEY `idx_email` (`email`),
-  CONSTRAINT `user_module` FOREIGN KEY (`default_page_id_module`) REFERENCES `module` (`id_module`) ON DELETE SET NULL ON UPDATE SET NULL,
-  CONSTRAINT `user_role` FOREIGN KEY (`default_page_id_role`) REFERENCES `role` (`id_role`) ON DELETE SET NULL ON UPDATE SET NULL
+  KEY `idx_email` (`email`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci ROW_FORMAT=COMPACT COMMENT='Tabel user untuk login';
 
--- Dumping data for table db_p59_beebot.user: ~3 rows (approximately)
+-- Dumping data for table db_p59_mav.user: ~4 rows (approximately)
 DELETE FROM `user`;
 INSERT INTO `user` (`id_user`, `email`, `username`, `nama`, `password`, `verified`, `status`, `created`, `avatar`, `default_page_type`, `default_page_url`, `default_page_id_module`, `default_page_id_role`) VALUES
 	(1, 'mikhaelfelian@gmail.com', 'superadmin', 'Mikhael Felian Waskito', '$2y$10$.j6L5CVBeWTnus8w6XcIeePdscl54aQOasuJ4paM4qx5Bjjxs3LJC', 1, 'active', '2018-09-20 16:04:35', 'default.png', 'id_module', 'dashboard', 46, 1),
 	(2, 'superuser@gmail.com', 'superuser', 'Super User', '$2y$10$zhOI1vNLoGnnu/1e.9R/zusTvOz2WHiZ5plTVID860pRQAc8Xb.8G', 1, 'active', '2019-10-01 09:15:03', '', 'id_module', '', 5, 1),
-	(3, 'user@gmail.com', 'user', 'User', '$2y$10$strgoHv1YxR29OBOdyjsSuDMgVcuA2SjULVkawBa.h.UWSgvf7fdu', 1, 'active', '2023-03-11 13:32:38', 'Fransisco Brian.png', 'id_module', '', 5, 2),
-	(4, 'agen.mav1@gmail.com', 'agen1', 'Agen MAV 1', '$2y$10$JZsERRg0M8xhQwFB.b2qt..wcoU2ArdcSMHIdhF2Wg5Qm/oQRFD6G', 1, 'active', '2025-10-24 08:22:26', NULL, 'id_module', '', 88, 4);
+	(3, 'user@gmail.com', 'user', 'User', '$2y$10$strgoHv1YxR29OBOdyjsSuDMgVcuA2SjULVkawBa.h.UWSgvf7fdu', 1, 'active', '2023-03-11 13:32:38', 'Fransisco Brian.png', 'id_module', '', 5, NULL),
+	(4, 'agen.mav1@gmail.com', 'agen1', 'Agen MAV 1', '$2y$10$JZsERRg0M8xhQwFB.b2qt..wcoU2ArdcSMHIdhF2Wg5Qm/oQRFD6G', 1, 'active', '2025-10-24 08:22:26', NULL, 'id_module', '', 107, 4);
 
--- Dumping structure for table db_p59_beebot.user_login_activity
+-- Dumping structure for table db_p59_mav.user_login_activity
 DROP TABLE IF EXISTS `user_login_activity`;
 CREATE TABLE IF NOT EXISTS `user_login_activity` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -1637,296 +2934,39 @@ CREATE TABLE IF NOT EXISTS `user_login_activity` (
   `id_activity` tinyint(4) NOT NULL,
   `time` datetime NOT NULL,
   PRIMARY KEY (`id`) USING BTREE,
-  KEY `user_login_activity_user` (`id_user`),
-  CONSTRAINT `user_login_activity_user` FOREIGN KEY (`id_user`) REFERENCES `user` (`id_user`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=317 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci ROW_FORMAT=DYNAMIC;
+  KEY `user_login_activity_user` (`id_user`)
+) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci ROW_FORMAT=DYNAMIC;
 
--- Dumping data for table db_p59_beebot.user_login_activity: ~240 rows (approximately)
+-- Dumping data for table db_p59_mav.user_login_activity: ~25 rows (approximately)
 DELETE FROM `user_login_activity`;
 INSERT INTO `user_login_activity` (`id`, `id_user`, `id_activity`, `time`) VALUES
-	(1, 1, 1, '2021-03-09 06:41:49'),
-	(2, 1, 1, '2021-03-09 18:57:18'),
-	(3, 1, 1, '2021-03-09 19:39:09'),
-	(4, 1, 1, '2021-03-09 19:40:19'),
-	(5, 1, 1, '2021-03-09 19:42:23'),
-	(6, 1, 1, '2021-03-09 19:42:37'),
-	(7, 1, 1, '2021-03-13 21:04:15'),
-	(8, 1, 1, '2021-03-14 19:16:37'),
-	(9, 1, 1, '2021-03-14 19:33:36'),
-	(10, 1, 1, '2021-04-01 05:09:56'),
-	(11, 1, 1, '2021-05-27 07:19:44'),
-	(12, 1, 1, '2021-05-27 20:55:41'),
-	(13, 1, 1, '2021-05-30 16:05:20'),
-	(14, 1, 1, '2021-05-30 21:27:32'),
-	(15, 1, 1, '2021-05-31 12:20:38'),
-	(16, 1, 1, '2021-12-19 08:50:37'),
-	(17, 1, 1, '2021-12-20 20:12:26'),
-	(18, 1, 1, '2021-12-20 20:54:39'),
-	(19, 1, 1, '2021-12-20 21:01:36'),
-	(20, 1, 1, '2021-12-21 20:08:38'),
-	(21, 1, 1, '2021-12-21 20:14:09'),
-	(22, 1, 1, '2021-12-24 20:22:35'),
-	(23, 1, 1, '2021-12-25 11:40:33'),
-	(24, 1, 1, '2021-12-25 13:52:21'),
-	(25, 1, 1, '2021-12-25 15:55:18'),
-	(26, 1, 1, '2021-12-26 10:47:59'),
-	(27, 1, 1, '2022-01-01 20:26:54'),
-	(28, 1, 1, '2022-01-06 20:57:26'),
-	(29, 1, 1, '2022-01-07 05:44:38'),
-	(30, 1, 1, '2022-01-08 17:11:21'),
-	(31, 1, 1, '2022-01-15 14:18:48'),
-	(32, 1, 1, '2022-01-16 12:27:25'),
-	(33, 1, 1, '2022-01-23 05:15:32'),
-	(34, 1, 1, '2022-01-29 06:25:29'),
-	(35, 1, 1, '2022-01-30 11:37:13'),
-	(36, 1, 1, '2022-02-04 20:14:46'),
-	(37, 1, 1, '2022-02-11 20:08:38'),
-	(38, 1, 1, '2022-02-12 08:56:22'),
-	(39, 1, 1, '2022-02-13 06:33:35'),
-	(40, 1, 1, '2022-02-13 06:46:00'),
-	(41, 1, 1, '2022-02-13 06:47:51'),
-	(42, 1, 1, '2022-02-13 06:48:37'),
-	(43, 1, 1, '2022-02-13 06:50:53'),
-	(44, 1, 1, '2022-02-13 06:51:49'),
-	(45, 1, 1, '2022-02-13 06:52:17'),
-	(46, 1, 1, '2022-02-13 06:52:43'),
-	(47, 1, 1, '2022-02-13 07:00:46'),
-	(48, 1, 1, '2022-02-13 07:01:14'),
-	(49, 1, 1, '2022-02-13 07:16:25'),
-	(50, 1, 1, '2022-02-13 07:47:25'),
-	(52, 1, 1, '2022-02-13 07:52:20'),
-	(53, 1, 1, '2022-02-13 07:53:53'),
-	(54, 1, 1, '2022-02-13 08:02:28'),
-	(55, 1, 1, '2022-02-13 08:11:32'),
-	(56, 1, 1, '2022-02-19 06:06:40'),
-	(57, 1, 1, '2022-02-25 17:40:21'),
-	(58, 1, 1, '2022-03-10 16:31:49'),
-	(59, 1, 1, '2022-03-20 19:54:08'),
-	(60, 1, 1, '2022-04-02 15:22:39'),
-	(61, 1, 1, '2022-05-24 19:46:00'),
-	(62, 1, 1, '2022-05-26 05:33:54'),
-	(63, 1, 1, '2022-05-26 11:48:51'),
-	(64, 1, 1, '2022-05-26 14:47:21'),
-	(65, 1, 1, '2022-05-26 21:04:14'),
-	(66, 1, 1, '2022-05-27 20:10:27'),
-	(67, 1, 1, '2022-05-28 05:04:42'),
-	(68, 1, 1, '2022-05-28 06:23:46'),
-	(69, 1, 1, '2022-05-28 10:38:45'),
-	(70, 1, 1, '2022-05-28 18:43:53'),
-	(71, 1, 1, '2022-05-28 20:14:59'),
-	(73, 1, 1, '2022-05-28 20:20:21'),
-	(74, 1, 1, '2022-05-28 21:29:04'),
-	(75, 1, 1, '2022-05-29 05:51:03'),
-	(76, 1, 1, '2022-06-01 10:11:47'),
-	(77, 1, 1, '2022-06-01 16:39:59'),
-	(78, 1, 1, '2022-06-02 21:27:07'),
-	(79, 1, 1, '2022-06-03 20:39:38'),
-	(80, 1, 1, '2022-06-04 05:19:14'),
-	(81, 1, 1, '2022-06-04 09:55:18'),
-	(82, 1, 1, '2022-06-05 04:52:09'),
-	(83, 1, 1, '2022-06-05 07:42:05'),
-	(84, 1, 1, '2022-06-05 11:29:05'),
-	(85, 1, 1, '2022-06-10 21:43:54'),
-	(87, 1, 1, '2022-06-10 21:54:25'),
-	(88, 1, 1, '2022-06-12 18:45:04'),
-	(89, 1, 1, '2022-06-12 20:29:49'),
-	(90, 1, 1, '2022-06-13 19:58:46'),
-	(91, 1, 1, '2022-06-13 19:59:20'),
-	(92, 1, 1, '2022-06-14 19:29:19'),
-	(93, 1, 1, '2022-06-14 19:30:01'),
-	(94, 1, 1, '2022-06-15 19:44:47'),
-	(95, 1, 1, '2022-06-15 19:45:58'),
-	(96, 1, 1, '2022-06-18 07:09:11'),
-	(97, 1, 1, '2022-06-18 14:00:24'),
-	(98, 1, 1, '2022-06-18 16:56:07'),
-	(99, 1, 1, '2022-06-19 04:52:30'),
-	(100, 1, 1, '2022-06-19 11:32:33'),
-	(103, 1, 1, '2022-06-19 16:01:58'),
-	(104, 1, 1, '2022-06-19 16:09:07'),
-	(105, 1, 1, '2022-06-19 16:10:34'),
-	(106, 1, 1, '2022-06-19 16:12:06'),
-	(107, 1, 1, '2022-06-20 05:03:09'),
-	(108, 1, 1, '2022-06-20 11:42:51'),
-	(109, 1, 1, '2022-06-20 11:49:05'),
-	(110, 1, 1, '2022-06-20 12:40:09'),
-	(111, 1, 1, '2022-06-20 13:17:50'),
-	(112, 1, 1, '2022-06-21 20:33:32'),
-	(113, 1, 1, '2022-06-22 20:37:47'),
-	(114, 1, 1, '2022-06-22 20:40:00'),
-	(115, 1, 1, '2022-06-25 05:55:26'),
-	(116, 1, 1, '2022-06-25 07:26:56'),
-	(117, 1, 1, '2022-06-26 05:32:54'),
-	(118, 1, 1, '2022-06-26 07:39:40'),
-	(119, 1, 1, '2022-06-26 07:43:35'),
-	(120, 1, 1, '2022-06-26 07:44:56'),
-	(121, 1, 1, '2022-06-26 07:47:01'),
-	(122, 1, 1, '2022-06-26 07:48:16'),
-	(123, 1, 1, '2022-06-26 08:24:36'),
-	(124, 1, 1, '2022-06-26 08:25:28'),
-	(125, 1, 1, '2022-06-26 08:26:55'),
-	(127, 1, 1, '2022-06-26 09:40:53'),
-	(128, 1, 1, '2022-06-26 09:42:18'),
-	(130, 1, 1, '2022-06-26 12:20:37'),
-	(132, 1, 1, '2022-06-26 15:44:52'),
-	(133, 1, 1, '2022-06-26 18:40:18'),
-	(134, 1, 1, '2022-07-09 07:36:04'),
-	(135, 1, 1, '2022-08-06 11:44:36'),
-	(136, 1, 1, '2022-08-06 12:10:27'),
-	(137, 1, 1, '2022-08-06 13:06:38'),
-	(138, 1, 1, '2022-08-08 20:35:38'),
-	(139, 1, 1, '2022-08-10 21:35:05'),
-	(140, 1, 1, '2022-08-27 20:48:39'),
-	(141, 1, 1, '2022-08-28 09:23:05'),
-	(142, 1, 1, '2022-11-21 19:44:29'),
-	(143, 1, 1, '2022-11-21 21:23:43'),
-	(144, 1, 1, '2022-11-21 22:02:38'),
-	(145, 1, 1, '2022-11-22 04:21:39'),
-	(146, 1, 1, '2022-11-22 19:22:54'),
-	(147, 1, 1, '2022-11-23 04:21:45'),
-	(148, 1, 1, '2022-11-24 20:40:46'),
-	(149, 1, 1, '2022-11-25 21:05:42'),
-	(150, 1, 1, '2022-11-26 04:22:01'),
-	(151, 1, 1, '2022-11-29 18:32:44'),
-	(152, 1, 1, '2022-12-03 11:03:46'),
-	(154, 1, 1, '2022-12-03 12:52:22'),
-	(156, 1, 1, '2022-12-17 09:03:29'),
-	(157, 1, 1, '2022-12-17 10:28:33'),
-	(158, 1, 1, '2022-12-17 10:41:03'),
-	(160, 1, 1, '2022-12-17 12:27:17'),
-	(166, 1, 1, '2022-12-17 15:46:50'),
-	(167, 1, 1, '2022-12-17 18:28:03'),
-	(168, 1, 1, '2022-12-18 04:53:40'),
-	(169, 1, 1, '2022-12-18 05:56:39'),
-	(170, 1, 1, '2022-12-18 06:09:26'),
-	(171, 1, 1, '2022-12-18 07:15:25'),
-	(172, 1, 1, '2022-12-18 08:45:15'),
-	(173, 1, 1, '2022-12-18 11:34:09'),
-	(174, 1, 1, '2022-12-18 20:06:41'),
-	(175, 1, 1, '2022-12-21 04:39:03'),
-	(177, 1, 1, '2023-01-14 06:24:10'),
-	(179, 1, 1, '2023-01-14 06:26:38'),
-	(180, 1, 1, '2023-01-16 20:59:21'),
-	(181, 1, 1, '2023-01-16 21:22:13'),
-	(182, 1, 1, '2023-01-17 20:27:07'),
-	(183, 1, 1, '2023-01-17 21:03:41'),
-	(184, 1, 1, '2023-01-17 21:15:52'),
-	(185, 1, 1, '2023-01-17 21:41:26'),
-	(186, 1, 1, '2023-01-17 21:54:02'),
-	(187, 1, 1, '2023-01-17 22:19:10'),
-	(188, 1, 1, '2023-01-18 05:41:46'),
-	(189, 1, 1, '2023-01-18 05:57:41'),
-	(190, 1, 1, '2023-01-18 06:26:09'),
-	(191, 1, 1, '2023-01-18 20:17:15'),
-	(192, 1, 1, '2023-01-19 20:37:55'),
-	(193, 1, 1, '2023-01-19 20:58:50'),
-	(194, 1, 1, '2023-01-20 05:59:47'),
-	(195, 1, 1, '2023-01-20 20:19:23'),
-	(196, 1, 1, '2023-01-21 21:38:12'),
-	(197, 1, 1, '2023-01-23 06:37:53'),
-	(198, 1, 1, '2023-01-23 06:42:11'),
-	(199, 1, 1, '2023-02-03 20:51:32'),
-	(201, 1, 1, '2023-02-04 13:15:52'),
-	(203, 1, 1, '2023-02-04 13:18:01'),
-	(206, 1, 1, '2023-02-04 17:58:32'),
-	(207, 1, 1, '2023-02-09 22:20:56'),
-	(208, 1, 1, '2023-02-11 11:45:18'),
-	(209, 1, 1, '2023-02-12 09:10:32'),
-	(210, 1, 1, '2023-02-12 13:18:30'),
-	(211, 1, 1, '2023-02-28 19:17:05'),
-	(212, 1, 1, '2023-03-01 05:03:50'),
-	(213, 1, 1, '2023-03-01 18:26:27'),
-	(214, 1, 1, '2023-03-02 05:00:16'),
-	(215, 1, 1, '2023-03-02 18:41:40'),
-	(216, 1, 1, '2023-03-03 05:05:08'),
-	(217, 1, 1, '2023-03-03 18:05:13'),
-	(218, 1, 1, '2023-03-04 05:31:22'),
-	(219, 1, 1, '2023-03-05 05:31:33'),
-	(220, 1, 1, '2023-03-05 18:44:19'),
-	(221, 1, 1, '2023-03-06 18:41:44'),
-	(222, 1, 1, '2023-03-07 05:15:42'),
-	(223, 1, 1, '2023-03-07 05:38:50'),
-	(224, 1, 1, '2023-03-07 18:48:06'),
-	(225, 1, 1, '2023-03-08 05:01:05'),
-	(227, 1, 1, '2023-03-08 05:28:44'),
-	(228, 1, 1, '2023-03-08 18:35:37'),
-	(229, 1, 1, '2023-03-08 20:02:47'),
-	(230, 1, 1, '2023-03-09 05:05:23'),
-	(231, 1, 1, '2023-03-09 18:49:40'),
-	(232, 1, 1, '2023-03-10 05:08:30'),
-	(233, 1, 1, '2023-03-10 18:34:20'),
-	(234, 1, 1, '2023-03-10 22:05:43'),
-	(236, 1, 1, '2023-03-11 05:04:30'),
-	(239, 1, 1, '2023-03-11 05:45:06'),
-	(241, 1, 1, '2023-03-11 06:43:46'),
-	(242, 1, 1, '2023-03-11 06:46:36'),
-	(245, 1, 1, '2023-03-11 06:51:36'),
-	(247, 1, 1, '2023-03-11 07:25:01'),
-	(253, 1, 1, '2023-03-11 11:09:58'),
-	(254, 3, 1, '2023-03-11 13:34:10'),
-	(255, 1, 1, '2023-03-11 13:34:33'),
-	(256, 3, 1, '2023-03-11 13:35:12'),
-	(257, 1, 1, '2023-03-11 13:42:45'),
-	(258, 3, 1, '2023-03-11 16:09:11'),
-	(259, 1, 1, '2023-03-11 16:09:37'),
-	(260, 3, 1, '2023-03-11 16:12:29'),
-	(261, 1, 1, '2023-03-11 16:22:14'),
-	(262, 1, 1, '2023-03-11 22:12:54'),
-	(263, 1, 1, '2023-03-12 08:06:45'),
-	(264, 1, 1, '2025-10-20 23:43:56'),
-	(265, 1, 1, '2025-10-20 23:47:47'),
-	(266, 1, 1, '2025-10-20 23:48:31'),
-	(267, 1, 1, '2025-10-21 06:09:00'),
-	(268, 1, 1, '2025-10-21 06:11:02'),
-	(269, 1, 1, '2025-10-21 06:17:36'),
-	(270, 1, 1, '2025-10-21 06:20:25'),
-	(271, 1, 1, '2025-10-21 06:21:44'),
-	(272, 1, 1, '2025-10-21 07:27:01'),
-	(273, 1, 1, '2025-10-21 16:50:22'),
-	(274, 1, 1, '2025-10-21 17:42:35'),
-	(275, 1, 1, '2025-10-21 20:00:27'),
-	(276, 1, 1, '2025-10-22 07:42:16'),
-	(277, 4, 1, '2025-10-24 13:52:59'),
-	(278, 1, 1, '2025-10-27 19:02:12'),
-	(279, 1, 1, '2025-10-27 21:31:22'),
-	(280, 1, 1, '2025-10-28 07:27:34'),
-	(281, 1, 1, '2025-10-28 07:29:56'),
-	(282, 1, 1, '2025-10-28 17:09:21'),
-	(283, 1, 1, '2025-10-29 17:24:03'),
-	(284, 1, 1, '2025-10-29 19:52:16'),
-	(285, 1, 1, '2025-10-30 19:59:58'),
-	(286, 1, 1, '2025-10-31 08:14:22'),
-	(287, 1, 1, '2025-10-31 21:39:12'),
-	(288, 1, 1, '2025-11-01 07:42:03'),
-	(289, 1, 1, '2025-11-01 07:43:11'),
-	(290, 1, 1, '2025-11-01 07:44:05'),
-	(291, 1, 1, '2025-11-01 07:44:34'),
-	(292, 1, 1, '2025-11-01 07:45:09'),
-	(293, 1, 1, '2025-11-01 07:45:25'),
-	(294, 1, 1, '2025-11-01 07:45:43'),
-	(295, 1, 1, '2025-11-01 07:50:15'),
-	(296, 1, 1, '2025-11-01 07:50:59'),
-	(297, 1, 1, '2025-11-01 07:52:06'),
-	(298, 1, 1, '2025-11-01 07:52:40'),
-	(299, 1, 1, '2025-11-01 08:05:15'),
-	(300, 1, 1, '2025-11-01 08:13:53'),
-	(301, 1, 1, '2025-11-01 11:35:34'),
-	(302, 1, 1, '2025-11-01 11:40:38'),
-	(303, 1, 1, '2025-11-01 21:46:10'),
-	(304, 1, 1, '2025-11-03 00:55:54'),
-	(305, 1, 1, '2025-11-03 20:18:32'),
-	(306, 1, 1, '2025-11-04 10:07:47'),
-	(307, 1, 1, '2025-11-04 13:02:12'),
-	(308, 1, 1, '2025-11-04 18:07:18'),
-	(309, 1, 1, '2025-11-05 08:36:02'),
-	(310, 1, 1, '2025-11-05 10:36:59'),
-	(311, 1, 1, '2025-11-05 10:37:20'),
-	(312, 1, 1, '2025-11-05 22:12:29'),
-	(313, 1, 1, '2025-11-06 00:29:17'),
-	(314, 1, 1, '2025-11-06 07:54:58'),
-	(315, 1, 1, '2025-11-07 22:23:40'),
-	(316, 4, 1, '2025-11-07 22:43:24');
+	(1, 1, 1, '2025-11-10 16:12:10'),
+	(2, 1, 1, '2025-11-10 20:47:56'),
+	(3, 4, 1, '2025-11-10 21:07:55'),
+	(4, 1, 1, '2025-11-11 09:22:35'),
+	(5, 4, 1, '2025-11-11 09:29:11'),
+	(6, 1, 1, '2025-11-11 15:53:09'),
+	(7, 4, 1, '2025-11-11 18:03:52'),
+	(8, 1, 1, '2025-11-12 11:50:39'),
+	(9, 4, 1, '2025-11-12 11:52:26'),
+	(10, 1, 1, '2025-11-12 19:31:59'),
+	(11, 4, 1, '2025-11-12 20:03:06'),
+	(12, 1, 1, '2025-11-13 08:50:34'),
+	(13, 1, 1, '2025-11-13 11:15:20'),
+	(14, 1, 1, '2025-11-13 19:46:14'),
+	(15, 4, 1, '2025-11-13 20:59:37'),
+	(16, 1, 1, '2025-11-14 09:46:37'),
+	(17, 4, 1, '2025-11-14 09:47:05'),
+	(18, 1, 1, '2025-11-14 19:30:36'),
+	(19, 4, 1, '2025-11-14 19:33:47'),
+	(20, 1, 1, '2025-11-14 20:22:10'),
+	(21, 4, 1, '2025-11-14 20:23:06'),
+	(22, 4, 1, '2025-11-15 07:40:04'),
+	(23, 1, 1, '2025-11-15 07:49:42'),
+	(24, 1, 1, '2025-11-15 17:31:04'),
+	(25, 4, 1, '2025-11-15 17:36:56');
 
--- Dumping structure for table db_p59_beebot.user_login_activity_ref
+-- Dumping structure for table db_p59_mav.user_login_activity_ref
 DROP TABLE IF EXISTS `user_login_activity_ref`;
 CREATE TABLE IF NOT EXISTS `user_login_activity_ref` (
   `id_activity` tinyint(4) unsigned NOT NULL AUTO_INCREMENT,
@@ -1934,21 +2974,20 @@ CREATE TABLE IF NOT EXISTS `user_login_activity_ref` (
   PRIMARY KEY (`id_activity`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
--- Dumping data for table db_p59_beebot.user_login_activity_ref: ~0 rows (approximately)
+-- Dumping data for table db_p59_mav.user_login_activity_ref: ~0 rows (approximately)
 DELETE FROM `user_login_activity_ref`;
 
--- Dumping structure for table db_p59_beebot.user_role
+-- Dumping structure for table db_p59_mav.user_role
 DROP TABLE IF EXISTS `user_role`;
 CREATE TABLE IF NOT EXISTS `user_role` (
   `id_user` int(10) unsigned NOT NULL,
   `id_role` smallint(5) unsigned NOT NULL,
   PRIMARY KEY (`id_user`,`id_role`),
   KEY `module_role_module` (`id_user`),
-  KEY `module_role_role` (`id_role`),
-  CONSTRAINT `user_role_user` FOREIGN KEY (`id_user`) REFERENCES `user` (`id_user`) ON DELETE CASCADE ON UPDATE CASCADE
+  KEY `module_role_role` (`id_role`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci ROW_FORMAT=COMPACT COMMENT='Tabel yang berisi role yang dimili oleh masing masing user';
 
--- Dumping data for table db_p59_beebot.user_role: ~7 rows (approximately)
+-- Dumping data for table db_p59_mav.user_role: ~7 rows (approximately)
 DELETE FROM `user_role`;
 INSERT INTO `user_role` (`id_user`, `id_role`) VALUES
 	(1, 1),
@@ -1959,7 +2998,7 @@ INSERT INTO `user_role` (`id_user`, `id_role`) VALUES
 	(3, 3),
 	(4, 4);
 
--- Dumping structure for table db_p59_beebot.user_role_agent
+-- Dumping structure for table db_p59_mav.user_role_agent
 DROP TABLE IF EXISTS `user_role_agent`;
 CREATE TABLE IF NOT EXISTS `user_role_agent` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -1972,18 +3011,15 @@ CREATE TABLE IF NOT EXISTS `user_role_agent` (
   KEY `user_id` (`user_id`),
   KEY `agent_id` (`agent_id`),
   KEY `role` (`role`),
-  KEY `unique_user_agent` (`user_id`,`agent_id`),
-  CONSTRAINT `user_role_agent_agent_id_foreign` FOREIGN KEY (`agent_id`) REFERENCES `agent` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `user_role_agent_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `user` (`id_user`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci COMMENT='Junction table for user roles within agent organizations - FK user.id=agent.id';
+  KEY `unique_user_agent` (`user_id`,`agent_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci COMMENT='Junction table for user roles within agent organizations - FK user.id=agent.id';
 
--- Dumping data for table db_p59_beebot.user_role_agent: ~1 rows (approximately)
+-- Dumping data for table db_p59_mav.user_role_agent: ~1 rows (approximately)
 DELETE FROM `user_role_agent`;
 INSERT INTO `user_role_agent` (`id`, `user_id`, `agent_id`, `role`, `created_at`, `updated_at`) VALUES
-	(4, 4, 1, '1', '2025-10-24 17:02:22', '2025-10-24 17:02:22'),
-	(5, 4, 14, '1', '2025-10-25 08:36:09', '2025-10-25 08:36:09');
+	(1, 4, 1, '1', '2025-10-24 17:02:22', '2025-10-24 17:02:22');
 
--- Dumping structure for table db_p59_beebot.user_token
+-- Dumping structure for table db_p59_mav.user_token
 DROP TABLE IF EXISTS `user_token`;
 CREATE TABLE IF NOT EXISTS `user_token` (
   `selector` varchar(255) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
@@ -1993,14 +3029,13 @@ CREATE TABLE IF NOT EXISTS `user_token` (
   `created` datetime NOT NULL,
   `expires` datetime NOT NULL,
   PRIMARY KEY (`selector`),
-  KEY `user_token_user` (`id_user`),
-  CONSTRAINT `user_token_user` FOREIGN KEY (`id_user`) REFERENCES `user` (`id_user`) ON DELETE CASCADE ON UPDATE CASCADE
+  KEY `user_token_user` (`id_user`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dumping data for table db_p59_beebot.user_token: ~0 rows (approximately)
+-- Dumping data for table db_p59_mav.user_token: ~0 rows (approximately)
 DELETE FROM `user_token`;
 
--- Dumping structure for table db_p59_beebot.warehouse
+-- Dumping structure for table db_p59_mav.warehouse
 DROP TABLE IF EXISTS `warehouse`;
 CREATE TABLE IF NOT EXISTS `warehouse` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -2016,10 +3051,10 @@ CREATE TABLE IF NOT EXISTS `warehouse` (
   KEY `is_active` (`is_active`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci COMMENT='Warehouses for inventory and sales linkage';
 
--- Dumping data for table db_p59_beebot.warehouse: ~0 rows (approximately)
+-- Dumping data for table db_p59_mav.warehouse: ~0 rows (approximately)
 DELETE FROM `warehouse`;
 
--- Dumping structure for table db_p59_beebot.wilayah_kabupaten
+-- Dumping structure for table db_p59_mav.wilayah_kabupaten
 DROP TABLE IF EXISTS `wilayah_kabupaten`;
 CREATE TABLE IF NOT EXISTS `wilayah_kabupaten` (
   `id_wilayah_kabupaten` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -2030,7 +3065,7 @@ CREATE TABLE IF NOT EXISTS `wilayah_kabupaten` (
   PRIMARY KEY (`id_wilayah_kabupaten`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=515 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
--- Dumping data for table db_p59_beebot.wilayah_kabupaten: ~514 rows (approximately)
+-- Dumping data for table db_p59_mav.wilayah_kabupaten: ~514 rows (approximately)
 DELETE FROM `wilayah_kabupaten`;
 INSERT INTO `wilayah_kabupaten` (`id_wilayah_kabupaten`, `id_wilayah_propinsi`, `nama_kabupaten`, `ibukota`, `k_bsni`) VALUES
 	(1, 1, 'Kabupaten Aceh Barat', 'Meulaboh', 'MBO'),
@@ -2548,7 +3583,7 @@ INSERT INTO `wilayah_kabupaten` (`id_wilayah_kabupaten`, `id_wilayah_propinsi`, 
 	(513, 34, 'Kabupaten Teluk Wondama', 'Rasiei', 'RAS'),
 	(514, 34, 'Kota Sorong', 'Sorong', 'SON');
 
--- Dumping structure for table db_p59_beebot.wilayah_kecamatan
+-- Dumping structure for table db_p59_mav.wilayah_kecamatan
 DROP TABLE IF EXISTS `wilayah_kecamatan`;
 CREATE TABLE IF NOT EXISTS `wilayah_kecamatan` (
   `id_wilayah_kecamatan` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -2557,7 +3592,7 @@ CREATE TABLE IF NOT EXISTS `wilayah_kecamatan` (
   PRIMARY KEY (`id_wilayah_kecamatan`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=7098 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
--- Dumping data for table db_p59_beebot.wilayah_kecamatan: ~7.097 rows (approximately)
+-- Dumping data for table db_p59_mav.wilayah_kecamatan: ~7.097 rows (approximately)
 DELETE FROM `wilayah_kecamatan`;
 INSERT INTO `wilayah_kecamatan` (`id_wilayah_kecamatan`, `id_wilayah_kabupaten`, `nama_kecamatan`) VALUES
 	(1, 1, 'Arongan Lambalek'),
@@ -9658,7 +10693,7 @@ INSERT INTO `wilayah_kecamatan` (`id_wilayah_kecamatan`, `id_wilayah_kabupaten`,
 	(7096, 514, 'Sorong Timur'),
 	(7097, 514, 'Sorong Utara');
 
--- Dumping structure for table db_p59_beebot.wilayah_kelurahan
+-- Dumping structure for table db_p59_mav.wilayah_kelurahan
 DROP TABLE IF EXISTS `wilayah_kelurahan`;
 CREATE TABLE IF NOT EXISTS `wilayah_kelurahan` (
   `id_wilayah_kelurahan` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -9668,7 +10703,7 @@ CREATE TABLE IF NOT EXISTS `wilayah_kelurahan` (
   PRIMARY KEY (`id_wilayah_kelurahan`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=82504 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
--- Dumping data for table db_p59_beebot.wilayah_kelurahan: ~82.618 rows (approximately)
+-- Dumping data for table db_p59_mav.wilayah_kelurahan: ~82.280 rows (approximately)
 DELETE FROM `wilayah_kelurahan`;
 INSERT INTO `wilayah_kelurahan` (`id_wilayah_kelurahan`, `id_wilayah_kecamatan`, `nama_kelurahan`, `kode_pos`) VALUES
 	(1, 1, 'Alue Bagok', '23652'),
@@ -92183,7 +93218,7 @@ INSERT INTO `wilayah_kelurahan` (`id_wilayah_kelurahan`, `id_wilayah_kecamatan`,
 	(82502, 7097, 'Malanu', '98419'),
 	(82503, 7097, 'Malasilen', '98419');
 
--- Dumping structure for table db_p59_beebot.wilayah_propinsi
+-- Dumping structure for table db_p59_mav.wilayah_propinsi
 DROP TABLE IF EXISTS `wilayah_propinsi`;
 CREATE TABLE IF NOT EXISTS `wilayah_propinsi` (
   `id_wilayah_propinsi` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -92193,7 +93228,7 @@ CREATE TABLE IF NOT EXISTS `wilayah_propinsi` (
   PRIMARY KEY (`id_wilayah_propinsi`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=35 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
--- Dumping data for table db_p59_beebot.wilayah_propinsi: ~34 rows (approximately)
+-- Dumping data for table db_p59_mav.wilayah_propinsi: ~34 rows (approximately)
 DELETE FROM `wilayah_propinsi`;
 INSERT INTO `wilayah_propinsi` (`id_wilayah_propinsi`, `nama_propinsi`, `ibukota`, `p_bsni`) VALUES
 	(1, 'Aceh', 'Banda Aceh', 'ID-AC'),
