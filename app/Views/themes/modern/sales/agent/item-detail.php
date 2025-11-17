@@ -20,14 +20,6 @@ $isStockable = ($item['is_stockable'] ?? '0') === '1';
 ?>
 
 <div class="container-fluid py-4">
-    <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="<?= $config->baseURL ?>agent/item"><i class="fas fa-home me-1"></i>Katalog</a></li>
-            <li class="breadcrumb-item active" aria-current="page"><?= esc($itemName) ?></li>
-        </ol>
-    </nav>
-
     <div class="row g-4">
         <!-- Product Image -->
         <div class="col-lg-5 col-md-6">
@@ -35,7 +27,7 @@ $isStockable = ($item['is_stockable'] ?? '0') === '1';
                 <div class="card-body p-4">
                     <div class="text-center">
                         <?php if (!empty($item['image'])): ?>
-                            <img src="<?= $config->baseURL ?>/uploads/<?= esc($item['image']) ?>"
+                            <img src="<?= $config->baseURL ?>/images/produk/<?= esc($item['image']) ?>"
                                  alt="<?= esc($itemName) ?>"
                                  class="img-fluid rounded"
                                  style="max-width: 100%; max-height: 500px; object-fit: contain;">

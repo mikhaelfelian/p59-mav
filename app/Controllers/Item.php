@@ -347,18 +347,9 @@ class Item extends BaseController
         $price = floatval($price);
         $agentPrice = $form['agent_price'] !== null ? floatval($form['agent_price']) : 0;
 
-        // Handle file upload
-        $image = '';
-        $file  = $this->request->getFile('image');
-        if ($file && $file->isValid() && !$file->hasMoved()) {
-            $newName = $file->getRandomName();
-            $file->move(ROOTPATH . 'public/uploads/', $newName);
-            $image = $newName;
-        } elseif ($id) {
-            // Keep existing image if no new file uploaded
-            $existingRecord = $this->model->find($id);
-            $image = $existingRecord ? $existingRecord->image : '';
-        }
+        // Get file reference (will be uploaded after database save)
+        $file = $this->request->getFile('image');
+        $hasNewFile = $file && $file->isValid() && !$file->hasMoved();
 
         // Correct session retrieval to array, not string.
         $userSession = session('user');
@@ -389,6 +380,9 @@ class Item extends BaseController
                 return redirect()->back()->with('message', $message);
             }
 
+            // Keep existing image initially (will be updated if new file uploaded)
+            $image = $existingRecord->image ?? '';
+            
             $data = [
                 'user_id'           => $userId,
                 'sku'               => $existingRecord->sku,
@@ -435,6 +429,35 @@ class Item extends BaseController
                     } catch (\Throwable $e) {
                         log_message('warning', 'Failed to update agent_price: ' . $e->getMessage());
                     }
+                    
+                    // Handle file upload after database update
+                    if ($hasNewFile) {
+                        // Delete existing image if it exists
+                        if (!empty($existingRecord->image)) {
+                            // Handle both old format (filename only) and new format (item_id/filename)
+                            $oldImage = $existingRecord->image;
+                            if (strpos($oldImage, '/') !== false) {
+                                // New format: item_id/filename
+                                $oldImagePath = ROOTPATH . 'public/images/produk/' . $oldImage;
+                            } else {
+                                // Old format: just filename (in root produk directory)
+                                $oldImagePath = ROOTPATH . 'public/images/produk/' . $oldImage;
+                            }
+                            if (file_exists($oldImagePath)) {
+                                @unlink($oldImagePath);
+                            }
+                        }
+                        
+                        // Upload new file to item_id subdirectory
+                        $newName = $file->getRandomName();
+                        $uploadPath = ROOTPATH . 'public/images/produk/' . $id . '/';
+                        $file->move($uploadPath, $newName);
+                        
+                        // Update database with new image path (relative: item_id/filename)
+                        $imagePath = $id . '/' . $newName;
+                        $this->model->update($id, ['image' => $imagePath]);
+                    }
+                    
                     $message = 'Data berhasil diupdate';
                 }
             } catch (\Throwable $e) {
@@ -462,7 +485,7 @@ class Item extends BaseController
             }
 
         } else {
-            // Insert new record - generate new SKU
+            // Insert new record - generate new SKU (without image first)
             $data = [
                 'user_id'           => $userId,
                 'sku'               => $this->model->generateSku(),
@@ -470,7 +493,7 @@ class Item extends BaseController
                 'slug'              => $slug,
                 'description'       => $description,
                 'short_description' => $shortDescription,
-                'image'             => $image,
+                'image'             => '', // Will be set after upload
                 'price'             => $price,
                 'agent_price'       => $agentPrice,
                 'brand_id'          => $brandId,
@@ -512,6 +535,19 @@ class Item extends BaseController
                 } catch (\Throwable $e) {
                     // ignore
                 }
+                
+                // Handle file upload after database insert
+                if ($hasNewFile) {
+                    // Upload file to item_id subdirectory
+                    $newName = $file->getRandomName();
+                    $uploadPath = ROOTPATH . 'public/images/produk/' . $itemId . '/';
+                    $file->move($uploadPath, $newName);
+                    
+                    // Update database with image path (relative: item_id/filename)
+                    $imagePath = $itemId . '/' . $newName;
+                    $this->model->update($itemId, ['image' => $imagePath]);
+                }
+                
                 $specNames = $this->request->getPost('spec_name') ?? [];
                 $specValues = $this->request->getPost('spec_value') ?? [];
                 foreach ($specNames as $key => $specId) {

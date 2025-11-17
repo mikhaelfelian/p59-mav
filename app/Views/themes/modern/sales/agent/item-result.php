@@ -108,7 +108,7 @@ $totalPages = $pagerInfo['totalPages'] ?? 1;
                                     <div class="col-12 col-md-3">
                                         <div class="product-thumb ratio ratio-4x3 rounded-3 overflow-hidden bg-light d-flex align-items-center justify-content-center">
                                             <?php if (!empty($item['image'])): ?>
-                                                <img src="<?= $config->baseURL ?>/uploads/<?= esc($item['image']) ?>"
+                                                <img src="<?= $config->baseURL ?>/images/produk/<?= esc($item['image']) ?>"
                                                      alt="<?= esc($itemName) ?>"
                                                      class="img-fluid">
                                             <?php else: ?>
@@ -178,7 +178,7 @@ $totalPages = $pagerInfo['totalPages'] ?? 1;
                                 <div class="card h-100 border-0 shadow-sm product-card">
                                     <div class="ratio ratio-4x3 rounded-top overflow-hidden bg-light position-relative">
                                         <?php if (!empty($item['image'])): ?>
-                                            <img src="<?= $config->baseURL ?>/uploads/<?= esc($item['image']) ?>"
+                                            <img src="<?= $config->baseURL ?>/images/produk/<?= esc($item['image']) ?>"
                                                  alt="<?= esc($itemName) ?>"
                                                  class="img-fluid product-image">
                                         <?php else: ?>

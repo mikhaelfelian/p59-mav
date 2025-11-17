@@ -396,6 +396,13 @@ class Item extends BaseController
             $this->data['config'] = $this->config;
             $this->data['item'] = $itemData;
             $this->data['specifications'] = $specsData;
+        
+            $this->data['breadcrumb'] = [
+                'Home'               => $this->config->baseURL.'agent/dashboard',
+                'Katalog'            => $this->config->baseURL.'agent/item',
+                $itemData['name']     => '', 
+                // Current page, no link
+            ];
 
             // Render view
             return $this->view('sales/agent/item-detail', $this->data);

@@ -17,7 +17,7 @@
             </div>
             <div class="card-body text-center">
                 <?php if (!empty($item->image)): ?>
-                    <img src="<?= base_url('public/uploads/' . $item->image) ?>" 
+                    <img src="<?= base_url('images/produk/' . $item->image) ?>" 
                          alt="<?= esc($item->name) ?>" 
                          class="img-fluid rounded" 
                          style="max-height: 300px;"
