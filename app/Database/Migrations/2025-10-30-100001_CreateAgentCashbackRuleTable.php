@@ -21,11 +21,6 @@ class CreateAgentCashbackRuleTable extends Migration
                 'unsigned'   => true,
                 'null'       => false,
             ],
-            'rule_type' => [
-                'type'       => 'ENUM',
-                'constraint' => ['cashback', 'akumulasi'],
-                'default'    => 'cashback',
-            ],
             'min_transaction' => [
                 'type'       => 'DECIMAL',
                 'constraint' => '15,2',

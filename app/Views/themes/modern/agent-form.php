@@ -5,8 +5,14 @@
  * Github: github.com/mikhaelfelian
  * Description: Professional agent form with tab-based layout similar to item-form.php
  */
-helper('form');
+helper(['form', 'angka']);
 $isModal = $isModal ?? false;
+$productRule = isset($productRule) && is_array($productRule) ? $productRule : [
+	'window_days' => 0,
+	'threshold_amount' => 0,
+	'cashback_amount' => 0,
+	'is_stackable' => 0,
+];
 ?>
 <style>
 	.agent-form-section {
@@ -117,6 +123,11 @@ $isModal = $isModal ?? false;
 			<li class="nav-item" role="presentation">
 				<a class="nav-link" data-bs-toggle="tab" href="#tab-business" role="tab">
 					<i class="fas fa-briefcase me-1"></i> Bisnis
+				</a>
+			</li>
+			<li class="nav-item" role="presentation">
+				<a class="nav-link" data-bs-toggle="tab" href="#tab-product-rules" role="tab">
+					<i class="fas fa-tags me-1"></i> Product Rules
 				</a>
 			</li>
 		</ul>
@@ -382,14 +393,15 @@ $isModal = $isModal ?? false;
 									<input class="form-check-input" type="checkbox" id="enable_credit_limit" name="enable_credit_limit" value="1" <?= $creditLimitEnabled ? 'checked' : '' ?>>
 									<label class="form-check-label" for="enable_credit_limit">Aktifkan limit kredit untuk agen ini</label>
 								</div>
+								<input type="hidden" name="credit_limit_raw" id="credit_limit_raw" value="<?= set_value('credit_limit', @$agent->credit_limit ?? '0') ?>">
 								<div id="credit_limit_wrapper" class="<?= $creditLimitEnabled ? '' : 'disabled' ?>">
 									<div class="input-group">
 										<span class="input-group-text">
 											<i class="fas fa-credit-card"></i>
 										</span>
-										<input class="form-control" type="number" name="credit_limit" step="0.01"
+										<input class="form-control currency-input" type="text" name="credit_limit" data-decimals="0"
 											value="<?= set_value('credit_limit', @$agent->credit_limit ?? '0') ?>"
-											placeholder="0" />
+											placeholder="0" autocomplete="off" />
 										<span class="input-group-text">Rp</span>
 									</div>
 									<small class="text-muted">
@@ -398,6 +410,86 @@ $isModal = $isModal ?? false;
 									</small>
 								</div>
 							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Product Rules Tab -->
+			<div class="tab-pane fade" id="tab-product-rules" role="tabpanel">
+				<div class="card shadow-sm border-0">
+					<div class="card-header bg-light">
+						<h6 class="card-title mb-0">
+							<i class="fas fa-tags me-2"></i>Aturan Produk & Cashback
+						</h6>
+					</div>
+					<div class="card-body">
+						<div class="alert alert-info d-flex align-items-start" role="alert">
+							<i class="fas fa-info-circle me-2 mt-1"></i>
+							<div>
+								Atur periode dan target transaksi untuk memberikan cashback otomatis. Jika transaksi melewati batas hari yang ditentukan, cashback tidak diberikan. Jika berada di dalam periode dan akumulasi transaksi mencapai target, cashback akan diberikan sesuai nominal dan dapat ditumpuk jika diaktifkan.
+							</div>
+						</div>
+
+						<div class="row g-3 align-items-end">
+							<div class="col-md-4">
+								<label class="form-label fw-semibold">Batas Hari Cashback</label>
+								<div class="input-group">
+									<span class="input-group-text">
+										<i class="fas fa-hourglass-half"></i>
+									</span>
+									<input class="form-control" type="number" min="0" name="cashback_window_days"
+										value="<?= set_value('cashback_window_days', $productRule['window_days'] ?? '0') ?>"
+										placeholder="0">
+									<span class="input-group-text">hari</span>
+								</div>
+								<small class="text-muted d-block mt-1">
+									Maksimal selisih hari sejak transaksi dibuat agar tetap berhak cashback.
+								</small>
+							</div>
+							<div class="col-md-4">
+								<label class="form-label fw-semibold">Target Transaksi</label>
+								<div class="input-group">
+									<span class="input-group-text">
+										<i class="fas fa-donate"></i>
+									</span>
+									<input class="form-control currency-input" type="text" min="0" name="cashback_threshold_amount"
+										value="<?= set_value('cashback_threshold_amount', $productRule['threshold_amount'] ?? '0') ?>"
+										placeholder="0" autocomplete="off" data-decimals="0">
+									<span class="input-group-text">Rp</span>
+								</div>
+								<small class="text-muted d-block mt-1">
+									Total transaksi kumulatif minimal dalam periode untuk memicu cashback.
+								</small>
+							</div>
+							<div class="col-md-4">
+								<label class="form-label fw-semibold">Nominal Cashback</label>
+								<div class="input-group">
+									<span class="input-group-text">
+										<i class="fas fa-gift"></i>
+									</span>
+									<input class="form-control currency-input" type="text" min="0" name="cashback_amount"
+										value="<?= set_value('cashback_amount', $productRule['cashback_amount'] ?? '0') ?>"
+										placeholder="0" autocomplete="off" data-decimals="0">
+									<span class="input-group-text">Rp</span>
+								</div>
+								<small class="text-muted d-block mt-1">
+									Jumlah cashback yang diberikan setiap kali target tercapai.
+								</small>
+							</div>
+						</div>
+
+						<div class="mt-4">
+							<div class="form-check form-switch">
+								<input class="form-check-input" type="checkbox" role="switch" id="cashback_is_stackable" name="cashback_is_stackable" value="1"
+									<?= set_value('cashback_is_stackable', $productRule['is_stackable'] ?? '0') == '1' ? 'checked' : '' ?>>
+								<label class="form-check-label fw-semibold" for="cashback_is_stackable">
+									Izinkan cashback bertingkat / stackable
+								</label>
+							</div>
+							<small class="text-muted d-block mt-1">
+								Jika diaktifkan, agen akan menerima cashback berulang sesuai kelipatan target transaksi dalam periode yang sama.
+							</small>
 						</div>
 					</div>
 				</div>
@@ -414,12 +506,11 @@ $isModal = $isModal ?? false;
 					<div class="card-body">
 						<div class="form-check form-switch form-switch-lg">
 							<?= form_checkbox([
-								'name' => 'is_active',
-								'value' => '1',
-								'class' => 'form-check-input',
-								'id' => 'is_active',
-								'checked' => set_value('is_active', @$agent->is_active ?? '1') == '1',
-								'disabled' => 'disabled'
+								'name'    => 'is_active',
+								'value'   => '1',
+								'class'   => 'form-check-input',
+								'id'      => 'is_active',
+								'checked' => (set_value('is_active', @$agent->is_active ?? '1') == '1'),
 							]) ?>
 							<label class="form-check-label fw-semibold" for="is_active" style="opacity: 0.6;">
 								Status Aktif &amp; User Aktif
@@ -460,7 +551,6 @@ $isModal = $isModal ?? false;
 			</div>
 		</div>
 	</div>
-
 	<?= form_close() ?>
 
 	<?php if (!$isModal): ?>
@@ -472,10 +562,12 @@ $isModal = $isModal ?? false;
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- jQuery Number Plugin (local copy) -->
+<script src="<?= $config->baseURL ?>public/assets/js/jquery.number.min.js"></script>
 
 <script>
 	// Load Leaflet dynamically
-	function loadLeaflet() {
+		function loadLeaflet() {
 		if (!document.querySelector('link[href*="leaflet"]')) {
 			var link = document.createElement('link');
 			link.rel = 'stylesheet';
@@ -544,6 +636,13 @@ $isModal = $isModal ?? false;
 				if (!form.checkValidity()) {
 					event.preventDefault();
 					event.stopPropagation();
+				}
+				var creditHidden = document.getElementById('credit_limit_raw');
+				var creditInput = document.querySelector('input[name=\"credit_limit\"]');
+				if (creditHidden && creditInput) {
+					creditHidden.value = creditInput.value.replace(/\\./g, '') || '0';
+					creditInput.readOnly = false;
+					creditInput.disabled = false;
 				}
 				form.classList.add('was-validated');
 			}, false);
@@ -752,10 +851,11 @@ $isModal = $isModal ?? false;
 
 			function toggleCreditLimit() {
 				var checked = $('#enable_credit_limit').is(':checked');
-				$('#credit_limit_wrapper input').prop('disabled', !checked);
+				$('#credit_limit_wrapper input').prop('readonly', !checked);
 				$('#credit_limit_wrapper').toggleClass('disabled', !checked);
 				if (!checked) {
 					$('#credit_limit_wrapper input').val('0');
+					$('#credit_limit_raw').val('0');
 				}
 			}
 
@@ -766,5 +866,27 @@ $isModal = $isModal ?? false;
 			});
 
 		})(jQuery);
+
+		if (typeof $.fn.number === 'function') {
+			$('.currency-input').each(function () {
+				var decimals = parseInt($(this).data('decimals'), 10);
+				if (isNaN(decimals)) {
+					decimals = 0;
+				}
+				$(this).number(true, decimals, ',', '.');
+				if (this.name === 'credit_limit') {
+					$('#credit_limit_raw').val($(this).val().replace(/\./g, ''));
+				}
+			});
+
+			$(document).on('keyup change', '.currency-input', function(){
+				if (this.name === 'credit_limit') {
+					var raw = $(this).val().replace(/\./g, '');
+					$('#credit_limit_raw').val(raw || '0');
+				}
+			});
+		} else {
+			console.warn('jQuery number plugin failed to load.');
+		}
 	});
 </script>

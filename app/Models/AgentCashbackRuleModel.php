@@ -13,9 +13,10 @@ class AgentCashbackRuleModel extends Model
     protected $protectFields    = true;
     protected $allowedFields    = [
         'agent_id',
-        'rule_type',
+        'window_days',
         'min_transaction',
         'cashback_amount',
+        'is_stackable',
         'is_active',
         'start_date',
         'end_date',
@@ -28,9 +29,10 @@ class AgentCashbackRuleModel extends Model
 
     protected $validationRules = [
         'agent_id'        => 'required|integer|is_natural_no_zero',
-        'rule_type'       => 'required|in_list[cashback,akumulasi]',
+        'window_days'     => 'permit_empty|integer',
         'min_transaction' => 'permit_empty|decimal',
         'cashback_amount' => 'permit_empty|decimal',
+        'is_stackable'    => 'in_list[0,1]',
         'is_active'       => 'in_list[0,1]',
         'start_date'      => 'permit_empty|valid_date',
         'end_date'        => 'permit_empty|valid_date',

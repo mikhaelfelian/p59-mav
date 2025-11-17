@@ -315,10 +315,6 @@ class Item extends BaseController
                 $errorMessages[] = ucfirst($fieldLabel) . ': ' . $error;
             }
             $message = !empty($errorMessages) ? implode('<br>', $errorMessages) : 'Validasi gagal. Silakan periksa kembali data yang diinput.';
-            
-            // Log validation errors for debugging
-            log_message('error', 'Item validation failed: ' . print_r($errors, true));
-            log_message('debug', 'POST data received: ' . json_encode($this->request->getPost()));
 
             if ($this->request->isAJAX()) {
                 return $this->response->setJSON([
@@ -427,7 +423,7 @@ class Item extends BaseController
                         $db = \Config\Database::connect();
                         $db->table('item')->where('id', $id)->update(['agent_price' => $agentPrice]);
                     } catch (\Throwable $e) {
-                        log_message('warning', 'Failed to update agent_price: ' . $e->getMessage());
+                        // warning suppressed
                     }
                     
                     // Handle file upload after database update
@@ -463,7 +459,6 @@ class Item extends BaseController
             } catch (\Throwable $e) {
                 $result = false;
                 $message = 'Error saat update: ' . $e->getMessage();
-                log_message('error', 'Item update error: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString());
             }
 
             // Handle specifications for update
@@ -498,8 +493,9 @@ class Item extends BaseController
                 'agent_price'       => $agentPrice,
                 'brand_id'          => $brandId,
                 'category_id'       => $categoryId,
-                'is_stockable'      => '1',
+                'is_stockable'      => $isStockable,
                 'is_catalog'        => $isCatalog,
+                'is_agen'           => $isAgen,
                 'status'            => $status,
                 'warranty'          => !empty($warranty) ? (int)$warranty : null
             ];
@@ -524,7 +520,6 @@ class Item extends BaseController
             } catch (\Throwable $e) {
                 $result = false;
                 $message = 'Error saat insert: ' . $e->getMessage();
-                log_message('error', 'Item insert error: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString());
             }
             
             if ($result) {
@@ -553,10 +548,10 @@ class Item extends BaseController
                 foreach ($specNames as $key => $specId) {
                     if (!empty($specId) && !empty($specValues[$key])) {
                         $specData = [
-                            'item_id' => $itemId,
-                            'item_spec_id' => $specId,
-                            'user_id' => $userId,
-                            'value' => $specValues[$key]
+                            'item_id'       => $itemId,
+                            'item_spec_id'  => $specId,
+                            'user_id'       => $userId,
+                            'value'         => $specValues[$key],
                         ];
                         $this->itemSpecIdModel->save($specData);
                     }
@@ -580,7 +575,6 @@ class Item extends BaseController
     }
 
     // Legacy product rules method removed
-
     private function ensureAgentPriceColumn(): void
     {
         try {

@@ -11,6 +11,7 @@ use App\Models\WilayahKabupatenModel;
 use App\Models\WilayahKecamatanModel;
 use App\Models\WilayahKelurahanModel;
 use App\Models\PlatformModel;
+use App\Models\AgentCashbackRuleModel;
 
 /**
  * Created by: Mikhael Felian Waskito - mikhaelfelian@gmail.com
@@ -29,6 +30,7 @@ class Agent extends BaseController
     protected $wilayahKecamatanModel;
     protected $wilayahKelurahanModel;
     protected $platformModel;
+    protected $cashbackRuleModel;
 
     public function __construct()
     {
@@ -41,6 +43,7 @@ class Agent extends BaseController
         $this->wilayahKecamatanModel = new WilayahKecamatanModel();
         $this->wilayahKelurahanModel = new WilayahKelurahanModel();
         $this->platformModel = new PlatformModel();
+        $this->cashbackRuleModel = new AgentCashbackRuleModel();
     }
 
     public function index()
@@ -103,6 +106,7 @@ class Agent extends BaseController
         // Default user account data
         $this->data['agentUser'] = null;
         $this->data['existingUserRole'] = '1';
+        $this->data['productRule'] = $this->getDefaultProductRuleData();
 
         // Cek AJAX/modal
         $isAjax = $this->request->isAJAX() 
@@ -162,6 +166,7 @@ class Agent extends BaseController
         $this->data['current_module'] = $this->currentModule;
         $this->data['agent'] = $agent;
         $this->data['id'] = $id;
+        $this->data['productRule'] = $this->getAgentProductRuleData($id);
 
         // Load location names with error handling
         $this->data['provinceName'] = '-';
@@ -336,6 +341,7 @@ class Agent extends BaseController
 
     public function store()
     {
+        helper('angka');
         // Check create/update permissions
         $id = $this->request->getPost('id');
         $isEdit = !empty($id);
@@ -366,10 +372,12 @@ class Agent extends BaseController
 
         // Validasi
         if (!$this->validate([
-            'name' => 'required|max_length[255]',
-            'email' => 'permit_empty|valid_email|max_length[255]',
-            'phone' => 'permit_empty|max_length[20]',
-            'country' => 'required|max_length[100]'
+            [
+                'name'     => 'required|max_length[255]',
+                'email'    => 'permit_empty|valid_email|max_length[255]',
+                'phone'    => 'permit_empty|max_length[20]',
+                'country'  => 'required|max_length[100]',
+            ]
         ])) {
             $message = 'Data tidak valid: ' . implode(', ', $this->validator->getErrors());
             if ($this->request->isAJAX()) {
@@ -403,38 +411,71 @@ class Agent extends BaseController
         }
 
         // Prepare data
-        $creditLimitEnabled = $this->request->getPost('enable_credit_limit') ? true : false;
-        $creditLimitValue = $creditLimitEnabled ? (float) ($this->request->getPost('credit_limit') ?? 0) : 0;
+        // Formatted agent data input variables
+        $creditLimitEnabled  = $this->request->getPost('enable_credit_limit') ? true : false;
+        $creditLimitValueRaw = $this->request->getPost('credit_limit_raw');
+        if ($creditLimitValueRaw === null) {
+            $creditLimitValueRaw = $this->request->getPost('credit_limit');
+        }
+        $creditLimitValue    = format_angka_db($creditLimitValueRaw);
+
+        if (!$creditLimitEnabled) {
+            $creditLimitValue = 0;
+        }
+
+        $productRuleInput       = $this->getProductRuleInputFromRequest();
+
+        $name                   = $this->request->getPost('name');
+        $email                  = $this->request->getPost('email');
+        $phone                  = $this->request->getPost('phone');
+        $address                = $this->request->getPost('address');
+        $latitude               = $this->request->getPost('latitude');
+        $longitude              = $this->request->getPost('longitude');
+        $province_id            = $this->request->getPost('province_id');
+        $regency_id             = $this->request->getPost('regency_id');
+        $district_id            = $this->request->getPost('district_id');
+        $village_id             = $this->request->getPost('village_id');
+        $postal_code            = $this->request->getPost('postal_code');
+        $country                = $this->request->getPost('country');
+        $tax_number             = $this->request->getPost('tax_number');
+        $credit_limit           = $creditLimitValue;
+        $payment_terms          = $this->request->getPost('payment_terms');
 
         $data = [
-            'name' => $this->request->getPost('name'),
-            'email' => $this->request->getPost('email'),
-            'phone' => $this->request->getPost('phone'),
-            'address' => $this->request->getPost('address'),
-            'latitude' => $this->request->getPost('latitude'),
-            'longitude' => $this->request->getPost('longitude'),
-            'province_id' => $this->request->getPost('province_id'),
-            'regency_id' => $this->request->getPost('regency_id'),
-            'district_id' => $this->request->getPost('district_id'),
-            'village_id' => $this->request->getPost('village_id'),
-            'postal_code' => $this->request->getPost('postal_code'),
-            'country' => $this->request->getPost('country'),
-            'tax_number' => $this->request->getPost('tax_number'),
-            'credit_limit' => $creditLimitValue,
-            'payment_terms' => $this->request->getPost('payment_terms')
+            'name'              => $name,
+            'email'             => $email,
+            'phone'             => $phone,
+            'address'           => $address,
+            'latitude'          => $latitude,
+            'longitude'         => $longitude,
+            'province_id'       => $province_id,
+            'regency_id'        => $regency_id,
+            'district_id'       => $district_id,
+            'village_id'        => $village_id,
+            'postal_code'       => $postal_code,
+            'country'           => $country,
+            'tax_number'        => $tax_number,
+            'credit_limit'      => $credit_limit,
+            'payment_terms'     => $payment_terms,
         ];
 
         // Add code for edit mode (preserve existing code and is_active)
         if ($isEdit) {
             $data['code'] = $this->request->getPost('code');
-            // Preserve existing is_active value (field is disabled, so not submitted)
             $existingAgent = $this->model->find($id);
             if ($existingAgent) {
                 $data['is_active'] = $existingAgent->is_active ?? '1';
+
+                if (!$creditLimitEnabled) {
+                    $data['credit_limit'] = 0;
+                } elseif ($credit_limit === 0 && isset($existingAgent->credit_limit)) {
+                    $data['credit_limit'] = format_angka_db($existingAgent->credit_limit);
+                }
             }
         } else {
             // Generate code for new records
             $data['code'] = $this->model->generateCode();
+            
             // Default to active for new records
             $data['is_active'] = '1';
         }
@@ -456,13 +497,13 @@ class Agent extends BaseController
                 $agentId = $this->model->getInsertID();
             }
 
-            // Handle user account
-            $existingUserId = $this->request->getPost('existing_user_id');
-            $existingUserId = $existingUserId ? (int) $existingUserId : null;
-            $usernameInput = trim((string) ($this->request->getPost('account_username') ?? ''));
-            $passwordInput = (string) ($this->request->getPost('account_password') ?? '');
-            $passwordConfirm = (string) ($this->request->getPost('account_password_confirm') ?? '');
-            $userRole = $this->request->getPost('user_role') ?? '1';
+            // Handle user account (formatted)
+            $existingUserId   = $this->request->getPost('existing_user_id');
+            $existingUserId   = $existingUserId ? (int) $existingUserId : null;
+            $usernameInput    = trim((string) ($this->request->getPost('account_username') ?? ''));
+            $passwordInput    = (string) ($this->request->getPost('account_password') ?? '');
+            $passwordConfirm  = (string) ($this->request->getPost('account_password_confirm') ?? '');
+            $userRole         = $this->request->getPost('user_role') ?? '1';
 
             $existingUser = null;
             if ($existingUserId) {
@@ -525,6 +566,8 @@ class Agent extends BaseController
                 $this->userRoleAgentModel->assignUserToAgent($userId, $agentId, $userRole ?: '1');
             }
 
+            $this->persistAgentProductRule($agentId, $productRuleInput);
+
             if ($db->transStatus() === false) {
                 throw new \RuntimeException('Transaksi database gagal.');
             }
@@ -554,6 +597,112 @@ class Agent extends BaseController
                 ]);
             }
             return redirect()->back()->withInput()->with('message', $message);
+        }
+    }
+
+    protected function getDefaultProductRuleData(): array
+    {
+        return [
+            'window_days' => 0,
+            'threshold_amount' => 0,
+            'cashback_amount' => 0,
+            'is_stackable' => 0,
+        ];
+    }
+
+    protected function getAgentProductRuleData(?int $agentId): array
+    {
+        $defaults = $this->getDefaultProductRuleData();
+        if (empty($agentId)) {
+            return $defaults;
+        }
+
+        $rule = $this->cashbackRuleModel
+            ->where('agent_id', $agentId)
+            ->where('rule_type', 'cashback')
+            ->first();
+
+        if (!$rule) {
+            return $defaults;
+        }
+
+        $defaults['threshold_amount'] = (float) ($rule->min_transaction ?? 0);
+        $defaults['cashback_amount'] = (float) ($rule->cashback_amount ?? 0);
+
+        // Prefer dedicated columns, fall back to legacy notes if needed
+        $windowDays = $rule->window_days ?? null;
+        $isStackable = $rule->is_stackable ?? null;
+
+        if ($windowDays === null || $isStackable === null) {
+            $notes = [];
+            if (!empty($rule->notes)) {
+                $decodedNotes = json_decode($rule->notes, true);
+                if (is_array($decodedNotes)) {
+                    $notes = $decodedNotes;
+                }
+            }
+            if ($windowDays === null && isset($notes['window_days'])) {
+                $windowDays = (int) $notes['window_days'];
+            }
+            if ($isStackable === null && array_key_exists('is_stackable', $notes)) {
+                $isStackable = !empty($notes['is_stackable']) ? 1 : 0;
+            }
+        }
+
+        $defaults['window_days'] = (int) ($windowDays ?? 0);
+        $defaults['is_stackable'] = (int) ($isStackable ?? 0);
+
+        return $defaults;
+    }
+
+    protected function getProductRuleInputFromRequest(): array
+    {
+        helper('angka');
+        return [
+            'window_days' => (int) ($this->request->getPost('cashback_window_days') ?? 0),
+            'threshold_amount' => format_angka_db($this->request->getPost('cashback_threshold_amount')),
+            'cashback_amount' => format_angka_db($this->request->getPost('cashback_amount')),
+            'is_stackable' => $this->request->getPost('cashback_is_stackable') ? 1 : 0,
+        ];
+    }
+
+    protected function persistAgentProductRule(int $agentId, array $ruleInput): void
+    {
+        $shouldSave = $ruleInput['window_days'] > 0
+            && $ruleInput['threshold_amount'] > 0
+            && $ruleInput['cashback_amount'] > 0;
+
+        $existingRule = $this->cashbackRuleModel
+            ->where('agent_id', $agentId)
+            ->where('rule_type', 'cashback')
+            ->first();
+
+        if ($shouldSave) {
+            $data = [
+                'agent_id'        => $agentId,
+                'rule_type'       => 'cashback',
+                'window_days'     => $ruleInput['window_days'],
+                'min_transaction' => $ruleInput['threshold_amount'],
+                'cashback_amount' => $ruleInput['cashback_amount'],
+                'is_stackable'    => $ruleInput['is_stackable'],
+                'is_active'       => 1,
+                'start_date'      => null,
+                'end_date'        => null,
+                'notes'           => json_encode([
+                    'window_days'  => $ruleInput['window_days'],
+                    'is_stackable' => $ruleInput['is_stackable'] ? true : false,
+                ]),
+            ];
+
+            if ($existingRule) {
+                $this->cashbackRuleModel->update($existingRule->id, $data);
+            } else {
+                $this->cashbackRuleModel->insert($data);
+            }
+        } else {
+            if ($existingRule) {
+                $this->cashbackRuleModel->delete($existingRule->id);
+            }
         }
     }
 
@@ -774,49 +923,51 @@ class Agent extends BaseController
 
     public function upload()
     {
-        $this->data['title'] = 'Import Data Agen';
-        $this->data['current_module'] = $this->currentModule;
-        $this->data['msg'] = $this->session->getFlashdata('message');
+        $this->data['title']           = 'Import Data Agen';
+        $this->data['current_module']  = $this->currentModule;
+        $this->data['msg']             = $this->session->getFlashdata('message');
 
         if ($this->request->getMethod() === 'post') {
             $file = $this->request->getFile('file');
-            
+
             if ($file && $file->isValid() && !$file->hasMoved()) {
                 $extension = $file->getClientExtension();
-                
+
                 if (!in_array($extension, ['xlsx', 'xls', 'csv'])) {
                     $this->data['msg'] = show_alert('File harus berupa Excel (.xlsx, .xls) atau CSV', 'error');
                 } else {
                     try {
-                        $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReader(ucfirst($extension));
+                        $reader      = \PhpOffice\PhpSpreadsheet\IOFactory::createReader(ucfirst($extension));
                         $spreadsheet = $reader->load($file->getTempName());
-                        $worksheet = $spreadsheet->getActiveSheet();
-                        $rows = $worksheet->toArray();
-                        
+                        $worksheet   = $spreadsheet->getActiveSheet();
+                        $rows        = $worksheet->toArray();
+
                         $successCount = 0;
-                        $errorCount = 0;
-                        $errors = [];
-                        
+                        $errorCount   = 0;
+                        $errors       = [];
+
                         // Skip header row
                         array_shift($rows);
-                        
+
                         foreach ($rows as $index => $row) {
-                            if (empty($row[0])) continue; // Skip empty rows
-                            
+                            if (empty($row[0])) {
+                                continue; // Skip empty rows
+                            }
+
                             try {
                                 $data = [
-                                    'code' => $this->model->generateCode(),
-                                    'name' => $row[0] ?? '',
-                                    'email' => $row[1] ?? '',
-                                    'phone' => $row[2] ?? '',
-                                    'address' => $row[3] ?? '',
-                                    'country' => $row[4] ?? 'Indonesia',
-                                    'tax_number' => $row[5] ?? '',
-                                    'credit_limit' => $row[6] ?? 0,
+                                    'code'          => $this->model->generateCode(),
+                                    'name'          => $row[0] ?? '',
+                                    'email'         => $row[1] ?? '',
+                                    'phone'         => $row[2] ?? '',
+                                    'address'       => $row[3] ?? '',
+                                    'country'       => $row[4] ?? 'Indonesia',
+                                    'tax_number'    => $row[5] ?? '',
+                                    'credit_limit'  => $row[6] ?? 0,
                                     'payment_terms' => $row[7] ?? 0,
-                                    'is_active' => '1'
+                                    'is_active'     => '1'
                                 ];
-                                
+
                                 if ($this->model->save($data)) {
                                     $successCount++;
                                 } else {
@@ -828,14 +979,13 @@ class Agent extends BaseController
                                 $errors[] = 'Baris ' . ($index + 2) . ': ' . $e->getMessage();
                             }
                         }
-                        
+
                         $message = "Import selesai. Berhasil: {$successCount}, Gagal: {$errorCount}";
                         if (!empty($errors)) {
                             $message .= '<br>Error: ' . implode('<br>', array_slice($errors, 0, 10));
                         }
-                        
+
                         $this->data['msg'] = show_alert($message, $errorCount > 0 ? 'warning' : 'success');
-                        
                     } catch (\Exception $e) {
                         $this->data['msg'] = show_alert('Error membaca file: ' . $e->getMessage(), 'error');
                     }
