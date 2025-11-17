@@ -181,10 +181,10 @@ html[data-bs-theme="dark"] .sn-table tbody tr:nth-child(even):hover {
 				// Define columns for DataTables
 				$column_all = [
 					'ignore_search_urut'    => 'No',
+					'invoice_no'            => 'No Nota',
 					'sn'                    => 'SN',
 					'item_name'             => 'Item',
 					'item_sku'              => 'Item Code',
-					'barcode'               => 'Barcode',
 					'ignore_search_action'  => 'Aksi'
 				];
 
@@ -233,10 +233,10 @@ html[data-bs-theme="dark"] .sn-table tbody tr:nth-child(even):hover {
 				// Define columns for DataTables
 				$column = [
 					'ignore_search_urut'    => 'No',
+					'invoice_no'            => 'No Nota',
 					'sn'                    => 'SN',
 					'item_name'             => 'Item',
 					'item_sku'              => 'Item Code',
-					'barcode'               => 'Barcode',
 					'ignore_search_action'  => 'Aksi'
 				];
 

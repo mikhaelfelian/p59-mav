@@ -2487,10 +2487,10 @@ class Sales extends BaseController
 
                 $result[] = [
                     'ignore_search_urut' => $no,
+                    'invoice_no'        => esc($row['invoice_no']),
                     'sn'                => esc($row['sn']),
                     'item_name'         => esc($itemName),
                     'item_sku'          => esc($itemSku),
-                    'barcode'           => esc($barcode),
                     'ignore_search_action' => $actionButton,
                 ];
 
@@ -2514,11 +2514,6 @@ class Sales extends BaseController
                 'userPermission_type' => gettype($this->userPermission ?? null),
                 'isLoggedIn' => $this->isLoggedIn ?? false,
             ];
-            
-            log_message(
-                'error',
-                'Agent\Sales::getSnDataDT error: ' . json_encode($errorDetails, JSON_PRETTY_PRINT)
-            );
 
             return $this->response->setJSON([
                 'draw'            => $draw ?? 0,
