@@ -111,6 +111,11 @@ class Sales extends BaseController
         
         // Pass permission data to view
         $this->data['canCreate'] = $this->hasPermissionPrefix('create');
+
+        $this->data['breadcrumb'] = [
+            'Home'               => $this->config->baseURL.'sales',
+            'Data Penjualan'     => '',
+        ];
         
         $this->view('sales/sales-result', $this->data);
     }

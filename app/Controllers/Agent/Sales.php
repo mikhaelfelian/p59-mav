@@ -2588,6 +2588,7 @@ class Sales extends BaseController
                     item.name as item_name_fallback,
                     item.sku as item_sku,
                     item_sn.barcode,
+                    sales.invoice_no,
                     sales.sale_channel,
                     sales.warehouse_id')
                 ->join('sales_detail', 'sales_detail.id = sales_item_sn.sales_item_id', 'inner')
@@ -2595,7 +2596,8 @@ class Sales extends BaseController
                 ->join('item', 'item.id = sales_detail.item_id', 'left')
                 ->join('item_sn', 'item_sn.id = sales_item_sn.item_sn_id', 'left')
                 ->where('sales.id', $saleId)
-                ->where('sales.sale_channel', self::CHANNEL_ONLINE);
+                ->where('sales.sale_channel', self::CHANNEL_ONLINE)
+                ->where('sales_item_sn.is_receive', '1');
 
             // Apply filter for unused/used
             if ($filter === 'unused') {
@@ -2610,7 +2612,8 @@ class Sales extends BaseController
                 ->join('sales_detail', 'sales_detail.id = sales_item_sn.sales_item_id', 'inner')
                 ->join('sales', 'sales.id = sales_detail.sale_id', 'inner')
                 ->where('sales.id', $saleId)
-                ->where('sales.sale_channel', self::CHANNEL_ONLINE);
+                ->where('sales.sale_channel', self::CHANNEL_ONLINE)
+                ->where('sales_item_sn.is_receive', '1');
             
             if ($filter === 'unused') {
                 $totalRecords->where('sales_item_sn.activated_at IS NULL');
