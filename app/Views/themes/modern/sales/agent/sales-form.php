@@ -248,7 +248,7 @@
 												<div class="cart-item-image bg-light d-flex align-items-center justify-content-center">
 													<i class="fas fa-image text-muted"></i>
 												</div>
-											<?php endif; ?>
+											<?php endif; ?> 
 										</td>
 										<td>
 											<strong><?= esc($item['item_name']) ?></strong>
