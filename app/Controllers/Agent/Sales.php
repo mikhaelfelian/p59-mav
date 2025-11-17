@@ -261,6 +261,11 @@ class Sales extends BaseController
         $this->data['ppnPercentage'] = $ppnPercentage;
         // Invoice number will be generated automatically when saving
         $this->data['message'] = $this->session->getFlashdata('message');
+
+        $this->data['breadcrumb'] = [
+            'Home'               => $this->config->baseURL.'agent/dashboard',
+            'Keranjang'          => '',
+        ];
         
         // Load helper for currency formatting
         helper('angka');
@@ -1681,7 +1686,7 @@ class Sales extends BaseController
             $userPermission = is_array($this->userPermission) ? $this->userPermission : [];
             $isAdmin = key_exists('read_all', $userPermission) || key_exists('update_all', $userPermission);
 
-            $this->data['title'] = 'Detail Pembelian';
+            $this->data['title'] = ($isAdmin ? 'Penjualan' : 'Pembelian');
             $this->data['currentModule'] = 'Agen &laquo; ' . $sale['agent_name'];
             $this->data['config'] = $this->config;
             $this->data['sale'] = $sale;
@@ -1693,6 +1698,12 @@ class Sales extends BaseController
             $this->data['payment'] = $paymentInfo;
             $this->data['gatewayResponse'] = $gatewayResponse;
 
+            $this->data['breadcrumb'] = [
+                'Home'               => $this->config->baseURL.'agent/dashboard',
+                ($isAdmin ? 'Penjualan' : 'Pembelian') => $this->config->baseURL.'agent/sales',
+                'Detail'             => '', // Current page, no link
+            ];
+
             $this->view('sales/agent/sales-detail', $this->data);
         } catch (\Exception $e) {
             log_message('error', 'Sales::detail error: ' . $e->getMessage());
@@ -1703,6 +1714,68 @@ class Sales extends BaseController
         }
     }
 
+    /**
+     * Refresh payment status from gateway (AJAX endpoint)
+     * 
+     * @param int $id Sale ID
+     * @return ResponseInterface
+     */
+    public function refreshPaymentStatus(int $id): ResponseInterface
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Invalid request method'
+            ])->setStatusCode(400);
+        }
+
+        try {
+            // Get sale by ID
+            $sale = $this->model->find($id);
+            
+            if (!$sale) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Data penjualan tidak ditemukan.'
+                ])->setStatusCode(404);
+            }
+
+            // Get invoice number
+            $invoiceNo = $sale['invoice_no'] ?? null;
+            
+            if (empty($invoiceNo)) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Nomor invoice tidak ditemukan.'
+                ])->setStatusCode(400);
+            }
+
+            // Fetch latest payment status from gateway (GET request only)
+            $gatewayResponse = $this->getPaymentStatusFromGateway($invoiceNo);
+            
+            if ($gatewayResponse === null) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Gagal mengambil status pembayaran dari gateway. Silakan coba lagi.'
+                ])->setStatusCode(500);
+            }
+
+            // Return gateway response (read-only check, no database update)
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'Status pembayaran berhasil diperiksa.',
+                'gatewayResponse' => $gatewayResponse
+            ]);
+            
+        } catch (\Exception $e) {
+            log_message('error', 'Agent\Sales::refreshPaymentStatus error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Terjadi kesalahan saat memperbarui status pembayaran: ' . $e->getMessage()
+            ])->setStatusCode(500);
+        }
+    }
+    
     /**
      * Add fee to sale (AJAX endpoint - Agent only)
      * 

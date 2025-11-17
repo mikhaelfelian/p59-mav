@@ -301,10 +301,10 @@ html[data-bs-theme="dark"] .sn-table tbody tr:nth-child(even):hover {
 }
 </style>
 <div class="card shadow-sm border-0">
-	<div class="detail-header">
-		<h5><i class="fas fa-file-invoice me-2"></i>Detail Pembelian</h5>
+	<div class="detail-header" style="color: #fff;">
+		<!-- <h5 style="color: #fff;"><i class="fas fa-file-invoice me-2"></i><?= esc($title) ?></h5> -->
 		<?php if (!empty($sale['invoice_no'])): ?>
-			<span class="invoice-badge"><i class="fas fa-hashtag me-1"></i><?= esc($sale['invoice_no']) ?></span>
+			<span class="invoice-badge" style="color: #fff;"><i class="fas fa-hashtag me-1"></i><?= esc($sale['invoice_no']) ?></span>
 		<?php endif; ?>
 	</div>
 	<div class="card-body p-4">
@@ -550,13 +550,16 @@ html[data-bs-theme="dark"] .sn-table tbody tr:nth-child(even):hover {
 									elseif ($status === 'PENDING') $statusClass = 'warning';
 									elseif (in_array($status, ['FAILED', 'CANCELED', 'EXPIRED'])) $statusClass = 'danger';
 									?>
-									<span class="badge bg-<?= $statusClass ?>"><?= esc($status) ?></span>
+									<span class="badge bg-<?= $statusClass ?>" id="paymentStatusBadge"><?= esc($status) ?></span>
+									<button type="button" class="btn btn-sm btn-outline-primary ms-2" id="btnRefreshPayment" onclick="refreshPaymentStatus()" title="Refresh Status Pembayaran">
+										<i class="fas fa-sync-alt" id="refreshIcon"></i> Refresh
+									</button>
 								</dd>
 								
 								<?php if (!empty($gatewayResponse['paymentCode'])): ?>
 									<dt class="col-sm-5 mb-3">Kode Pembayaran:</dt>
 									<dd class="col-sm-7 mb-3">
-										<code class="bg-light p-2 rounded d-inline-block" style="font-size: 0.9rem;">
+										<code class="bg-light p-2 rounded d-inline-block" style="font-size: 0.9rem;" id="paymentCode">
 											<?= esc($gatewayResponse['paymentCode']) ?>
 										</code>
 										<button type="button" class="btn btn-sm btn-outline-secondary ms-2" onclick="copyToClipboard('<?= addslashes(esc($gatewayResponse['paymentCode'])) ?>')">
@@ -569,14 +572,16 @@ html[data-bs-theme="dark"] .sn-table tbody tr:nth-child(even):hover {
 									<dt class="col-sm-5 mb-3">Kedaluwarsa:</dt>
 									<dd class="col-sm-7 mb-3">
 										<i class="fas fa-clock me-1 text-muted"></i>
-										<?php
-										try {
-											$expiredDate = new \DateTime($gatewayResponse['expiredAt']);
-											echo esc($expiredDate->format('d/m/Y H:i'));
-										} catch (\Exception $e) {
-											echo esc($gatewayResponse['expiredAt']);
-										}
-										?>
+										<span id="paymentExpiredAt">
+											<?php
+											try {
+												$expiredDate = new \DateTime($gatewayResponse['expiredAt']);
+												echo esc($expiredDate->format('d/m/Y H:i'));
+											} catch (\Exception $e) {
+												echo esc($gatewayResponse['expiredAt']);
+											}
+											?>
+										</span>
 									</dd>
 								<?php endif; ?>
 							</dl>
@@ -1165,6 +1170,132 @@ html[data-bs-theme="dark"] .sn-table tbody tr:nth-child(even):hover {
 			});
 		});
 		<?php endif; ?>
+
+		// Refresh Payment Status
+		function refreshPaymentStatus() {
+			var btnRefresh = $('#btnRefreshPayment');
+			var refreshIcon = $('#refreshIcon');
+			var saleId = <?= $sale['id'] ?? 0 ?>;
+
+			if (saleId === 0) {
+				if (typeof Swal !== 'undefined') {
+					Swal.fire({
+						icon: 'error',
+						title: 'Error',
+						text: 'ID penjualan tidak valid.'
+					});
+				} else {
+					alert('ID penjualan tidak valid.');
+				}
+				return;
+			}
+
+			// Disable button and show loading state
+			btnRefresh.prop('disabled', true);
+			refreshIcon.addClass('fa-spin');
+
+			$.ajax({
+				url: '<?= $config->baseURL ?>agent/sales/refreshPayment/' + saleId,
+				type: 'POST',
+				data: {
+					<?= csrf_token() ?>: '<?= csrf_hash() ?>'
+				},
+				headers: {
+					'X-Requested-With': 'XMLHttpRequest'
+				},
+				dataType: 'json',
+				success: function(response) {
+					if (response.status === 'success' && response.gatewayResponse) {
+						var gatewayResponse = response.gatewayResponse;
+						
+						// Update payment status badge
+						var status = (gatewayResponse.status || 'UNKNOWN').toUpperCase();
+						var statusClass = 'secondary';
+						if (status === 'PAID') statusClass = 'success';
+						else if (status === 'PENDING') statusClass = 'warning';
+						else if (['FAILED', 'CANCELED', 'EXPIRED'].includes(status)) statusClass = 'danger';
+						
+						$('#paymentStatusBadge')
+							.removeClass('bg-secondary bg-success bg-warning bg-danger')
+							.addClass('bg-' + statusClass)
+							.text(status);
+
+						// Update payment code if exists
+						if (gatewayResponse.paymentCode) {
+							var paymentCodeEl = $('#paymentCode');
+							if (paymentCodeEl.length) {
+								paymentCodeEl.text(gatewayResponse.paymentCode);
+							}
+						}
+
+						// Update expired date if exists
+						if (gatewayResponse.expiredAt) {
+							var expiredAtEl = $('#paymentExpiredAt');
+							if (expiredAtEl.length) {
+								try {
+									var expiredDate = new Date(gatewayResponse.expiredAt);
+									var formattedDate = expiredDate.toLocaleDateString('id-ID', {
+										day: '2-digit',
+										month: '2-digit',
+										year: 'numeric',
+										hour: '2-digit',
+										minute: '2-digit'
+									});
+									expiredAtEl.text(formattedDate);
+								} catch (e) {
+									expiredAtEl.text(gatewayResponse.expiredAt);
+								}
+							}
+						}
+
+						// Show success message
+						if (typeof Swal !== 'undefined') {
+							Swal.fire({
+								icon: 'success',
+								title: 'Berhasil',
+								text: response.message || 'Status pembayaran berhasil diperbarui.',
+								timer: 2000,
+								showConfirmButton: false,
+								toast: true,
+								position: 'top-end'
+							});
+						} else {
+							alert(response.message || 'Status pembayaran berhasil diperbarui.');
+						}
+					} else {
+						if (typeof Swal !== 'undefined') {
+							Swal.fire({
+								icon: 'error',
+								title: 'Error',
+								text: response.message || 'Gagal memperbarui status pembayaran.'
+							});
+						} else {
+							alert(response.message || 'Gagal memperbarui status pembayaran.');
+						}
+					}
+				},
+				error: function(xhr) {
+					var errorMsg = 'Terjadi kesalahan saat memperbarui status pembayaran.';
+					if (xhr.responseJSON && xhr.responseJSON.message) {
+						errorMsg = xhr.responseJSON.message;
+					}
+					if (typeof Swal !== 'undefined') {
+						Swal.fire({
+							icon: 'error',
+							title: 'Error',
+							text: errorMsg
+						});
+					} else {
+						alert(errorMsg);
+					}
+				},
+				complete: function() {
+					// Re-enable button and remove loading state
+					btnRefresh.prop('disabled', false);
+					refreshIcon.removeClass('fa-spin');
+				}
+			});
+		}
 		</script>
 	</div>
 </div>

@@ -136,6 +136,7 @@ $routes->group('agent', function($routes) {
     $routes->post('sales/deleteFee/(:num)/(:num)', 'Agent\Sales::deleteFee/$1/$2');
     $routes->post('sales/updateNote/(:num)', 'Agent\Sales::updateNote/$1');
     $routes->post('sales/updateAdminNote/(:num)', 'Agent\Sales::updateAdminNote/$1');
+    $routes->post('sales/refreshPayment/(:num)', 'Agent\Sales::refreshPaymentStatus/$1');
     
     // Agent Payment Result Pages
     $routes->get('payment/thankyou', 'Agent\Payment::thankyou');
