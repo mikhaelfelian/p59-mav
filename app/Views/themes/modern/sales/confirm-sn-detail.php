@@ -420,10 +420,6 @@ helper('angka');
 						<i class="fas fa-check-double me-1"></i>Terima Semua (<?= $totalUnreceivedCount ?> SN)
 					</button>
 				<?php endif; ?>
-				<a href="<?= $config->baseURL ?>sales/print_dm/<?= $sale['id'] ?? '' ?>" target="_blank"
-					class="btn btn-primary text-white">
-					<i class="fas fa-print me-1"></i>Print Nota
-				</a>
 			</div>
 		</div>
 	</div>
