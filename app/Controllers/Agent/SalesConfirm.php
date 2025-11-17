@@ -379,6 +379,12 @@ class SalesConfirm extends \App\Controllers\BaseController
             $this->data['gatewayResponse'] = $gatewayResponse;
             $this->data['agentId'] = $sale['warehouse_id'] ?? null; // Agent ID from sales.warehouse_id
             $this->data['isAgent'] = $isAgent; // Pass isAgent flag to view
+
+            $this->data['breadcrumb'] = [
+                'Home'                                   => $this->config->baseURL . 'agent/dashboard',
+                ($isAdmin ? 'Penjualan' : 'Pembelian')   => $this->config->baseURL . 'agent/sales',
+                'Assign SN'                      => '', // Current page, no link
+            ];
             
             $this->view('sales/confirm-sn-detail', $this->data);
         } catch (\Exception $e) {

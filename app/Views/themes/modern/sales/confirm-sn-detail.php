@@ -8,140 +8,140 @@
 helper('angka');
 ?>
 <style>
-.confirm-header {
-	background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-	color: white;
-	padding: 1.5rem;
-	border-radius: 8px 8px 0 0;
-}
+	.confirm-header {
+		background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+		color: white;
+		padding: 1.5rem;
+		border-radius: 8px 8px 0 0;
+	}
 
-.confirm-header h5 {
-	margin: 0;
-	font-weight: 600;
-	font-size: 1.5rem;
-}
+	.confirm-header h5 {
+		margin: 0;
+		font-weight: 600;
+		font-size: 1.5rem;
+	}
 
-.confirm-header .invoice-badge {
-	background: rgba(255, 255, 255, 0.2);
-	padding: 0.5rem 1rem;
-	border-radius: 20px;
-	font-size: 0.9rem;
-	margin-top: 0.5rem;
-	display: inline-block;
-}
+	.confirm-header .invoice-badge {
+		background: rgba(255, 255, 255, 0.2);
+		padding: 0.5rem 1rem;
+		border-radius: 20px;
+		font-size: 0.9rem;
+		margin-top: 0.5rem;
+		display: inline-block;
+	}
 
-.info-section {
-	background: #ffffff;
-	border-radius: 12px;
-	padding: 1.5rem;
-	border: 1px solid #e9ecef;
-	box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-	transition: box-shadow 0.3s ease;
-	height: 100%;
-}
+	.info-section {
+		background: #ffffff;
+		border-radius: 12px;
+		padding: 1.5rem;
+		border: 1px solid #e9ecef;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+		transition: box-shadow 0.3s ease;
+		height: 100%;
+	}
 
-.info-section:hover {
-	box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
+	.info-section:hover {
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	}
 
-.info-section h6 {
-	font-size: 0.75rem;
-	font-weight: 700;
-	text-transform: uppercase;
-	letter-spacing: 1px;
-	color: #6c757d;
-	margin-bottom: 1rem;
-}
+	.info-section h6 {
+		font-size: 0.75rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 1px;
+		color: #6c757d;
+		margin-bottom: 1rem;
+	}
 
-.sn-item {
-	background: #f8f9fa;
-	border: 1px solid #dee2e6;
-	border-radius: 8px;
-	padding: 0.75rem;
-	margin-bottom: 0.5rem;
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-}
+	.sn-item {
+		background: #f8f9fa;
+		border: 1px solid #dee2e6;
+		border-radius: 8px;
+		padding: 0.75rem;
+		margin-bottom: 0.5rem;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
 
-.sn-item:last-child {
-	margin-bottom: 0;
-}
+	.sn-item:last-child {
+		margin-bottom: 0;
+	}
 
-.sn-badge {
-	font-family: 'Courier New', monospace;
-	font-size: 0.9rem;
-	font-weight: 600;
-	color: #495057;
-}
+	.sn-badge {
+		font-family: 'Courier New', monospace;
+		font-size: 0.9rem;
+		font-weight: 600;
+		color: #495057;
+	}
 
-.sn-status {
-	font-size: 0.75rem;
-}
+	.sn-status {
+		font-size: 0.75rem;
+	}
 
-.item-card {
-	background: #ffffff;
-	border: 1px solid #e9ecef;
-	border-radius: 12px;
-	padding: 1.5rem;
-	margin-bottom: 1.5rem;
-	box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
+	.item-card {
+		background: #ffffff;
+		border: 1px solid #e9ecef;
+		border-radius: 12px;
+		padding: 1.5rem;
+		margin-bottom: 1.5rem;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+	}
 
-.item-card:last-child {
-	margin-bottom: 0;
-}
+	.item-card:last-child {
+		margin-bottom: 0;
+	}
 
-.item-header {
-	border-bottom: 2px solid #e9ecef;
-	padding-bottom: 1rem;
-	margin-bottom: 1rem;
-}
+	.item-header {
+		border-bottom: 2px solid #e9ecef;
+		padding-bottom: 1rem;
+		margin-bottom: 1rem;
+	}
 
-.item-header h6 {
-	margin: 0;
-	font-weight: 600;
-	color: #212529;
-}
+	.item-header h6 {
+		margin: 0;
+		font-weight: 600;
+		color: #212529;
+	}
 
-.item-header .item-meta {
-	font-size: 0.875rem;
-	color: #6c757d;
-	margin-top: 0.5rem;
-}
+	.item-header .item-meta {
+		font-size: 0.875rem;
+		color: #6c757d;
+		margin-top: 0.5rem;
+	}
 
-.pending-badge {
-	background: #ffc107;
-	color: #000;
-	padding: 0.25rem 0.75rem;
-	border-radius: 12px;
-	font-size: 0.75rem;
-	font-weight: 600;
-}
+	.pending-badge {
+		background: #ffc107;
+		color: #000;
+		padding: 0.25rem 0.75rem;
+		border-radius: 12px;
+		font-size: 0.75rem;
+		font-weight: 600;
+	}
 
-.confirm-btn {
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-	border: none;
-	color: white;
-	padding: 0.75rem 2rem;
-	border-radius: 8px;
-	font-weight: 600;
-	transition: transform 0.2s, box-shadow 0.2s;
-}
+	.confirm-btn {
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		border: none;
+		color: white;
+		padding: 0.75rem 2rem;
+		border-radius: 8px;
+		font-weight: 600;
+		transition: transform 0.2s, box-shadow 0.2s;
+	}
 
-.confirm-btn:hover {
-	transform: translateY(-2px);
-	box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-	color: white;
-}
+	.confirm-btn:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+		color: white;
+	}
 
-.confirm-btn:disabled {
-	opacity: 0.6;
-	cursor: not-allowed;
-	transform: none;
-}
+	.confirm-btn:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+		transform: none;
+	}
 
-/* Ensure all action buttons have consistent white text
+	/* Ensure all action buttons have consistent white text
 .btn-secondary.text-white,
 .btn-primary.text-white {
 	color: #ffffff !important;
@@ -155,7 +155,6 @@ helper('angka');
 
 <div class="card">
 	<div class="confirm-header">
-		<h5><i class="fas fa-check-circle me-2" style="color: #fff;"></i>Verifikasi Order Agent</h5>
 		<div class="invoice-badge">
 			<i class="fas fa-file-invoice me-1"></i>
 			<?= esc($sale['invoice_no'] ?? '-') ?>
@@ -171,105 +170,75 @@ helper('angka');
 
 		<!-- Sale Information -->
 		<div class="row mb-4">
-			<div class="col-md-6">
+			<div class="col-md-6 mb-3">
 				<div class="info-section">
-					<h6><i class="fas fa-user me-2"></i>Informasi Pelanggan</h6>
+					<h6><i class="fas fa-receipt me-2"></i> Informasi Transaksi</h6>
 					<dl class="row mb-0">
-						<dt class="col-sm-5">Nama</dt>
-						<dd class="col-sm-7 mb-2"><?= esc($sale['customer_name'] ?? '-') ?></dd>
-						
-						<?php if (!empty($sale['customer_phone'])): ?>
-						<dt class="col-sm-5">Telepon</dt>
-						<dd class="col-sm-7 mb-2"><?= esc($sale['customer_phone']) ?></dd>
+						<dt class="col-sm-5 mb-3">Pelanggan:</dt>
+						<dd class="col-sm-7 mb-3">
+							<strong><?= esc($sale['customer_name'] ?? '-') ?></strong>
+						</dd>
+
+						<?php if (!empty($sale['plat_code']) && !empty($sale['plat_number'])): ?>
+							<dt class="col-sm-5 mb-3">Plat Kendaraan:</dt>
+							<dd class="col-sm-7 mb-3">
+								<span class="badge bg-dark">
+									<i
+										class="fas fa-car me-1"></i><?= esc($sale['plat_code']) ?>-<?= esc($sale['plat_number']) ?>
+									<?php if (!empty($sale['plat_last'])): ?>
+										-<?= esc($sale['plat_last']) ?>
+									<?php endif; ?>
+								</span>
+							</dd>
 						<?php endif; ?>
-						
-						<?php if (!empty($sale['customer_email'])): ?>
-						<dt class="col-sm-5">Email</dt>
-						<dd class="col-sm-7 mb-2"><?= esc($sale['customer_email']) ?></dd>
+
+						<?php if (empty($sale['sale_channel']) || $sale['sale_channel'] != 1): ?>
+							<dt class="col-sm-5 mb-3">Agen:</dt>
+							<dd class="col-sm-7 mb-3">
+								<i class="fas fa-user-tie me-1 text-muted"></i><?= esc($sale['agent_name'] ?? '-') ?>
+							</dd>
 						<?php endif; ?>
 					</dl>
 				</div>
 			</div>
-			
+
 			<div class="col-md-6">
 				<div class="info-section">
 					<h6><i class="fas fa-store me-2"></i>Informasi Penjualan</h6>
 					<dl class="row mb-0">
 						<dt class="col-sm-5">Agent</dt>
 						<dd class="col-sm-7 mb-2"><?= esc($sale['agent_name'] ?? '-') ?></dd>
-						
+
 						<dt class="col-sm-5">Tanggal</dt>
 						<dd class="col-sm-7 mb-2">
 							<?= !empty($sale['created_at']) ? date('d/m/Y H:i', strtotime($sale['created_at'])) : '-' ?>
 						</dd>
-						
+
 						<dt class="col-sm-5">Total</dt>
 						<dd class="col-sm-7 mb-2">
-							<strong><?= format_angka((float)($sale['grand_total'] ?? 0), 2) ?></strong>
+							<strong><?= format_angka((float) ($sale['grand_total'] ?? 0), 0) ?></strong>
 						</dd>
 					</dl>
 				</div>
 			</div>
 		</div>
-
-		<!-- Payment Information -->
-		<?php if ($payment): ?>
-		<div class="row mb-4">
-			<div class="col-md-12">
-				<div class="info-section">
-					<h6><i class="fas fa-credit-card me-2"></i>Informasi Pembayaran</h6>
-					<dl class="row mb-0">
-						<dt class="col-sm-3">Status</dt>
-						<dd class="col-sm-9 mb-2">
-							<?php
-							$paymentStatus = $payment['method'] ?? 'unknown';
-							$statusBadge = [
-								'qris' => '<span class="badge bg-info">QRIS</span>',
-								'transfer' => '<span class="badge bg-primary">Transfer</span>',
-								'cash' => '<span class="badge bg-success">Tunai</span>',
-								'other' => '<span class="badge bg-secondary">Lainnya</span>'
-							];
-							echo $statusBadge[$paymentStatus] ?? '<span class="badge bg-secondary">' . esc($paymentStatus) . '</span>';
-							?>
-						</dd>
-						
-						<?php if ($gatewayResponse && !empty($gatewayResponse['status'])): ?>
-						<dt class="col-sm-3">Gateway Status</dt>
-						<dd class="col-sm-9 mb-2">
-							<?php
-							$gwStatus = strtoupper($gatewayResponse['status']);
-							if ($gwStatus === 'PAID') {
-								echo '<span class="badge bg-success">PAID</span>';
-							} elseif (in_array($gwStatus, ['PENDING', 'WAITING'])) {
-								echo '<span class="badge bg-warning">PENDING</span>';
-							} else {
-								echo '<span class="badge bg-danger">' . esc($gwStatus) . '</span>';
-							}
-							?>
-						</dd>
-						<?php endif; ?>
-					</dl>
-				</div>
-			</div>
-		</div>
-		<?php endif; ?>
 
 		<!-- Items with Serial Numbers -->
 		<div class="row">
 			<div class="col-md-12">
 				<h5 class="mb-3"><i class="fas fa-list me-2"></i>Item Penjualan</h5>
-				
+
 				<?php if (empty($items)): ?>
 					<div class="alert alert-info">
 						<i class="fas fa-info-circle me-2"></i>
 						Tidak ada item dalam penjualan ini.
 					</div>
 				<?php else: ?>
-					<?php 
+					<?php
 					$hasPendingSNs = false;
 					$hasUnreceivedSNs = false;
 					$totalUnreceivedCount = 0;
-					foreach ($items as $item): 
+					foreach ($items as $item):
 						if (!empty($item['pending_sns'])) {
 							$hasPendingSNs = true;
 							// Count unreceived SNs
@@ -280,28 +249,30 @@ helper('angka');
 								}
 							}
 						}
-					?>
+						?>
 						<div class="item-card">
 							<div class="item-header">
 								<h6><?= esc($item['item'] ?? 'Unknown Item') ?></h6>
 								<div class="item-meta">
-									<span class="me-3">Qty: <strong><?= (int)($item['qty'] ?? 1) ?></strong></span>
-									<span class="me-3">Harga: <strong><?= format_angka((float)($item['price'] ?? 0), 2) ?></strong></span>
-									<span>Subtotal: <strong><?= format_angka((float)($item['amount'] ?? 0), 2) ?></strong></span>
+									<span class="me-3">Qty: <strong><?= (int) ($item['qty'] ?? 1) ?></strong></span>
+									<span class="me-3">Harga:
+										<strong><?= format_angka((float) ($item['price'] ?? 0), 2) ?></strong></span>
+									<span>Subtotal:
+										<strong><?= format_angka((float) ($item['amount'] ?? 0), 2) ?></strong></span>
 								</div>
 							</div>
-							
+
 							<div class="mt-3">
 								<!-- Assign Serial Numbers Section -->
-								<?php 
+								<?php
 								$hasSerialNumbers = !empty($item['has_serial_numbers']) || !empty($item['available_sns']);
-								
+
 								// Only show SN assignment section if item has serial numbers
 								if ($hasSerialNumbers):
-									$requiredQty = (int)($item['qty'] ?? 1);
+									$requiredQty = (int) ($item['qty'] ?? 1);
 									$assignedCount = count($item['pending_sns'] ?? []);
 									$needsMore = $requiredQty > $assignedCount;
-									
+
 									// Collect assigned serial number IDs from pending_sns
 									$assignedSnIds = [];
 									if (!empty($item['pending_sns'])) {
@@ -309,11 +280,11 @@ helper('angka');
 											// Handle both object and array
 											$itemSnId = is_object($pendingSn) ? ($pendingSn->item_sn_id ?? null) : ($pendingSn['item_sn_id'] ?? null);
 											if ($itemSnId) {
-												$assignedSnIds[] = (int)$itemSnId;
+												$assignedSnIds[] = (int) $itemSnId;
 											}
 										}
 									}
-									
+
 									// Filter available_sns to only show is_sell='0' serial numbers that are not already assigned
 									$filteredAvailableSns = [];
 									if (!empty($item['available_sns'])) {
@@ -321,47 +292,45 @@ helper('angka');
 											// Handle both object and array
 											$isSell = is_object($sn) ? ($sn->is_sell ?? '0') : ($sn['is_sell'] ?? '0');
 											$snId = is_object($sn) ? ($sn->id ?? null) : ($sn['id'] ?? null);
-											
+
 											// Only include serial numbers where is_sell='0' and not already assigned
-											if (($isSell === '0' || $isSell === 0) && $snId && !in_array((int)$snId, $assignedSnIds, true)) {
+											if (($isSell === '0' || $isSell === 0) && $snId && !in_array((int) $snId, $assignedSnIds, true)) {
 												$filteredAvailableSns[] = $sn;
 											}
 										}
 									}
 									$availableCount = count($filteredAvailableSns);
-								?>
-									
+									?>
+
 									<?php if ($needsMore): ?>
 										<div class="mt-4 pt-3 border-top">
 											<h6 class="mb-3">
 												<i class="fas fa-plus-circle me-2 text-primary"></i>
 												Assign Serial Number
-												<small class="text-muted">(Perlu: <?= $requiredQty ?>, Sudah: <?= $assignedCount ?>, Tersedia: <?= $availableCount ?>)</small>
+												<small class="text-muted">(Perlu: <?= $requiredQty ?>, Sudah: <?= $assignedCount ?>,
+													Tersedia: <?= $availableCount ?>)</small>
 											</h6>
-											
+
 											<?php if ($availableCount > 0): ?>
 												<form class="assign-sn-form" data-sales-item-id="<?= $item['id'] ?? '' ?>">
 													<?= csrf_field() ?>
 													<div class="mb-3">
 														<label class="form-label">Pilih Serial Number:</label>
 														<div class="mb-2">
-															<input type="text" class="form-control form-control-sm sn-search-input" 
-																id="sn-search-<?= $item['id'] ?? '' ?>" 
-																placeholder="Cari serial number..." 
+															<input type="text" class="form-control form-control-sm sn-search-input"
+																id="sn-search-<?= $item['id'] ?? '' ?>" placeholder="Cari serial number..."
 																autocomplete="off">
 														</div>
-														<select class="form-select form-select-sm sn-select" 
-															id="sn-select-<?= $item['id'] ?? '' ?>" 
-															name="item_sn_ids[]" 
-															multiple 
-															size="5" 
+														<select class="form-select form-select-sm sn-select"
+															id="sn-select-<?= $item['id'] ?? '' ?>" name="item_sn_ids[]" multiple size="5"
 															required>
-															<?php foreach ($filteredAvailableSns as $sn): 
+															<?php foreach ($filteredAvailableSns as $sn):
 																// Handle both object and array
 																$snId = is_object($sn) ? ($sn->id ?? '') : ($sn['id'] ?? '');
 																$snValue = is_object($sn) ? ($sn->sn ?? '-') : ($sn['sn'] ?? '-');
-															?>
-																<option value="<?= $snId ?>" data-sn="<?= esc($snValue) ?>"><?= esc($snValue) ?></option>
+																?>
+																<option value="<?= $snId ?>" data-sn="<?= esc($snValue) ?>"><?= esc($snValue) ?>
+																</option>
 															<?php endforeach; ?>
 														</select>
 														<small class="text-muted">Gunakan Ctrl/Cmd untuk memilih multiple</small>
@@ -397,6 +366,49 @@ helper('angka');
 			</div>
 		</div>
 
+		<!-- Payment Information -->
+		<?php if ($payment): ?>
+			<br/>
+			<div class="row mb-4">
+				<div class="col-md-12">
+					<div class="info-section">
+						<h6><i class="fas fa-credit-card me-2"></i>Informasi Pembayaran</h6>
+						<dl class="row mb-0">
+							<dt class="col-sm-3">Status</dt>
+							<dd class="col-sm-9 mb-2">
+								<?php
+								$paymentStatus = $payment['method'] ?? 'unknown';
+								$statusBadge = [
+									'qris' => '<span class="badge bg-info">QRIS</span>',
+									'transfer' => '<span class="badge bg-primary">Transfer</span>',
+									'cash' => '<span class="badge bg-success">Tunai</span>',
+									'other' => '<span class="badge bg-secondary">Lainnya</span>'
+								];
+								echo $statusBadge[$paymentStatus] ?? '<span class="badge bg-secondary">' . esc($paymentStatus) . '</span>';
+								?>
+							</dd>
+
+							<?php if ($gatewayResponse && !empty($gatewayResponse['status'])): ?>
+								<dt class="col-sm-3">Gateway Status</dt>
+								<dd class="col-sm-9 mb-2">
+									<?php
+									$gwStatus = strtoupper($gatewayResponse['status']);
+									if ($gwStatus === 'PAID') {
+										echo '<span class="badge bg-success">PAID</span>';
+									} elseif (in_array($gwStatus, ['PENDING', 'WAITING'])) {
+										echo '<span class="badge bg-warning">PENDING</span>';
+									} else {
+										echo '<span class="badge bg-danger">' . esc($gwStatus) . '</span>';
+									}
+									?>
+								</dd>
+							<?php endif; ?>
+						</dl>
+					</div>
+				</div>
+			</div>
+		<?php endif; ?>
+
 		<!-- Action Buttons -->
 		<div class="row mt-4">
 			<div class="col-md-12 d-flex gap-3">
@@ -408,7 +420,8 @@ helper('angka');
 						<i class="fas fa-check-double me-1"></i>Terima Semua (<?= $totalUnreceivedCount ?> SN)
 					</button>
 				<?php endif; ?>
-				<a href="<?= $config->baseURL ?>sales/print_dm/<?= $sale['id'] ?? '' ?>" target="_blank" class="btn btn-primary text-white">
+				<a href="<?= $config->baseURL ?>sales/print_dm/<?= $sale['id'] ?? '' ?>" target="_blank"
+					class="btn btn-primary text-white">
 					<i class="fas fa-print me-1"></i>Print Nota
 				</a>
 			</div>
@@ -417,427 +430,426 @@ helper('angka');
 </div>
 
 <script>
-$(document).ready(function() {
-	// Filter serial number dropdown based on search input
-	$(document).on('input', '.sn-search-input', function() {
-		var searchTerm = $(this).val().toLowerCase();
-		var searchId = $(this).attr('id');
-		var selectId = searchId.replace('sn-search-', 'sn-select-');
-		var $select = $('#' + selectId);
-		
-		if ($select.length === 0) {
-			return;
-		}
-		
-		// Store all options if not already stored
-		if (!$select.data('all-options')) {
-			var allOptions = [];
-			$select.find('option').each(function() {
-				allOptions.push({
-					value: $(this).val(),
-					text: $(this).text(),
-					dataSn: $(this).data('sn') || $(this).text(),
-					selected: $(this).prop('selected')
+	$(document).ready(function () {
+		// Filter serial number dropdown based on search input
+		$(document).on('input', '.sn-search-input', function () {
+			var searchTerm = $(this).val().toLowerCase();
+			var searchId = $(this).attr('id');
+			var selectId = searchId.replace('sn-search-', 'sn-select-');
+			var $select = $('#' + selectId);
+
+			if ($select.length === 0) {
+				return;
+			}
+
+			// Store all options if not already stored
+			if (!$select.data('all-options')) {
+				var allOptions = [];
+				$select.find('option').each(function () {
+					allOptions.push({
+						value: $(this).val(),
+						text: $(this).text(),
+						dataSn: $(this).data('sn') || $(this).text(),
+						selected: $(this).prop('selected')
+					});
 				});
+				$select.data('all-options', allOptions);
+			}
+
+			var allOptions = $select.data('all-options');
+			var selectedValues = [];
+
+			// Get currently selected values to preserve selection
+			$select.find('option:selected').each(function () {
+				selectedValues.push($(this).val());
 			});
-			$select.data('all-options', allOptions);
-		}
-		
-		var allOptions = $select.data('all-options');
-		var selectedValues = [];
-		
-		// Get currently selected values to preserve selection
-		$select.find('option:selected').each(function() {
-			selectedValues.push($(this).val());
-		});
-		
-		// Clear and repopulate select with filtered options
-		$select.empty();
-		
-		$.each(allOptions, function(index, option) {
-			var snValue = option.dataSn.toLowerCase();
-			if (searchTerm === '' || snValue.indexOf(searchTerm) !== -1) {
-				var $newOption = $('<option></option>')
-					.attr('value', option.value)
-					.attr('data-sn', option.dataSn)
-					.text(option.text);
-				
-				// Restore selection if it was previously selected
-				if (selectedValues.indexOf(option.value) !== -1) {
-					$newOption.prop('selected', true);
-				}
-				
-				$select.append($newOption);
-			}
-		});
-	});
-	
-	// Handle assign SN form submission
-	$('.assign-sn-form').on('submit', function(e) {
-		e.preventDefault();
-		
-		var $form = $(this);
-		var $btn = $form.find('button[type="submit"]');
-		var originalText = $btn.html();
-		var salesItemId = $form.data('sales-item-id');
-		var saleId = <?= $sale['id'] ?? 0 ?>;
-		
-		// Disable button and show loading
-		$btn.prop('disabled', true);
-		$btn.html('<i class="fas fa-spinner fa-spin me-1"></i>Memproses...');
-		
-		// Get selected SN IDs
-		var selectedSNs = $form.find('select[name="item_sn_ids[]"]').val();
-		if (!selectedSNs || selectedSNs.length === 0) {
-			alert('Pilih minimal satu serial number');
-			$btn.prop('disabled', false);
-			$btn.html(originalText);
-			return;
-		}
-		
-		// Prepare form data
-		// Filter out item_sn_ids[] from serialized data to avoid duplication
-		var formData = $form.serializeArray().filter(function(field) {
-			return field.name !== 'item_sn_ids[]';
-		});
-		formData.push({name: 'sales_item_id', value: salesItemId});
-		// Add each selected SN ID (only once)
-		$.each(selectedSNs, function(i, snId) {
-			formData.push({name: 'item_sn_ids[]', value: snId});
-		});
-		
-		// Convert to object for jQuery
-		var dataObj = {};
-		$.each(formData, function(i, field) {
-			if (field.name.endsWith('[]')) {
-				if (!dataObj[field.name]) {
-					dataObj[field.name] = [];
-				}
-				dataObj[field.name].push(field.value);
-			} else {
-				dataObj[field.name] = field.value;
-			}
-		});
-		
-		// Submit via AJAX
-		$.ajax({
-			url: '<?= $config->baseURL ?>agent/sales/confirm/assignSN/' + saleId,
-			type: 'POST',
-			data: dataObj,
-			headers: {
-				'X-Requested-With': 'XMLHttpRequest'
-			},
-			dataType: 'json',
-			success: function(response) {
-				if (response.status === 'success') {
-					if (typeof Swal !== 'undefined') {
-						Swal.fire({
-							icon: 'success',
-							title: 'Berhasil',
-							text: response.message || 'Serial number berhasil di-assign',
-							confirmButtonText: 'OK'
-						}).then(function() {
-							// Redirect to same confirm detail page
-							window.location.href = '<?= $config->baseURL ?>agent/sales/confirm/<?= $sale['id'] ?? 0 ?>';
-						});
-					} else {
-						alert(response.message || 'Serial number berhasil di-assign');
-						window.location.href = '<?= $config->baseURL ?>agent/sales/confirm/<?= $sale['id'] ?? 0 ?>';
+
+			// Clear and repopulate select with filtered options
+			$select.empty();
+
+			$.each(allOptions, function (index, option) {
+				var snValue = option.dataSn.toLowerCase();
+				if (searchTerm === '' || snValue.indexOf(searchTerm) !== -1) {
+					var $newOption = $('<option></option>')
+						.attr('value', option.value)
+						.attr('data-sn', option.dataSn)
+						.text(option.text);
+
+					// Restore selection if it was previously selected
+					if (selectedValues.indexOf(option.value) !== -1) {
+						$newOption.prop('selected', true);
 					}
+
+					$select.append($newOption);
+				}
+			});
+		});
+
+		// Handle assign SN form submission
+		$('.assign-sn-form').on('submit', function (e) {
+			e.preventDefault();
+
+			var $form = $(this);
+			var $btn = $form.find('button[type="submit"]');
+			var originalText = $btn.html();
+			var salesItemId = $form.data('sales-item-id');
+			var saleId = <?= $sale['id'] ?? 0 ?>;
+
+			// Disable button and show loading
+			$btn.prop('disabled', true);
+			$btn.html('<i class="fas fa-spinner fa-spin me-1"></i>Memproses...');
+
+			// Get selected SN IDs
+			var selectedSNs = $form.find('select[name="item_sn_ids[]"]').val();
+			if (!selectedSNs || selectedSNs.length === 0) {
+				alert('Pilih minimal satu serial number');
+				$btn.prop('disabled', false);
+				$btn.html(originalText);
+				return;
+			}
+
+			// Prepare form data
+			// Filter out item_sn_ids[] from serialized data to avoid duplication
+			var formData = $form.serializeArray().filter(function (field) {
+				return field.name !== 'item_sn_ids[]';
+			});
+			formData.push({ name: 'sales_item_id', value: salesItemId });
+			// Add each selected SN ID (only once)
+			$.each(selectedSNs, function (i, snId) {
+				formData.push({ name: 'item_sn_ids[]', value: snId });
+			});
+
+			// Convert to object for jQuery
+			var dataObj = {};
+			$.each(formData, function (i, field) {
+				if (field.name.endsWith('[]')) {
+					if (!dataObj[field.name]) {
+						dataObj[field.name] = [];
+					}
+					dataObj[field.name].push(field.value);
 				} else {
+					dataObj[field.name] = field.value;
+				}
+			});
+
+			// Submit via AJAX
+			$.ajax({
+				url: '<?= $config->baseURL ?>agent/sales/confirm/assignSN/' + saleId,
+				type: 'POST',
+				data: dataObj,
+				headers: {
+					'X-Requested-With': 'XMLHttpRequest'
+				},
+				dataType: 'json',
+				success: function (response) {
+					if (response.status === 'success') {
+						if (typeof Swal !== 'undefined') {
+							Swal.fire({
+								icon: 'success',
+								title: 'Berhasil',
+								text: response.message || 'Serial number berhasil di-assign',
+								confirmButtonText: 'OK'
+							}).then(function () {
+								// Redirect to same confirm detail page
+								window.location.href = '<?= $config->baseURL ?>agent/sales/confirm/<?= $sale['id'] ?? 0 ?>';
+							});
+						} else {
+							alert(response.message || 'Serial number berhasil di-assign');
+							window.location.href = '<?= $config->baseURL ?>agent/sales/confirm/<?= $sale['id'] ?? 0 ?>';
+						}
+					} else {
+						if (typeof Swal !== 'undefined') {
+							Swal.fire({
+								icon: 'error',
+								title: 'Error',
+								text: response.message || 'Gagal meng-assign serial number'
+							});
+						} else {
+							alert(response.message || 'Gagal meng-assign serial number');
+						}
+						$btn.prop('disabled', false);
+						$btn.html(originalText);
+					}
+				},
+				error: function (xhr, status, error) {
+					var errorMsg = 'Terjadi kesalahan saat memproses permintaan';
+					if (xhr.responseJSON && xhr.responseJSON.message) {
+						errorMsg = xhr.responseJSON.message;
+					}
+
 					if (typeof Swal !== 'undefined') {
 						Swal.fire({
 							icon: 'error',
 							title: 'Error',
-							text: response.message || 'Gagal meng-assign serial number'
+							text: errorMsg
 						});
 					} else {
-						alert(response.message || 'Gagal meng-assign serial number');
+						alert(errorMsg);
 					}
+
 					$btn.prop('disabled', false);
 					$btn.html(originalText);
 				}
-			},
-			error: function(xhr, status, error) {
-				var errorMsg = 'Terjadi kesalahan saat memproses permintaan';
-				if (xhr.responseJSON && xhr.responseJSON.message) {
-					errorMsg = xhr.responseJSON.message;
-				}
-				
+			});
+		});
+
+		// Receive SN functionality
+		var saleId = <?= $sale['id'] ?? 0 ?>;
+
+		// Receive All button
+		$('#btnReceiveAll').on('click', function () {
+			var $btn = $(this);
+			var originalText = $btn.html();
+			var unreceivedCount = <?= $totalUnreceivedCount ?? 0 ?>;
+
+			if (unreceivedCount <= 0) {
 				if (typeof Swal !== 'undefined') {
 					Swal.fire({
-						icon: 'error',
-						title: 'Error',
-						text: errorMsg
+						icon: 'info',
+						title: 'Info',
+						text: 'Tidak ada serial number yang perlu diterima.'
 					});
 				} else {
-					alert(errorMsg);
+					alert('Tidak ada serial number yang perlu diterima.');
 				}
-				
-				$btn.prop('disabled', false);
-				$btn.html(originalText);
+				return;
 			}
-		});
-	});
 
-	// Receive SN functionality
-	var saleId = <?= $sale['id'] ?? 0 ?>;
-
-	// Receive All button
-	$('#btnReceiveAll').on('click', function() {
-		var $btn = $(this);
-		var originalText = $btn.html();
-		var unreceivedCount = <?= $totalUnreceivedCount ?? 0 ?>;
-
-		if (unreceivedCount <= 0) {
+			// Confirm action
 			if (typeof Swal !== 'undefined') {
 				Swal.fire({
-					icon: 'info',
-					title: 'Info',
-					text: 'Tidak ada serial number yang perlu diterima.'
+					icon: 'question',
+					title: 'Konfirmasi',
+					text: 'Apakah Anda yakin ingin menerima semua ' + unreceivedCount + ' serial number?',
+					showCancelButton: true,
+					confirmButtonText: 'Ya, Terima Semua',
+					cancelButtonText: 'Batal'
+				}).then(function (result) {
+					if (result.isConfirmed) {
+						performReceiveAll($btn, originalText);
+					}
 				});
 			} else {
-				alert('Tidak ada serial number yang perlu diterima.');
-			}
-			return;
-		}
-
-		// Confirm action
-		if (typeof Swal !== 'undefined') {
-			Swal.fire({
-				icon: 'question',
-				title: 'Konfirmasi',
-				text: 'Apakah Anda yakin ingin menerima semua ' + unreceivedCount + ' serial number?',
-				showCancelButton: true,
-				confirmButtonText: 'Ya, Terima Semua',
-				cancelButtonText: 'Batal'
-			}).then(function(result) {
-				if (result.isConfirmed) {
+				if (confirm('Apakah Anda yakin ingin menerima semua ' + unreceivedCount + ' serial number?')) {
 					performReceiveAll($btn, originalText);
 				}
-			});
-		} else {
-			if (confirm('Apakah Anda yakin ingin menerima semua ' + unreceivedCount + ' serial number?')) {
-				performReceiveAll($btn, originalText);
 			}
-		}
-	});
+		});
 
-	function performReceiveAll($btn, originalText) {
-		// Disable button and show loading
-		$btn.prop('disabled', true);
-		$btn.html('<i class="fas fa-spinner fa-spin me-1"></i>Memproses...');
+		function performReceiveAll($btn, originalText) {
+			// Disable button and show loading
+			$btn.prop('disabled', true);
+			$btn.html('<i class="fas fa-spinner fa-spin me-1"></i>Memproses...');
 
-		$.ajax({
-			url: '<?= $config->baseURL ?>agent/sales/confirm/receiveAllSN/' + saleId,
-			type: 'POST',
-			data: {
-				<?= csrf_token() ?>: '<?= csrf_hash() ?>'
-			},
-			headers: {
-				'X-Requested-With': 'XMLHttpRequest'
-			},
-			dataType: 'json',
-			success: function(response) {
-				if (response.status === 'success' || response.status === 'info') {
-					if (typeof Swal !== 'undefined') {
-						Swal.fire({
-							icon: response.status === 'success' ? 'success' : 'info',
-							title: response.status === 'success' ? 'Berhasil' : 'Info',
-							text: response.message || 'Serial number berhasil diterima',
-							timer: 2000,
-							showConfirmButton: false
-						}).then(function() {
+			$.ajax({
+				url: '<?= $config->baseURL ?>agent/sales/confirm/receiveAllSN/' + saleId,
+				type: 'POST',
+				data: {
+					<?= csrf_token() ?>: '<?= csrf_hash() ?>'
+				},
+				headers: {
+					'X-Requested-With': 'XMLHttpRequest'
+				},
+				dataType: 'json',
+				success: function (response) {
+					if (response.status === 'success' || response.status === 'info') {
+						if (typeof Swal !== 'undefined') {
+							Swal.fire({
+								icon: response.status === 'success' ? 'success' : 'info',
+								title: response.status === 'success' ? 'Berhasil' : 'Info',
+								text: response.message || 'Serial number berhasil diterima',
+								timer: 2000,
+								showConfirmButton: false
+							}).then(function () {
+								location.reload();
+							});
+						} else {
+							alert(response.message || 'Serial number berhasil diterima');
 							location.reload();
-						});
+						}
 					} else {
-						alert(response.message || 'Serial number berhasil diterima');
-						location.reload();
+						if (typeof Swal !== 'undefined') {
+							Swal.fire({
+								icon: 'error',
+								title: 'Error',
+								text: response.message || 'Gagal menerima serial number'
+							});
+						} else {
+							alert(response.message || 'Gagal menerima serial number');
+						}
+						$btn.prop('disabled', false);
+						$btn.html(originalText);
 					}
-				} else {
+				},
+				error: function (xhr) {
+					var errorMsg = 'Terjadi kesalahan saat menerima serial number.';
+					if (xhr.responseJSON && xhr.responseJSON.message) {
+						errorMsg = xhr.responseJSON.message;
+					}
 					if (typeof Swal !== 'undefined') {
 						Swal.fire({
 							icon: 'error',
 							title: 'Error',
-							text: response.message || 'Gagal menerima serial number'
+							text: errorMsg
 						});
 					} else {
-						alert(response.message || 'Gagal menerima serial number');
+						alert(errorMsg);
 					}
 					$btn.prop('disabled', false);
 					$btn.html(originalText);
 				}
-			},
-			error: function(xhr) {
-				var errorMsg = 'Terjadi kesalahan saat menerima serial number.';
-				if (xhr.responseJSON && xhr.responseJSON.message) {
-					errorMsg = xhr.responseJSON.message;
-				}
-				if (typeof Swal !== 'undefined') {
-					Swal.fire({
-						icon: 'error',
-						title: 'Error',
-						text: errorMsg
-					});
-				} else {
-					alert(errorMsg);
-				}
-				$btn.prop('disabled', false);
-				$btn.html(originalText);
-			}
-		});
-	}
-	
-	$('#confirmSNForm').on('submit', function(e) {
-		e.preventDefault();
-		
-		var $btn = $('#confirmBtn');
-		var originalText = $btn.html();
-		
-		// Disable button and show loading
-		$btn.prop('disabled', true);
-		$btn.html('<i class="fas fa-spinner fa-spin me-2"></i>Memproses...');
-		
-		// Submit form via AJAX
-		$.ajax({
-			url: $(this).attr('action'),
-			type: 'POST',
-			data: $(this).serialize(),
-			dataType: 'json',
-			success: function(response) {
-				if (response.status === 'success') {
-					// Show success message
-					if (typeof Swal !== 'undefined') {
-						Swal.fire({
-							icon: 'success',
-							title: 'Berhasil',
-							text: response.message || 'Serial number berhasil diaktifkan',
-							confirmButtonText: 'OK'
-						}).then(function() {
-							// Redirect to /agent/sales instead of confirm page
+			});
+		}
+
+		$('#confirmSNForm').on('submit', function (e) {
+			e.preventDefault();
+
+			var $btn = $('#confirmBtn');
+			var originalText = $btn.html();
+
+			// Disable button and show loading
+			$btn.prop('disabled', true);
+			$btn.html('<i class="fas fa-spinner fa-spin me-2"></i>Memproses...');
+
+			// Submit form via AJAX
+			$.ajax({
+				url: $(this).attr('action'),
+				type: 'POST',
+				data: $(this).serialize(),
+				dataType: 'json',
+				success: function (response) {
+					if (response.status === 'success') {
+						// Show success message
+						if (typeof Swal !== 'undefined') {
+							Swal.fire({
+								icon: 'success',
+								title: 'Berhasil',
+								text: response.message || 'Serial number berhasil diaktifkan',
+								confirmButtonText: 'OK'
+							}).then(function () {
+								// Redirect to /agent/sales instead of confirm page
+								window.location.href = '<?= $config->baseURL ?>agent/sales';
+							});
+						} else {
+							alert(response.message || 'Serial number berhasil diaktifkan');
 							window.location.href = '<?= $config->baseURL ?>agent/sales';
-						});
+						}
 					} else {
-						alert(response.message || 'Serial number berhasil diaktifkan');
-						window.location.href = '<?= $config->baseURL ?>agent/sales';
+						// Show error message
+						if (typeof Swal !== 'undefined') {
+							Swal.fire({
+								icon: 'error',
+								title: 'Error',
+								text: response.message || 'Gagal mengaktifkan serial number'
+							});
+						} else {
+							alert(response.message || 'Gagal mengaktifkan serial number');
+						}
+
+						// Re-enable button
+						$btn.prop('disabled', false);
+						$btn.html(originalText);
 					}
-				} else {
-					// Show error message
+				},
+				error: function (xhr, status, error) {
+					var errorMsg = 'Terjadi kesalahan saat memproses permintaan';
+					if (xhr.responseJSON && xhr.responseJSON.message) {
+						errorMsg = xhr.responseJSON.message;
+					}
+
 					if (typeof Swal !== 'undefined') {
 						Swal.fire({
 							icon: 'error',
 							title: 'Error',
-							text: response.message || 'Gagal mengaktifkan serial number'
+							text: errorMsg
 						});
 					} else {
-						alert(response.message || 'Gagal mengaktifkan serial number');
+						alert(errorMsg);
 					}
-					
+
 					// Re-enable button
 					$btn.prop('disabled', false);
 					$btn.html(originalText);
 				}
-			},
-			error: function(xhr, status, error) {
-				var errorMsg = 'Terjadi kesalahan saat memproses permintaan';
-				if (xhr.responseJSON && xhr.responseJSON.message) {
-					errorMsg = xhr.responseJSON.message;
-				}
-				
-				if (typeof Swal !== 'undefined') {
-					Swal.fire({
-						icon: 'error',
-						title: 'Error',
-						text: errorMsg
-					});
-				} else {
-					alert(errorMsg);
-				}
-				
-				// Re-enable button
-				$btn.prop('disabled', false);
-				$btn.html(originalText);
-			}
+			});
 		});
-	});
 
-	// Handle receive button clicks (delegated event)
-	$(document).on('click', '.receive-sn-btn', function() {
-		var $btn = $(this);
-		var salesItemSnId = $btn.data('sales-item-sn-id');
-		var snValue = $btn.data('sn');
-		var originalText = $btn.html();
+		// Handle receive button clicks (delegated event)
+		$(document).on('click', '.receive-sn-btn', function () {
+			var $btn = $(this);
+			var salesItemSnId = $btn.data('sales-item-sn-id');
+			var snValue = $btn.data('sn');
+			var originalText = $btn.html();
 
-		if (!salesItemSnId) {
-			alert('ID serial number tidak valid.');
-			return;
-		}
+			if (!salesItemSnId) {
+				alert('ID serial number tidak valid.');
+				return;
+			}
 
-		$btn.prop('disabled', true);
-		$btn.html('<i class="fas fa-spinner fa-spin me-1"></i>Memproses...');
+			$btn.prop('disabled', true);
+			$btn.html('<i class="fas fa-spinner fa-spin me-1"></i>Memproses...');
 
-		$.ajax({
-			url: '<?= $config->baseURL ?>agent/sales/confirm/receiveSN/' + saleId + '/' + salesItemSnId,
-			type: 'POST',
-			headers: {
-				'X-Requested-With': 'XMLHttpRequest'
-			},
-			dataType: 'json',
-			success: function(response) {
-				if (response.status === 'success') {
-					if (typeof Swal !== 'undefined') {
-						Swal.fire({
-							icon: 'success',
-							title: 'Berhasil',
-							text: response.message || 'Serial number berhasil diterima',
-							timer: 2000,
-							showConfirmButton: false,
-							toast: true,
-							position: 'top-end'
-						}).then(function() {
-							// Reload all DataTables
-							tableUnreceived.ajax.reload();
-							tableReceived.ajax.reload();
-							tableUnused.ajax.reload();
-							tableUsed.ajax.reload();
-						});
+			$.ajax({
+				url: '<?= $config->baseURL ?>agent/sales/confirm/receiveSN/' + saleId + '/' + salesItemSnId,
+				type: 'POST',
+				headers: {
+					'X-Requested-With': 'XMLHttpRequest'
+				},
+				dataType: 'json',
+				success: function (response) {
+					if (response.status === 'success') {
+						if (typeof Swal !== 'undefined') {
+							Swal.fire({
+								icon: 'success',
+								title: 'Berhasil',
+								text: response.message || 'Serial number berhasil diterima',
+								timer: 2000,
+								showConfirmButton: false,
+								toast: true,
+								position: 'top-end'
+							}).then(function () {
+								// Reload all DataTables
+								tableUnreceived.ajax.reload();
+								tableReceived.ajax.reload();
+								tableUnused.ajax.reload();
+								tableUsed.ajax.reload();
+							});
+						} else {
+							alert(response.message || 'Serial number berhasil diterima');
+							location.reload();
+						}
 					} else {
-						alert(response.message || 'Serial number berhasil diterima');
-						location.reload();
+						if (typeof Swal !== 'undefined') {
+							Swal.fire({
+								icon: 'error',
+								title: 'Error',
+								text: response.message || 'Gagal menerima serial number'
+							});
+						} else {
+							alert(response.message || 'Gagal menerima serial number');
+						}
+						$btn.prop('disabled', false);
+						$btn.html(originalText);
 					}
-				} else {
+				},
+				error: function (xhr) {
+					var errorMsg = 'Terjadi kesalahan saat menerima serial number.';
+					if (xhr.responseJSON && xhr.responseJSON.message) {
+						errorMsg = xhr.responseJSON.message;
+					}
 					if (typeof Swal !== 'undefined') {
 						Swal.fire({
 							icon: 'error',
 							title: 'Error',
-							text: response.message || 'Gagal menerima serial number'
+							text: errorMsg
 						});
 					} else {
-						alert(response.message || 'Gagal menerima serial number');
+						alert(errorMsg);
 					}
 					$btn.prop('disabled', false);
 					$btn.html(originalText);
 				}
-			},
-			error: function(xhr) {
-				var errorMsg = 'Terjadi kesalahan saat menerima serial number.';
-				if (xhr.responseJSON && xhr.responseJSON.message) {
-					errorMsg = xhr.responseJSON.message;
-				}
-				if (typeof Swal !== 'undefined') {
-					Swal.fire({
-						icon: 'error',
-						title: 'Error',
-						text: errorMsg
-					});
-				} else {
-					alert(errorMsg);
-				}
-				$btn.prop('disabled', false);
-				$btn.html(originalText);
-			}
+			});
 		});
 	});
-});
 </script>
-

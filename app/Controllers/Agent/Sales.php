@@ -2274,16 +2274,16 @@ class Sales extends BaseController
 
             return $this->response->setJSON([
                 'status' => 'success',
-                'data'   => [
-                    'id' => $snRecord['id'],
-                    'sn' => $snRecord['sn'],
-                    'no_hp' => $snRecord['no_hp'] ?? '',
-                    'plat_code' => $snRecord['plat_code'] ?? '',
-                    'plat_number' => $snRecord['plat_number'] ?? '',
-                    'plat_last' => $snRecord['plat_last'] ?? '',
-                    'file' => $snRecord['file'] ?? '',
+                'data' => [
+                    'id'           => $snRecord['id'],
+                    'sn'           => $snRecord['sn'],
+                    'no_hp'        => $snRecord['no_hp'] ?? '',
+                    'plat_code'    => $snRecord['plat_code'] ?? '',
+                    'plat_number'  => $snRecord['plat_number'] ?? '',
+                    'plat_last'    => $snRecord['plat_last'] ?? '',
+                    'file'         => $snRecord['file'] ?? '',
                     'activated_at' => $snRecord['activated_at'] ?? '',
-                    'expired_at' => $snRecord['expired_at'] ?? '',
+                    'expired_at'   => $snRecord['expired_at'] ?? '',
                 ],
             ]);
         } catch (\Exception $e) {
@@ -2387,6 +2387,7 @@ class Sales extends BaseController
                     item.name as item_name_fallback,
                     item.sku as item_sku,
                     item_sn.barcode,
+                    sales.invoice_no,
                     sales.sale_channel,
                     sales.warehouse_id')
                 ->join('sales_detail', 'sales_detail.id = sales_item_sn.sales_item_id', 'inner')
@@ -2404,7 +2405,8 @@ class Sales extends BaseController
             if ($filter === 'unreceived') {
                 $builder->where('sales_item_sn.is_receive', '0');
             } elseif ($filter === 'unused') {
-                $builder->where('sales_item_sn.activated_at IS NULL');
+                $builder->where('sales_item_sn.is_receive', '1')
+                        ->where('sales_item_sn.activated_at IS NULL');
             } else {
                 $builder->where('sales_item_sn.activated_at IS NOT NULL');
             }

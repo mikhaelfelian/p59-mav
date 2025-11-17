@@ -444,11 +444,11 @@
 							<dd class="col-sm-7 mb-3">
 								<?php
 								$methodLabels = [
-									'cash' => 'Tunai',
+									'cash'     => 'Tunai',
 									'transfer' => 'Transfer',
-									'qris' => 'QRIS',
-									'credit' => 'Kredit',
-									'other' => 'Lainnya'
+									'qris'     => 'QRIS',
+									'credit'   => 'Kredit',
+									'other'    => 'Lainnya'
 								];
 								$methodLabel = $methodLabels[$payment['method'] ?? 'other'] ?? 'Lainnya';
 								?>
