@@ -40,6 +40,7 @@ class SalesModel extends Model
         'note',
         'admin_note',
         'payment_status',
+        'is_receive',
         'settlement_time'
     ];
 
@@ -68,6 +69,7 @@ class SalesModel extends Model
         'note'            => 'permit_empty|string',
         'admin_note'      => 'permit_empty|string',
         'payment_status'  => 'required|in_list[0,1,2]',
+        'is_receive'      => 'permit_empty|in_list[0,1]',
         'settlement_time' => 'permit_empty|valid_date'
     ];
     protected $validationMessages   = [];

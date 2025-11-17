@@ -27,16 +27,7 @@ class AgentCashbackRuleModel extends Model
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
 
-    protected $validationRules = [
-        'agent_id'        => 'required|integer|is_natural_no_zero',
-        'window_days'     => 'permit_empty|integer',
-        'min_transaction' => 'permit_empty|decimal',
-        'cashback_amount' => 'permit_empty|decimal',
-        'is_stackable'    => 'in_list[0,1]',
-        'is_active'       => 'in_list[0,1]',
-        'start_date'      => 'permit_empty|valid_date',
-        'end_date'        => 'permit_empty|valid_date',
-    ];
+    protected $validationRules = [];
 }
 
 

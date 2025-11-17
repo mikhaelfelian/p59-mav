@@ -118,9 +118,9 @@ class Util extends Controller
     {
         $modules = [
             [
-                'nama_module'      => 'agent/sales/bayar/cek',
-                'judul_module'     => 'Agent Sales Refresh Payment Status',
-                'deskripsi'        => 'Allows agents/admins to refresh the payment status for a sales transaction using the external payment gateway. Related to Sales::refreshPaymentStatus.',
+                'nama_module'      => 'agent/gudang/stok-masuk',
+                'judul_module'     => 'Agent Gudang - Stok Masuk',
+                'deskripsi'        => 'Module khusus untuk proses penerimaan stok (SN) gudang agent.',
                 'id_module_status' => 1,
                 'login'            => 'Y'
             ]

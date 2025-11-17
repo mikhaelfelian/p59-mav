@@ -109,6 +109,10 @@ $routes->group('agent', function($routes) {
 
     // Agent Gudang (Warehouse)
     $routes->get('gudang/sn', 'Agent\Gudang\Sn::index');
+    $routes->get('gudang/stok-masuk', 'Agent\Gudang\Stok::index');
+    $routes->get('gudang/stok-masuk/(:num)', 'Agent\Gudang\Stok::masuk/$1');
+    $routes->match(['get', 'post'], 'gudang/stok-masuk-data', 'Agent\Gudang\Stok::getDataDT');
+    $routes->post('gudang/stok-terima', 'Agent\Gudang\Stok::receiveSn');
 
     // Agent Item (POS View)
     $routes->get('item', 'Agent\Item::index');

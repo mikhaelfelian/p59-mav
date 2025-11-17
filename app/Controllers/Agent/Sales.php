@@ -597,6 +597,8 @@ class Sales extends BaseController
                 ]);
             }
             
+            $selectedAgentId = (int)$postData['agent_id'];
+            
             // Get current user ID
             $userId = $this->user['id_user'] ?? null;
             if (!$userId) {
@@ -666,6 +668,39 @@ class Sales extends BaseController
             
             // Handle payment type
             $paymentType = $postData['payment_type'] ?? 'paynow';
+            
+            // Paylater credit limit handling setup
+            $shouldDeductCredit = false;
+            $agentCreditAfter = null;
+            
+            if ($paymentType === 'paylater') {
+                $agentRecord = $this->agentModel->find($selectedAgentId);
+                if (!$agentRecord) {
+                    $message = 'Data agen tidak ditemukan.';
+                    if ($isAjax) {
+                        return $this->response->setJSON(['status' => 'error', 'message' => $message]);
+                    }
+                    return redirect()->back()->withInput()->with('message', [
+                        'status' => 'error',
+                        'message' => $message
+                    ]);
+                }
+                
+                $currentCredit = (float) ($agentRecord->credit_limit ?? 0);
+                if ($currentCredit <= 0 || $currentCredit < $grandTotal) {
+                    $message = 'Limit kredit agen tidak mencukupi. Sisa limit: Rp ' . number_format(max($currentCredit, 0), 0, ',', '.');
+                    if ($isAjax) {
+                        return $this->response->setJSON(['status' => 'error', 'message' => $message]);
+                    }
+                    return redirect()->back()->withInput()->with('message', [
+                        'status' => 'error',
+                        'message' => $message
+                    ]);
+                }
+                
+                $agentCreditAfter = $currentCredit - $grandTotal;
+                $shouldDeductCredit = true;
+            }
             
             // Handle payment gateway API call if platform is selected and payment type is paynow
             $gatewayResponse = null;
@@ -1189,6 +1224,17 @@ class Sales extends BaseController
                     'response' => json_encode($offlineLogPayload)
                 ]);
                 $this->salesPaymentLogModel->skipValidation(false);
+            }
+
+            if ($shouldDeductCredit && $selectedAgentId) {
+                $this->agentModel->skipValidation(true);
+                $updateResult = $this->agentModel->update($selectedAgentId, [
+                    'credit_limit' => $agentCreditAfter
+                ]);
+                $this->agentModel->skipValidation(false);
+                if (!$updateResult) {
+                    throw new \Exception('Gagal memperbarui limit kredit agen.');
+                }
             }
 
             // Complete transaction
