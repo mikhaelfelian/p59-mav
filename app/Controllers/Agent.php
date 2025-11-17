@@ -335,267 +335,154 @@ class Agent extends BaseController
         }
         $this->data['agentUser'] = $agentUser;
         $this->data['existingUserRole'] = $existingUserRole;
+        
+        // Load product rule data
+        $this->data['productRule'] = $this->getAgentProductRuleData($id);
 
         return $this->view('agent-form', $this->data);
     }
 
     public function store()
-    {
-        helper('angka');
-        // Check create/update permissions
+    {        
+        // Check permissions
         $id = $this->request->getPost('id');
         $isEdit = !empty($id);
         
-        if ($isEdit) {
-            // Check update permissions for edit
-            if (!$this->hasPermissionPrefix('update')) {
-                if ($this->request->isAJAX()) {
-                    return $this->response->setJSON([
-                        'status' => 'error',
-                        'message' => 'You do not have permission to update agent data.'
-                    ]);
-                }
-                return redirect()->to('agent')->with('message', 'You do not have permission to update agent data.');
-            }
-        } else {
-            // Check create permissions for new record
-            if (!$this->hasPermissionPrefix('create')) {
-                if ($this->request->isAJAX()) {
-                    return $this->response->setJSON([
-                        'status' => 'error',
-                        'message' => 'You do not have permission to create agent data.'
-                    ]);
-                }
-                return redirect()->to('agent')->with('message', 'You do not have permission to create agent data.');
-            }
+        if ($isEdit && !$this->hasPermissionPrefix('update')) {
+            return redirect()->to('agent')->with('message', 'You do not have permission to update agent data.');
+        }
+        if (!$isEdit && !$this->hasPermissionPrefix('create')) {
+            return redirect()->to('agent')->with('message', 'You do not have permission to create agent data.');
         }
 
-        // Validasi
-        if (!$this->validate([
-            [
-                'name'     => 'required|max_length[255]',
-                'email'    => 'permit_empty|valid_email|max_length[255]',
-                'phone'    => 'permit_empty|max_length[20]',
-                'country'  => 'required|max_length[100]',
-            ]
-        ])) {
-            $message = 'Data tidak valid: ' . implode(', ', $this->validator->getErrors());
-            if ($this->request->isAJAX()) {
-                return $this->response->setJSON([
-                    'status'  => 'error',
-                    'message' => $message
-                ]);
-            }
-            return redirect()->back()->withInput()->with('message', $message);
-        }
+        // Prepare data - simple like item controller
+        $creditLimitEnabled = $this->request->getPost('enable_credit_limit') ? true : false;
+        $creditLimitRaw = $this->request->getPost('credit_limit_raw') ?? $this->request->getPost('credit_limit') ?? '0';
+        $creditLimit = $creditLimitEnabled ? format_angka_db($creditLimitRaw) : 0;
 
-        // Custom validation for code uniqueness
-        $code = $this->request->getPost('code');
-        if (!empty($code)) {
-            $existingAgent = $this->model->where('code', $code);
-            if ($isEdit) {
-                $existingAgent->where('id !=', $id);
-            }
-            $existingAgent = $existingAgent->first();
-            
-            if ($existingAgent) {
-                $message = 'Kode agen sudah digunakan';
-                if ($this->request->isAJAX()) {
-                    return $this->response->setJSON([
-                        'status'  => 'error',
-                        'message' => $message
-                    ]);
-                }
-                return redirect()->back()->withInput()->with('message', $message);
-            }
-        }
-
-        // Prepare data
-        // Formatted agent data input variables
-        $creditLimitEnabled  = $this->request->getPost('enable_credit_limit') ? true : false;
-        $creditLimitValueRaw = $this->request->getPost('credit_limit_raw');
-        if ($creditLimitValueRaw === null) {
-            $creditLimitValueRaw = $this->request->getPost('credit_limit');
-        }
-        $creditLimitValue    = format_angka_db($creditLimitValueRaw);
-
-        if (!$creditLimitEnabled) {
-            $creditLimitValue = 0;
-        }
-
-        $productRuleInput       = $this->getProductRuleInputFromRequest();
-
-        $name                   = $this->request->getPost('name');
-        $email                  = $this->request->getPost('email');
-        $phone                  = $this->request->getPost('phone');
-        $address                = $this->request->getPost('address');
-        $latitude               = $this->request->getPost('latitude');
-        $longitude              = $this->request->getPost('longitude');
-        $province_id            = $this->request->getPost('province_id');
-        $regency_id             = $this->request->getPost('regency_id');
-        $district_id            = $this->request->getPost('district_id');
-        $village_id             = $this->request->getPost('village_id');
-        $postal_code            = $this->request->getPost('postal_code');
-        $country                = $this->request->getPost('country');
-        $tax_number             = $this->request->getPost('tax_number');
-        $credit_limit           = $creditLimitValue;
-        $payment_terms          = $this->request->getPost('payment_terms');
+        $toNull = function($value) {
+            return ($value === '' || $value === null) ? null : $value;
+        };
 
         $data = [
-            'name'              => $name,
-            'email'             => $email,
-            'phone'             => $phone,
-            'address'           => $address,
-            'latitude'          => $latitude,
-            'longitude'         => $longitude,
-            'province_id'       => $province_id,
-            'regency_id'        => $regency_id,
-            'district_id'       => $district_id,
-            'village_id'        => $village_id,
-            'postal_code'       => $postal_code,
-            'country'           => $country,
-            'tax_number'        => $tax_number,
-            'credit_limit'      => $credit_limit,
-            'payment_terms'     => $payment_terms,
+            'name'          => trim($this->request->getPost('name') ?? ''),
+            'email'         => $toNull(trim($this->request->getPost('email') ?? '')),
+            'phone'         => $toNull(trim($this->request->getPost('phone') ?? '')),
+            'address'       => $toNull(trim($this->request->getPost('address') ?? '')),
+            'latitude'      => $toNull(trim($this->request->getPost('latitude') ?? '')),
+            'longitude'     => $toNull(trim($this->request->getPost('longitude') ?? '')),
+            'province_id'   => $toNull($this->request->getPost('province_id')),
+            'regency_id'    => $toNull($this->request->getPost('regency_id')),
+            'district_id'   => $toNull($this->request->getPost('district_id')),
+            'village_id'    => $toNull($this->request->getPost('village_id')),
+            'postal_code'   => $toNull(trim($this->request->getPost('postal_code') ?? '')),
+            'country'       => trim($this->request->getPost('country') ?? 'Indonesia'),
+            'tax_number'    => $toNull(trim($this->request->getPost('tax_number') ?? '')),
+            'credit_limit'  => $creditLimit,
+            'payment_terms' => $toNull($this->request->getPost('payment_terms')),
         ];
 
-        // Add code for edit mode (preserve existing code and is_active)
-        if ($isEdit) {
-            $data['code'] = $this->request->getPost('code');
-            $existingAgent = $this->model->find($id);
-            if ($existingAgent) {
-                $data['is_active'] = $existingAgent->is_active ?? '1';
-
-                if (!$creditLimitEnabled) {
-                    $data['credit_limit'] = 0;
-                } elseif ($credit_limit === 0 && isset($existingAgent->credit_limit)) {
-                    $data['credit_limit'] = format_angka_db($existingAgent->credit_limit);
-                }
-            }
-        } else {
-            // Generate code for new records
-            $data['code'] = $this->model->generateCode();
-            
-            // Default to active for new records
-            $data['is_active'] = '1';
-        }
-
-        $db = \Config\Database::connect();
-        $db->transBegin();
+        $result = false;
+        $message = '';
 
         try {
-            // Save agent data
             if ($isEdit) {
-                if (!$this->model->update($id, $data)) {
-                    throw new \RuntimeException('Gagal memperbarui data agen: ' . implode(', ', $this->model->errors()));
+                $data['code'] = $this->request->getPost('code');
+                $existing = $this->model->find($id);
+                if ($existing) {
+                    $data['is_active'] = $existing->is_active ?? '1';
                 }
-                $agentId = $id;
+                
+                $this->model->skipValidation(true);
+                $result = $this->model->update($id, $data);
             } else {
-                if (!$this->model->insert($data)) {
-                    throw new \RuntimeException('Gagal menyimpan data agen: ' . implode(', ', $this->model->errors()));
-                }
-                $agentId = $this->model->getInsertID();
+                $data['code'] = $this->model->generateCode();
+                $data['is_active'] = '1';
+                
+                $this->model->skipValidation(true);
+                $result = $this->model->save($data);
             }
-
-            // Handle user account (formatted)
-            $existingUserId   = $this->request->getPost('existing_user_id');
-            $existingUserId   = $existingUserId ? (int) $existingUserId : null;
-            $usernameInput    = trim((string) ($this->request->getPost('account_username') ?? ''));
-            $passwordInput    = (string) ($this->request->getPost('account_password') ?? '');
-            $passwordConfirm  = (string) ($this->request->getPost('account_password_confirm') ?? '');
-            $userRole         = $this->request->getPost('user_role') ?? '1';
-
-            $existingUser = null;
-            if ($existingUserId) {
-                $existingUser = $this->userModel->find($existingUserId);
-                if (!$existingUser) {
-                    $existingUserId = null;
-                }
-            }
-
-            $shouldHandleAccount = $existingUserId !== null || $usernameInput !== '' || $passwordInput !== '';
-
-            if ($shouldHandleAccount) {
-                if ($usernameInput === '' && !$existingUserId) {
-                    throw new \RuntimeException('Username wajib diisi untuk akun agen.');
-                }
-                if (!$existingUserId && $passwordInput === '') {
-                    throw new \RuntimeException('Password wajib diisi untuk akun agen.');
-                }
-                if ($passwordInput !== '' && $passwordInput !== $passwordConfirm) {
-                    throw new \RuntimeException('Konfirmasi password tidak sesuai.');
-                }
-
-                if ($usernameInput !== '') {
-                    $usernameQuery = $this->userModel->where('username', $usernameInput);
-                    if ($existingUserId) {
-                        $usernameQuery->where('id_user !=', $existingUserId);
-                    }
-                    if ($usernameQuery->first()) {
-                        throw new \RuntimeException('Username sudah digunakan.');
-                    }
-                }
-
-                $userData = [
-                    'nama' => $data['name'],
-                    'email' => $data['email']
-                ];
-
-                if ($usernameInput !== '') {
-                    $userData['username'] = $usernameInput;
-                }
-
-                if ($passwordInput !== '') {
-                    $userData['password'] = password_hash($passwordInput, PASSWORD_DEFAULT);
-                }
-
-                if (!$existingUserId) {
-                    $userData['status'] = 'active';
-                    $userData['verified'] = '1';
-                    if (!$this->userModel->insert($userData)) {
-                        throw new \RuntimeException('Gagal membuat akun user: ' . implode(', ', $this->userModel->errors()));
-                    }
-                    $userId = $this->userModel->getInsertID();
-                } else {
-                    $userId = $existingUserId;
-                    if (!$this->userModel->update($userId, $userData)) {
-                        throw new \RuntimeException('Gagal memperbarui akun user: ' . implode(', ', $this->userModel->errors()));
+            
+            if (!$result) {
+                $modelErrors = $this->model->errors();
+                $message = !empty($modelErrors) ? 'Validasi gagal: ' . implode(', ', array_values($modelErrors)) : 'Data gagal disimpan.';
+            } else {
+                $agentId = $isEdit ? $id : $this->model->getInsertID();
+                $message = $isEdit ? 'Data berhasil diupdate' : 'Data berhasil disimpan';
+                
+                // Handle user account
+                $existingUserId = $this->request->getPost('existing_user_id') ? (int)$this->request->getPost('existing_user_id') : null;
+                $usernameInput = trim($this->request->getPost('account_username') ?? '');
+                $passwordInput = $this->request->getPost('account_password') ?? '';
+                $passwordConfirm = $this->request->getPost('account_password_confirm') ?? '';
+                $userRole = $this->request->getPost('user_role') ?? '1';
+                
+                if ($existingUserId || $usernameInput || $passwordInput) {
+                    if (!$existingUserId && !$usernameInput) {
+                        $message = 'Username wajib diisi untuk akun agen.';
+                        $result = false;
+                    } elseif (!$existingUserId && !$passwordInput) {
+                        $message = 'Password wajib diisi untuk akun agen.';
+                        $result = false;
+                    } elseif ($passwordInput && $passwordInput !== $passwordConfirm) {
+                        $message = 'Konfirmasi password tidak sesuai.';
+                        $result = false;
+                    } else {
+                        if ($usernameInput) {
+                            $usernameCheck = $this->userModel->where('username', $usernameInput);
+                            if ($existingUserId) {
+                                $usernameCheck->where('id_user !=', $existingUserId);
+                            }
+                            if ($usernameCheck->first()) {
+                                $message = 'Username sudah digunakan.';
+                                $result = false;
+                            }
+                        }
+                        
+                        if ($result) {
+                            $userData = ['nama' => $data['name'], 'email' => $data['email']];
+                            if ($usernameInput) $userData['username'] = $usernameInput;
+                            if ($passwordInput) $userData['password'] = password_hash($passwordInput, PASSWORD_DEFAULT);
+                            
+                            if (!$existingUserId) {
+                                $userData['status'] = 'active';
+                                $userData['verified'] = '1';
+                                $this->userModel->skipValidation(true);
+                                $this->userModel->insert($userData);
+                                $userId = $this->userModel->getInsertID();
+                            } else {
+                                $this->userModel->skipValidation(true);
+                                $this->userModel->update($existingUserId, $userData);
+                                $userId = $existingUserId;
+                            }
+                            
+                            $this->userRoleAgentModel->assignUserToAgent($userId, $agentId, $userRole);
+                        }
                     }
                 }
-
-                $this->userRoleAgentModel->assignUserToAgent($userId, $agentId, $userRole ?: '1');
+                
+                // Handle product rules
+                if ($result) {
+                    $productRuleInput = $this->getProductRuleInputFromRequest();
+                    $this->persistAgentProductRule($agentId, $productRuleInput);
+                }
             }
-
-            $this->persistAgentProductRule($agentId, $productRuleInput);
-
-            if ($db->transStatus() === false) {
-                throw new \RuntimeException('Transaksi database gagal.');
-            }
-
-            $db->transCommit();
-
-            $message = $isEdit ? 'Data berhasil diupdate' : 'Data berhasil disimpan';
-            if ($this->request->isAJAX()) {
-                return $this->response->setJSON([
-                    'status'  => 'success',
-                    'message' => $message
-                ]);
-            }
-            return redirect()->to('agent')->with('message', $message);
         } catch (\Throwable $e) {
-            if ($db->transStatus() !== false) {
-                $db->transRollback();
-            }
-
+            $result = false;
+            $message = 'Error: ' . $e->getMessage();
             log_message('error', 'Agent::store error: ' . $e->getMessage());
-            $message = 'Gagal menyimpan data: ' . $e->getMessage();
+        }
 
-            if ($this->request->isAJAX()) {
-                return $this->response->setJSON([
-                    'status'  => 'error',
-                    'message' => $message
-                ]);
-            }
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => $result ? 'success' : 'error',
+                'message' => $message
+            ]);
+        }
+
+        if ($result) {
+            return redirect()->to('agent')->with('message', $message);
+        } else {
             return redirect()->back()->withInput()->with('message', $message);
         }
     }
@@ -619,7 +506,6 @@ class Agent extends BaseController
 
         $rule = $this->cashbackRuleModel
             ->where('agent_id', $agentId)
-            ->where('rule_type', 'cashback')
             ->first();
 
         if (!$rule) {
@@ -672,15 +558,14 @@ class Agent extends BaseController
             && $ruleInput['threshold_amount'] > 0
             && $ruleInput['cashback_amount'] > 0;
 
+        // Find existing rule by agent_id only (no rule_type field in model)
         $existingRule = $this->cashbackRuleModel
             ->where('agent_id', $agentId)
-            ->where('rule_type', 'cashback')
             ->first();
 
         if ($shouldSave) {
             $data = [
                 'agent_id'        => $agentId,
-                'rule_type'       => 'cashback',
                 'window_days'     => $ruleInput['window_days'],
                 'min_transaction' => $ruleInput['threshold_amount'],
                 'cashback_amount' => $ruleInput['cashback_amount'],
@@ -694,11 +579,13 @@ class Agent extends BaseController
                 ]),
             ];
 
+            $this->cashbackRuleModel->skipValidation(true);
             if ($existingRule) {
                 $this->cashbackRuleModel->update($existingRule->id, $data);
             } else {
                 $this->cashbackRuleModel->insert($data);
             }
+            $this->cashbackRuleModel->skipValidation(false);
         } else {
             if ($existingRule) {
                 $this->cashbackRuleModel->delete($existingRule->id);

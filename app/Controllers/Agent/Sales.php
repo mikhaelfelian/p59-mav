@@ -2897,16 +2897,10 @@ class Sales extends BaseController
         $result = [];
         $no = $start + 1;
 
-        // Payment status badges
-        $paymentStatusBadge = [
-            '0' => '<span class="badge bg-warning">Unpaid</span>',
-            '1' => '<span class="badge bg-info">Partial</span>',
-            '2' => '<span class="badge bg-success">Paid</span>'
-        ];
-
         foreach ($data as $row) {
             $paymentStatus = $row['payment_status'] ?? '0';
-            $statusDisplay = $paymentStatusBadge[$paymentStatus] ?? '<span class="badge bg-secondary">Unknown</span>';
+            $saleId = $row['id'] ?? null;
+            $statusDisplay = get_payment_status_badge($paymentStatus, $saleId);
 
             $actionButtons = '<div class="btn-group" role="group">';
             $actionButtons .= '<a href="' . $this->config->baseURL . 'agent/sales/' . $row['id'] . '" ';

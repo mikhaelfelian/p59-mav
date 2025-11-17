@@ -47,57 +47,9 @@ class AgentModel extends Model
     protected $deletedField   = 'deleted_at';
 
     // Validation
-    protected $validationRules = [
-        'code'          => 'permit_empty|max_length[20]',
-        'name'          => 'required|max_length[255]',
-        'email'         => 'permit_empty|valid_email|max_length[255]',
-        'phone'         => 'permit_empty|max_length[20]',
-        'address'       => 'permit_empty',
-        'latitude'      => 'permit_empty|decimal',
-        'longitude'     => 'permit_empty|decimal',
-        'province_id'   => 'permit_empty|integer',
-        'regency_id'    => 'permit_empty|integer',
-        'district_id'   => 'permit_empty|integer',
-        'village_id'    => 'permit_empty|integer',
-        'postal_code'   => 'permit_empty|max_length[10]',
-        'country'       => 'required|max_length[100]',
-        'tax_number'    => 'permit_empty|max_length[50]',
-        'credit_limit'  => 'permit_empty|decimal',
-        'payment_terms' => 'permit_empty|integer',
-        'is_active'     => 'permit_empty|in_list[0,1]'
-    ];
+    protected $validationRules = [];
 
-    protected $validationMessages = [
-        'code' => [
-            'required'    => 'Kode agen harus diisi',
-            'max_length'  => 'Kode agen maksimal 20 karakter',
-            'is_unique'   => 'Kode agen sudah digunakan',
-        ],
-        'name' => [
-            'required'    => 'Nama agen harus diisi',
-            'max_length'  => 'Nama agen maksimal 255 karakter',
-        ],
-        'email' => [
-            'valid_email' => 'Format email tidak valid',
-            'max_length'  => 'Email maksimal 255 karakter',
-        ],
-        'phone' => [
-            'max_length'  => 'Nomor telepon maksimal 20 karakter',
-        ],
-        'country' => [
-            'required'    => 'Negara harus diisi',
-            'max_length'  => 'Negara maksimal 100 karakter',
-        ],
-        'postal_code' => [
-            'max_length'  => 'Kode pos maksimal 10 karakter',
-        ],
-        'tax_number' => [
-            'max_length'  => 'Nomor pajak maksimal 50 karakter',
-        ],
-        'is_active' => [
-            'in_list'     => 'Status aktif harus 0 atau 1',
-        ],
-    ];
+    protected $validationMessages = [];
 
     protected $skipValidation = false;
     protected $cleanValidationRules = true;

@@ -120,7 +120,7 @@ class CreateSalesTable extends Migration
             ],
             'payment_status' => [
                 'type'       => 'ENUM',
-                'constraint' => ['0', '1', '2'],
+                'constraint' => ['0', '1', '2', '3'],
                 'null'       => false,
                 'default'    => '0',
                 'collate'    => 'utf8_general_ci',
