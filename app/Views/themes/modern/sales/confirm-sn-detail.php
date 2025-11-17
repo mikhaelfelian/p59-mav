@@ -155,7 +155,7 @@ helper('angka');
 
 <div class="card">
 	<div class="confirm-header">
-		<h5><i class="fas fa-check-circle me-2"></i>Verifikasi Order Agent</h5>
+		<h5><i class="fas fa-check-circle me-2" style="color: #fff;"></i>Verifikasi Order Agent</h5>
 		<div class="invoice-badge">
 			<i class="fas fa-file-invoice me-1"></i>
 			<?= esc($sale['invoice_no'] ?? '-') ?>
@@ -537,12 +537,12 @@ $(document).ready(function() {
 							text: response.message || 'Serial number berhasil di-assign',
 							confirmButtonText: 'OK'
 						}).then(function() {
-							// Redirect to /agent/sales after assign
-							window.location.href = '<?= $config->baseURL ?>agent/sales';
+							// Redirect to same confirm detail page
+							window.location.href = '<?= $config->baseURL ?>agent/sales/confirm/<?= $sale['id'] ?? 0 ?>';
 						});
 					} else {
 						alert(response.message || 'Serial number berhasil di-assign');
-						window.location.href = '<?= $config->baseURL ?>agent/sales';
+						window.location.href = '<?= $config->baseURL ?>agent/sales/confirm/<?= $sale['id'] ?? 0 ?>';
 					}
 				} else {
 					if (typeof Swal !== 'undefined') {

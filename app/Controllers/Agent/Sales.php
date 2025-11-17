@@ -1537,13 +1537,15 @@ class Sales extends BaseController
     {
         try {
             // Encrypt API key for x-api-key header
-            $encryptedApiKey = null;
-            try {
-                $encryptedApiKey = $this->encryptApiKey(self::GATEWAY_API_KEY, self::GATEWAY_PUBLIC_KEY);
-            } catch (\Exception $e) {
-                log_message('error', 'Agent\Sales::getPaymentStatusFromGateway - API key encryption failed: ' . $e->getMessage());
-                return null;
-            }
+            // $encryptedApiKey = '';
+            // try {
+            //     $encryptedApiKey = $this->encryptApiKey(self::GATEWAY_API_KEY, self::GATEWAY_PUBLIC_KEY);
+            // } catch (\Exception $e) {
+            //     log_message('error', 'Agent\Sales::getPaymentStatusFromGateway - API key encryption failed: ' . $e->getMessage());
+            //     return null;
+            // }
+
+            $encryptedApiKey = 'Lmp1xKoggDE4FH2SKk/d/hqRiF+uxyAZOtO/piLOdox1F0OPr/RyLbhH0JyzNJY2zTI9uEEG4P2Hgeh/i8fiD7ZjsMTEWJXgx8Zgdp74nAOLtel/zi9Z611c+GG4Ra0nMx5K2UjOeZvWFyfXDOuILmu4zYL+MyyW8uSGYO8ug9a17HS6tlmzg7PkdEEb2XzNQ84ahKTRxFTTrxJiFGa34FO0rzLjeNGTV5KihVwUkZjL67DrfiSZweUsKX8NNHgxHy242KPcRWcJ5/sLH/Klus9LRfx9pC3F4gzNr3k1VvoAP5Kv9DTP6IGOZshgDu8WnUAcsvDJG4wtpkZgvYBoUg==';
             
             $client = \Config\Services::curlrequest();
             $apiUrl = 'https://dev.osu.biz.id/mig/esb/v1/api/payments/' . urlencode($invoiceNo);
@@ -1568,7 +1570,8 @@ class Sales extends BaseController
             log_message('info', 'Agent\Sales::getPaymentStatusFromGateway - Response Body: ' . $body);
             
             if ($statusCode >= 200 && $statusCode < 300 && $responseData) {
-                // Return full gateway response (includes paymentCode, expiredAt, etc.)
+                // Return full gateway response (includes status, paymentCode, expiredAt, orderId, etc.)
+                // Response format: { "status": "PAID", "paymentCode": "...", "expiredAt": "...", ... }
                 return $responseData;
             } else {
                 $errorMsg = 'Payment gateway returned error';
@@ -1760,11 +1763,85 @@ class Sales extends BaseController
                 ])->setStatusCode(500);
             }
 
-            // Return gateway response (read-only check, no database update)
+            // Auto-update sales_payments.response with latest gateway data
+            try {
+                $payments = $this->salesPaymentsModel->getPaymentsBySale($id);
+                
+                if (!empty($payments)) {
+                    $payment = $payments[0]; // Get first payment
+                    $gatewayResponseJson = json_encode($gatewayResponse);
+                    
+                    $this->salesPaymentsModel->skipValidation(true);
+                    $this->salesPaymentsModel->update($payment['id'], [
+                        'response' => $gatewayResponseJson
+                    ]);
+                    $this->salesPaymentsModel->skipValidation(false);
+                    
+                    log_message('info', 'Agent\Sales::refreshPaymentStatus - Updated payment response for sale ID: ' . $id);
+                }
+            } catch (\Exception $e) {
+                // Don't fail the request if database update fails, just log it
+                log_message('error', 'Agent\Sales::refreshPaymentStatus - Failed to update payment response: ' . $e->getMessage());
+            }
+
+            // Auto-update sales table payment_status based on gateway status
+            try {
+                $gatewayStatus = strtoupper($gatewayResponse['status'] ?? '');
+                
+                // Map API status to payment_status
+                // payment_status: 0=unpaid, 1=partial, 2=paid
+                $paymentStatusMap = [
+                    'PAID' => '2',      // paid
+                    'PENDING' => '0',   // unpaid
+                    'FAILED' => '0',    // unpaid
+                    'CANCELED' => '0',  // unpaid
+                    'EXPIRED' => '0'    // unpaid
+                ];
+                
+                $paymentStatus = $paymentStatusMap[$gatewayStatus] ?? '0';
+                
+                // Prepare update data
+                $updateData = [
+                    'payment_status' => $paymentStatus
+                ];
+                
+                // Add settlement_time if provided and status is PAID
+                if ($gatewayStatus === 'PAID' && !empty($gatewayResponse['settlementTime'])) {
+                    // Parse settlementTime (ISO 8601 format: 2025-11-17T10:43:05)
+                    try {
+                        $settlementDateTime = new \DateTime($gatewayResponse['settlementTime']);
+                        $updateData['settlement_time'] = $settlementDateTime->format('Y-m-d H:i:s');
+                    } catch (\Exception $e) {
+                        // Continue without settlement_time if parsing fails
+                        log_message('warning', 'Agent\Sales::refreshPaymentStatus - Failed to parse settlementTime: ' . $e->getMessage());
+                    }
+                }
+                
+                // Update sale record
+                $this->model->skipValidation(true);
+                $updateResult = $this->model->update($id, $updateData);
+                $this->model->skipValidation(false);
+                
+                if ($updateResult) {
+                    log_message('info', 'Agent\Sales::refreshPaymentStatus - Updated sales payment_status to ' . $paymentStatus . ' for sale ID: ' . $id);
+                } else {
+                    $errors = $this->model->errors();
+                    $errorMsg = 'Failed to update sale payment_status';
+                    if ($errors && is_array($errors)) {
+                        $errorMsg .= ': ' . implode(', ', $errors);
+                    }
+                    log_message('error', 'Agent\Sales::refreshPaymentStatus - ' . $errorMsg);
+                }
+            } catch (\Exception $e) {
+                // Don't fail the request if database update fails, just log it
+                log_message('error', 'Agent\Sales::refreshPaymentStatus - Failed to update sales payment_status: ' . $e->getMessage());
+            }
+
+            // Return gateway response (includes status, paymentCode, expiredAt, orderId, etc.)
             return $this->response->setJSON([
                 'status' => 'success',
-                'message' => 'Status pembayaran berhasil diperiksa.',
-                'gatewayResponse' => $gatewayResponse
+                'message' => 'Status pembayaran berhasil diperiksa dan diperbarui.',
+                'gatewayResponse' => $gatewayResponse // Includes 'status' field: 'PAID', 'PENDING', etc.
             ]);
             
         } catch (\Exception $e) {

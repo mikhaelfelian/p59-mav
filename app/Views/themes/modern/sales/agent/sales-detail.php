@@ -1195,7 +1195,7 @@ html[data-bs-theme="dark"] .sn-table tbody tr:nth-child(even):hover {
 			refreshIcon.addClass('fa-spin');
 
 			$.ajax({
-				url: '<?= $config->baseURL ?>agent/sales/refreshPayment/' + saleId,
+				url: '<?= $config->baseURL ?>agent/sales/bayar/cek/' + saleId,
 				type: 'POST',
 				data: {
 					<?= csrf_token() ?>: '<?= csrf_hash() ?>'
