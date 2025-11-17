@@ -118,16 +118,9 @@ class Util extends Controller
     {
         $modules = [
             [
-                'nama_module'      => 'agent-sales',
-                'judul_module'     => 'Agent Sales',
-                'deskripsi'        => 'Cart & Checkout - Agent transaction system with cart functionality',
-                'id_module_status' => 1,
-                'login'            => 'Y'
-            ],
-            [
-                'nama_module'      => 'agent/payment',
-                'judul_module'     => 'Agent Payment',
-                'deskripsi'        => 'Payment Result Pages - Redirect pages for payment success, failure, and not found',
+                'nama_module'      => 'agent-gudang',
+                'judul_module'     => 'Agent Gudang',
+                'deskripsi'        => 'Warehouse Management - Serial number and inventory management for agents',
                 'id_module_status' => 1,
                 'login'            => 'Y'
             ]

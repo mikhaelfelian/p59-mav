@@ -392,79 +392,81 @@ html[data-bs-theme="dark"] .sn-table tbody tr:nth-child(even):hover {
 		</div>
 
 		<!-- Biaya Tambahan Section -->
-		<div class="items-section mb-4">
-			<div class="d-flex justify-content-between align-items-center mb-3">
-				<h6 class="mb-0"><i class="fas fa-receipt me-2"></i> Biaya Tambahan</h6>
-				<?php if (!empty($isAgent) && $isAgent && !empty($feeTypes)): ?>
-					<button type="button" class="btn btn-sm btn-primary" id="btnAddFee">
-						<i class="fas fa-plus me-1"></i>Tambah Biaya
-					</button>
-				<?php endif; ?>
-			</div>
-			
-			<?php if (!empty($fees) && is_array($fees) && count($fees) > 0): ?>
-			<div class="table-responsive">
-				<table class="table items-table" id="feesTable">
-					<thead>
-						<tr>
-							<th style="width: 50px;">No</th>
-							<th>Jenis Biaya</th>
-							<th>Nama Biaya (Opsional)</th>
-							<th style="width: 150px;" class="text-end">Jumlah</th>
-							<?php if (!empty($isAgent) && $isAgent): ?>
-							<th style="width: 80px;" class="text-center">Aksi</th>
-							<?php endif; ?>
-						</tr>
-					</thead>
-					<tbody id="feesTableBody">
-						<?php foreach ($fees as $index => $fee): ?>
-							<tr data-fee-id="<?= $fee['id'] ?>">
-								<td class="text-center"><?= $index + 1 ?></td>
-								<td><strong><?= esc($fee['fee_type_name'] ?? $fee['fee_type_code'] ?? '-') ?></strong></td>
-								<td><?= esc($fee['fee_name'] ?? '-') ?></td>
-								<td class="text-end currency"><strong>Rp <?= number_format($fee['amount'] ?? 0, 0, ',', '.') ?></strong></td>
+		<?php if (!empty($isAdmin) && $isAdmin): ?>
+			<div class="items-section mb-4">
+				<div class="d-flex justify-content-between align-items-center mb-3">
+					<h6 class="mb-0"><i class="fas fa-receipt me-2"></i> Biaya Tambahan</h6>
+					<?php if (!empty($isAgent) && $isAgent && !empty($feeTypes)): ?>
+						<button type="button" class="btn btn-sm btn-primary" id="btnAddFee">
+							<i class="fas fa-plus me-1"></i>Tambah Biaya
+						</button>
+					<?php endif; ?>
+				</div>
+				
+				<?php if (!empty($fees) && is_array($fees) && count($fees) > 0): ?>
+				<div class="table-responsive">
+					<table class="table items-table" id="feesTable">
+						<thead>
+							<tr>
+								<th style="width: 50px;">No</th>
+								<th>Jenis Biaya</th>
+								<th>Nama Biaya (Opsional)</th>
+								<th style="width: 150px;" class="text-end">Jumlah</th>
 								<?php if (!empty($isAgent) && $isAgent): ?>
-								<td class="text-center">
-									<button type="button" class="btn btn-sm btn-warning text-white edit-fee-btn" data-fee-id="<?= $fee['id'] ?>" title="Edit">
-										<i class="fas fa-edit"></i>
-									</button>
-									<button type="button" class="btn btn-sm btn-danger text-white delete-fee-btn" data-fee-id="<?= $fee['id'] ?>" title="Hapus">
-										<i class="fas fa-trash"></i>
-									</button>
-								</td>
+								<th style="width: 80px;" class="text-center">Aksi</th>
 								<?php endif; ?>
 							</tr>
-						<?php endforeach; ?>
-					</tbody>
-					<tfoot>
-						<tr>
-							<td colspan="<?= (!empty($isAgent) && $isAgent) ? '4' : '3' ?>" class="text-end"><strong>Total Biaya:</strong></td>
-							<td class="text-end currency">
-								<strong>Rp <?= number_format(array_sum(array_column($fees, 'amount')), 0, ',', '.') ?></strong>
-							</td>
-							<?php if (!empty($isAgent) && $isAgent): ?>
-							<td></td>
-							<?php endif; ?>
-						</tr>
-					</tfoot>
-				</table>
-			</div>
-			<?php else: ?>
-				<?php if (!empty($isAgent) && $isAgent && !empty($feeTypes)): ?>
-					<div class="alert alert-info mb-0">
-						<i class="fas fa-info-circle me-2"></i>Belum ada biaya tambahan. Klik "Tambah Biaya" untuk menambahkan.
-					</div>
+						</thead>
+						<tbody id="feesTableBody">
+							<?php foreach ($fees as $index => $fee): ?>
+								<tr data-fee-id="<?= $fee['id'] ?>">
+									<td class="text-center"><?= $index + 1 ?></td>
+									<td><strong><?= esc($fee['fee_type_name'] ?? $fee['fee_type_code'] ?? '-') ?></strong></td>
+									<td><?= esc($fee['fee_name'] ?? '-') ?></td>
+									<td class="text-end currency"><strong>Rp <?= number_format($fee['amount'] ?? 0, 0, ',', '.') ?></strong></td>
+									<?php if (!empty($isAgent) && $isAgent): ?>
+									<td class="text-center">
+										<button type="button" class="btn btn-sm btn-warning text-white edit-fee-btn" data-fee-id="<?= $fee['id'] ?>" title="Edit">
+											<i class="fas fa-edit"></i>
+										</button>
+										<button type="button" class="btn btn-sm btn-danger text-white delete-fee-btn" data-fee-id="<?= $fee['id'] ?>" title="Hapus">
+											<i class="fas fa-trash"></i>
+										</button>
+									</td>
+									<?php endif; ?>
+								</tr>
+							<?php endforeach; ?>
+						</tbody>
+						<tfoot>
+							<tr>
+								<td colspan="<?= (!empty($isAgent) && $isAgent) ? '4' : '3' ?>" class="text-end"><strong>Total Biaya:</strong></td>
+								<td class="text-end currency">
+									<strong>Rp <?= number_format(array_sum(array_column($fees, 'amount')), 0, ',', '.') ?></strong>
+								</td>
+								<?php if (!empty($isAgent) && $isAgent): ?>
+								<td></td>
+								<?php endif; ?>
+							</tr>
+						</tfoot>
+					</table>
+				</div>
 				<?php else: ?>
-					<div class="alert alert-info mb-0">
-						<i class="fas fa-info-circle me-2"></i>Tidak ada biaya tambahan.
-					</div>
+					<?php if (!empty($isAgent) && $isAgent && !empty($feeTypes)): ?>
+						<div class="alert alert-info mb-0">
+							<i class="fas fa-info-circle me-2"></i>Belum ada biaya tambahan. Klik "Tambah Biaya" untuk menambahkan.
+						</div>
+					<?php else: ?>
+						<div class="alert alert-info mb-0">
+							<i class="fas fa-info-circle me-2"></i>Tidak ada biaya tambahan.
+						</div>
+					<?php endif; ?>
 				<?php endif; ?>
-			<?php endif; ?>
-		</div>
+			</div>
+		<?php endif; ?>
 
 		<!-- Note Field -->
 		<div class="items-section mb-4">
-			<h6><i class="fas fa-sticky-note me-2"></i> Catatan</h6>
+			<h6><i class="fas fa-sticky-note me-2"></i> Catatan Agen</h6>
 			<div class="mb-0">
 				<p class="mb-0"><?= nl2br(esc($sale['note'])) ?></p>
 			</div>
@@ -486,7 +488,7 @@ html[data-bs-theme="dark"] .sn-table tbody tr:nth-child(even):hover {
 		<div class="items-section mb-4">
 			<h6><i class="fas fa-truck me-2"></i> Catatan Admin</h6>
 			<div class="mb-0">
-				<p class="mb-0 text-muted"><em>Catatan admin tidak dapat dilihat oleh agen.</em></p>
+				<p class="mb-0 text-muted"><?= nl2br(esc($sale['admin_note'])) ?></p>
 			</div>
 		</div>
 		<?php endif; ?>

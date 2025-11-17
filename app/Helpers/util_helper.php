@@ -509,12 +509,54 @@ function build_menu( $current_module, $arr_menu, $submenu = false)
 		
 		// class attribute for <li>
 		$class_li = [];		
-		if ($current_module['nama_module'] == $val['nama_module']) {
-			$class_li[] = 'tree-open';
-		}
+
+		// Get current URI for matching
+		$request = \Config\Services::request();
+		$config = new \Config\App();
+		$current_uri = trim($request->getUri()->getPath(), '/');
 		
-		if ($val['highlight']) {
-			$class_li[] = 'highlight tree-open';
+		// Normalize menu URL - remove baseURL prefix if present, and trim slashes
+		$menu_url = trim($val['url'], '/');
+		$base_path = trim(parse_url($config->baseURL, PHP_URL_PATH), '/');
+		if ($base_path && strpos($menu_url, $base_path . '/') === 0) {
+			$menu_url = substr($menu_url, strlen($base_path) + 1);
+		}
+		$menu_url = trim($menu_url, '/');
+
+		// Check if current URI matches this menu item's URL (for highlighting)
+		$uri_matches_current = false;
+		if ($menu_url && $current_uri && !$has_child) {
+			// For items without children, exact match means this is the current page
+			if ($current_uri === $menu_url) {
+				$uri_matches_current = true;
+			}
+		}
+
+		// Only add tree-open if menu item has children
+		if ($has_child) {
+			// Check if current URI matches or is a child of this menu item's URL
+			$uri_matches = false;
+			if ($menu_url && $current_uri) {
+				// Exact match or current URI starts with menu URL (is a child)
+				if ($current_uri === $menu_url || strpos($current_uri . '/', $menu_url . '/') === 0) {
+					$uri_matches = true;
+				}
+			}
+			
+			// Also check module name for backward compatibility
+			if ($current_module['nama_module'] == $val['nama_module'] || $uri_matches) {
+				$class_li[] = 'tree-open';
+			}
+			
+			// Add highlight if database says so OR if URI matches (for parent menus)
+			if ($val['highlight'] || $uri_matches) {
+				$class_li[] = 'highlight tree-open';
+			}
+		} else {
+			// For items without children, add highlight if database says so OR if URI matches
+			if ($val['highlight'] || $uri_matches_current) {
+				$class_li[] = 'highlight';
+			}
 		}
 		
 		if ($class_li) {

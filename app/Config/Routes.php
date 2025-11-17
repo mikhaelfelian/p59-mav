@@ -98,12 +98,17 @@ $routes->post('agent-rules/delete/(:num)', 'AgentRules::delete/$1');
 $routes->group('agent', function($routes) {
     // Agent Dashboard
     $routes->get('dashboard', 'Agent\Dashboard::index');
+    
+
     $routes->get('dashboard/ajaxGetPenjualan', 'Agent\Dashboard::ajaxGetPenjualan');
     $routes->get('dashboard/ajaxGetItemTerjual', 'Agent\Dashboard::ajaxGetItemTerjual');
     $routes->get('dashboard/ajaxGetKategoriTerjual', 'Agent\Dashboard::ajaxGetKategoriTerjual');
     $routes->get('dashboard/ajaxGetPenjualanTerbaru', 'Agent\Dashboard::ajaxGetPenjualanTerbaru');
     $routes->get('dashboard/ajaxGetPelangganTerbesar', 'Agent\Dashboard::ajaxGetPelangganTerbesar');
     $routes->post('dashboard/getDataDTPenjualanTerbesar', 'Agent\Dashboard::getDataDTPenjualanTerbesar');
+
+    // Agent Gudang (Warehouse)
+    $routes->get('gudang/sn', 'Agent\Gudang\Sn::index');
 
     // Agent Item (POS View)
     $routes->get('item', 'Agent\Item::index');
@@ -113,7 +118,6 @@ $routes->group('agent', function($routes) {
     $routes->get('sales', 'Agent\Sales::index');
     $routes->get('sales/(:num)', 'Agent\Sales::detail/$1');
     $routes->get('sales/cart', 'Agent\Sales::cart');
-    $routes->get('sales/sn', 'Agent\Sales::sn');
     $routes->get('sales/sn/activate/(:num)', 'Agent\Sales::activateForm/$1');
     $routes->post('sales/getSnDataDT', 'Agent\Sales::getSnDataDT');
     $routes->post('sales/getSnDataDTForSale/(:num)', 'Agent\Sales::getSnDataDTForSale/$1');

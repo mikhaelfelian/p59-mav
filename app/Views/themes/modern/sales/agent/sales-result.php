@@ -8,7 +8,15 @@
 ?>
 <div class="card">
 	<div class="card-header">
-		<h5 class="card-title">Data Penjualan (Online)</h5>
+		<?php
+		// Determine permission and title based on 'read_all'
+		if (!empty($read_all) && $read_all > 0) {
+			$title = 'Penjualan (Online)';
+		} else {
+			$title = 'Pembelian';
+		}
+		?>
+		<h5 class="card-title">Data <?= $title ?></h5>
 	</div>
 
 	<div class="card-body">	

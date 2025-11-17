@@ -108,12 +108,18 @@ class Item extends BaseController
             'firstItem' => $firstItemNumber,
             'lastItem' => $lastItemNumber,
         ];
+
         $this->data['priceRange'] = [
             'min' => (float) ($priceStats['min_price'] ?? 0),
             'max' => (float) ($priceStats['max_price'] ?? 0),
         ];
         $this->data['sortOptions'] = $this->getSortOptions();
         $this->data['perPageOptions'] = [12, 24, 48, 96];
+        
+        $this->data['breadcrumb'] = [
+            'Home'               => $this->config->baseURL.'agent/dashboard',
+            'Katalog'            => '', // Current page, no link
+        ];
 
         // Render view
         $this->view('sales/agent/item-result', $this->data);

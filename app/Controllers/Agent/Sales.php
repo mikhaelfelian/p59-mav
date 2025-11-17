@@ -1589,15 +1589,29 @@ class Sales extends BaseController
      * @return void
      */
     public function index(): void
-    {
-        $this->data['title'] = 'Data Penjualan Agent (Online)';
-        $this->data['currentModule'] = $this->currentModule;
-        $this->data['config'] = $this->config;
-        $this->data['msg'] = $this->session->getFlashdata('message');
-        
+    {        
         // Pass permission data to view
-        $this->data['canCreate'] = $this->hasPermissionPrefix('create');
-        
+        $isAdmin = $this->hasPermission('read_all');
+        $this->data['read_all']   = $isAdmin;
+
+        if ($isAdmin) {
+            $title = 'Penjualan (Online)';
+        } else {
+            $title = 'Pembelian';
+        }
+
+        $this->data = array_merge($this->data, [
+            'title'         => 'Data ' . $title,
+            'currentModule' => $this->currentModule,
+            'config'        => $this->config,
+            'msg'           => $this->session->getFlashdata('message'),
+        ]);
+
+        $this->data['breadcrumb'] = [
+            'Home'                 => $this->config->baseURL,
+            'Data ' . $title       => '', // Current page, no link
+        ];
+
         $this->view('sales/agent/sales-result', $this->data);
     }
 
@@ -2020,69 +2034,6 @@ class Sales extends BaseController
                 'message' => 'Gagal menyimpan catatan admin: ' . implode(', ', $this->model->errors())
             ]);
         }
-    }
-    
-    /**
-     * Display serial numbers for agent sales
-     * Shows unused and used serial numbers in tabbed interface with DataTables
-     * 
-     * @return void
-     */
-    public function sn(): void
-    {
-        // Get agent IDs for current user
-        // Check if user is admin (has read_all or update_all permission)
-        // Defensive check: ensure userPermission is an array
-        $userPermission = is_array($this->userPermission) ? $this->userPermission : [];
-        $isAdmin = key_exists('read_all', $userPermission) || key_exists('update_all', $userPermission);
-        
-        $agentIds = [];
-        $userId = !empty($this->user) && is_array($this->user) ? ($this->user['id_user'] ?? null) : null;
-        if (!$isAdmin && !empty($userId)) {
-            $agentRows = $this->userRoleAgentModel
-                ->select('agent_id')
-                ->where('user_id', $userId)
-                ->findAll();
-
-            $agentIds = array_values(array_unique(array_map(
-                static function ($row) {
-                    if (is_object($row)) {
-                        return (int)($row->agent_id ?? 0);
-                    }
-                    if (is_array($row)) {
-                        return (int)($row['agent_id'] ?? 0);
-                    }
-                    return 0;
-                },
-                $agentRows
-            )));
-        }
-
-        // Count unreceived SNs for current agent
-        $db = \Config\Database::connect();
-        $unreceivedBuilder = $db->table('sales_item_sn')
-            ->select('sales_item_sn.id')
-            ->join('sales_detail', 'sales_detail.id = sales_item_sn.sales_item_id', 'inner')
-            ->join('sales', 'sales.id = sales_detail.sale_id', 'inner')
-            ->where('sales.sale_channel', self::CHANNEL_ONLINE)
-            ->where('sales_item_sn.is_receive', '0');
-        
-        // Apply agent filter only for non-admin users
-        if (!$isAdmin && !empty($agentIds)) {
-            $unreceivedBuilder->whereIn('sales.warehouse_id', $agentIds);
-        }
-        
-        $totalUnreceivedCount = $unreceivedBuilder->countAllResults();
-
-        $this->data['title'] = 'Data Serial Number';
-        $this->data['currentModule'] = $this->currentModule;
-        $this->data['config'] = $this->config;
-        $this->data['isAdmin'] = $isAdmin;
-        $this->data['agentIds'] = $agentIds;
-        $this->data['totalUnreceivedCount'] = $totalUnreceivedCount;
-        $this->data['isAgent'] = !$isAdmin && !empty($agentIds);
-
-        $this->view('sales/agent/sales-sn', $this->data);
     }
     
     /**

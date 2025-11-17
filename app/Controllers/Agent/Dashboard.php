@@ -102,7 +102,12 @@ class Dashboard extends BaseController
         if (empty($this->data['penjualan'])) {
             $this->data['message']['status'] = 'error';
             $this->data['message']['message'] = 'Belum ada data penjualan untuk ditampilkan.';
-        }
+        }        
+
+        $this->data['breadcrumb'] = [
+            'Home'                 => $this->config->baseURL.'agent/dashboard',
+            'Dashboard'            => '', // Current page, no link
+        ];
 
         $this->view('sales/agent/dashboard-agent', $this->data);
     }
