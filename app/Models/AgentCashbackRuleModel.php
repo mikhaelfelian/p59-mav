@@ -29,5 +29,3 @@ class AgentCashbackRuleModel extends Model
 
     protected $validationRules = [];
 }
-
-
