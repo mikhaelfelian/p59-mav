@@ -2,6 +2,9 @@
 # Operating Specific Junk Files
 #-------------------------
 
+# Cursor
+.cursor/*
+
 # OS X
 .DS_Store
 .AppleDouble
