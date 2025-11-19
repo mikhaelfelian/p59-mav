@@ -510,6 +510,44 @@ class BaseController extends Controller
 		}
 		
 	}
+
+	/**
+	 * Check if user has a specific role OR get current role info
+	 *
+	 * Usage:
+	 *   $this->hasRole('agen'); // true/false
+	 *   $this->hasRole();       // current role array (from session user data)
+	 *   $this->hasRole(null, true); // get current role description array
+	 *
+	 * @param string|null $role_name Role name to check (e.g., 'agen'). If null, returns the role array.
+	 * @param bool $returnArray If true, returns entire role desc array (default: false)
+	 * @return bool|array
+	 */
+	protected function hasRole($role_name = null, $returnArray = false)
+	{
+		$data = $this->user; // assuming $this->user comes from session and has role, default_page_id_role, etc
+		if (!isset($data['role']) || !is_array($data['role'])) {
+			return $role_name ? false : [];
+		}
+
+		$role_id = $data['default_page_id_role'];
+		$role_desc = isset($data['role'][$role_id]) ? $data['role'][$role_id] : null;
+
+		if ($returnArray) {
+			return $role_desc;
+		}
+
+		if ($role_name !== null) {
+			// Check by role name (e.g. 'agen')
+			if ($role_desc && isset($role_desc['nama_role'])) {
+				return $role_desc['nama_role'] === $role_name;
+			}
+			return false;
+		} else {
+			// If no role_name given, return role array
+			return $role_desc;
+		}
+	}
 	
 	protected function userCan($action) {
 		if (!$this->userPermission) {

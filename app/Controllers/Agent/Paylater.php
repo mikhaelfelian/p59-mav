@@ -291,6 +291,137 @@ class Paylater extends BaseController
     }
 
     /**
+     * Render Bootbox bulk payment form (HTML response)
+     *
+     * @return string|\CodeIgniter\HTTP\ResponseInterface
+     */
+    public function payMass()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setStatusCode(405)->setJSON([
+                'status'  => 'error',
+                'message' => 'Request tidak valid.'
+            ]);
+        }
+
+        try {
+            $saleIds = $this->request->getPost('sale_ids');
+            if (!is_array($saleIds) || empty($saleIds)) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'status'  => 'error',
+                    'message' => 'Invoice belum dipilih.'
+                ]);
+            }
+
+            $saleIds = array_values(array_unique(array_filter(array_map('intval', $saleIds))));
+            if (empty($saleIds)) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'status'  => 'error',
+                    'message' => 'Invoice tidak valid.'
+                ]);
+            }
+
+            $sales = $this->salesModel
+                ->select('sales.*, customer.name as customer_name, agent.name as agent_name')
+                ->join('customer', 'customer.id = sales.customer_id', 'left')
+                ->join('agent', 'agent.id = sales.warehouse_id', 'left')
+                ->whereIn('sales.id', $saleIds)
+                ->findAll();
+
+            if (count($sales) !== count($saleIds)) {
+                return $this->response->setStatusCode(404)->setJSON([
+                    'status'  => 'error',
+                    'message' => 'Sebagian invoice tidak ditemukan.'
+                ]);
+            }
+
+            $selected = [];
+            $agentId = null;
+            foreach ($sales as $sale) {
+                if (($sale['payment_status'] ?? '') !== '3') {
+                    return $this->response->setStatusCode(422)->setJSON([
+                        'status'  => 'error',
+                        'message' => 'Terdapat invoice yang bukan paylater.'
+                    ]);
+                }
+
+                $saleAgentId = (int) ($sale['warehouse_id'] ?? 0);
+                if ($saleAgentId <= 0) {
+                    return $this->response->setStatusCode(422)->setJSON([
+                        'status'  => 'error',
+                        'message' => 'Data agen tidak valid.'
+                    ]);
+                }
+
+                if ($agentId === null) {
+                    $agentId = $saleAgentId;
+                } elseif ($agentId !== $saleAgentId) {
+                    return $this->response->setStatusCode(422)->setJSON([
+                        'status'  => 'error',
+                        'message' => 'Tidak dapat membayar invoice dari agen berbeda.'
+                    ]);
+                }
+
+                $balance = $this->getSaleOutstandingAmount((int) $sale['id']);
+                if ($balance <= 0) {
+                    return $this->response->setStatusCode(422)->setJSON([
+                        'status'  => 'error',
+                        'message' => 'Invoice ' . ($sale['invoice_no'] ?? '') . ' sudah lunas.'
+                    ]);
+                }
+
+                $selected[] = [
+                    'id'            => (int) $sale['id'],
+                    'invoice_no'    => $sale['invoice_no'] ?? 'INV-' . $sale['id'],
+                    'customer_name' => $sale['customer_name'] ?? '-',
+                    'grand_total'   => (float) ($sale['grand_total'] ?? 0),
+                    'outstanding'   => round($balance, 2),
+                ];
+            }
+
+            $mode = count($selected) > 1 ? 'multiple' : 'single';
+            $totalOutstanding = array_sum(array_column($selected, 'outstanding'));
+
+            $allPlatforms = $this->platformModel
+                ->select('platform.*, platform.status_pos, platform.gw_status, platform.gw_code')
+                ->where('status', '1')
+                ->where('status_agent', '1')
+                ->orderBy('platform', 'ASC')
+                ->findAll();
+
+            $platformsManualTransfer = [];
+            $platformsPaymentGateway = [];
+
+            foreach ($allPlatforms as $platform) {
+                $gwStatus = (string) ($platform['gw_status'] ?? '0');
+                if ($gwStatus === '1') {
+                    $platformsPaymentGateway[] = $platform;
+                } else {
+                    $platformsManualTransfer[] = $platform;
+                }
+            }
+
+            $data = [
+                'mode'                    => $mode,
+                'selected'                => $selected,
+                'totalOutstanding'        => $totalOutstanding,
+                'platformsManualTransfer' => $platformsManualTransfer,
+                'platformsPaymentGateway' => $platformsPaymentGateway,
+                'csrfName'                => csrf_token(),
+                'csrfHash'                => csrf_hash(),
+            ];
+
+            return view('themes/modern/sales/agent/paylater-bulk-form', $data);
+        } catch (\Throwable $e) {
+            log_message('error', 'Paylater::payMass error: ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON([
+                'status'  => 'error',
+                'message' => 'Gagal memuat form pembayaran.'
+            ]);
+        }
+    }
+
+    /**
      * Process payment for paylater transaction
      * 
      * @param int $id Paylater transaction ID

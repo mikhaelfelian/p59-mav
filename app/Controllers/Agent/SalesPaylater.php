@@ -81,6 +81,8 @@ class SalesPaylater extends BaseController
         $this->salesPaymentLogModel = new SalesPaymentLogModel();
         $this->salesGatewayLogModel = new SalesGatewayLogModel();
         $this->agentPaylaterModel = new \App\Models\AgentPaylaterModel();
+        
+        $this->data['role'] = $this->hasRole();
     }
     
     /**
@@ -95,7 +97,7 @@ class SalesPaylater extends BaseController
         $this->data['read_all'] = $isAdmin;
 
         $this->data = array_merge($this->data, [
-            'title'         => 'Data Pembayaran Paylater',
+            'title'         => 'Data Paylater',
             'currentModule' => $this->currentModule,
             'config'        => $this->config,
             'msg'           => $this->session->getFlashdata('message'),
@@ -122,10 +124,11 @@ class SalesPaylater extends BaseController
 
         $this->data['platformsManualTransfer'] = $platformsManualTransfer;
         $this->data['platformsPaymentGateway'] = $platformsPaymentGateway;
+        $this->data['role'] = $this->hasRole();
 
         $this->data['breadcrumb'] = [
             'Home'                 => $this->config->baseURL,
-            'Data Pembayaran Paylater' => '', // Current page, no link
+            'Paylater' => '', // Current page, no link
         ];
 
         $this->view('sales/agent/sales-result-paylater', $this->data);
@@ -355,9 +358,9 @@ class SalesPaylater extends BaseController
             $this->data['gatewayResponse'] = $gatewayResponse;
 
             $this->data['breadcrumb'] = [
-                'Home'               => $this->config->baseURL.'agent/dashboard',
-                'Pembayaran Paylater' => $this->config->baseURL.'agent/sales-paylater',
-                'Detail'             => '', // Current page, no link
+                'Home'     => $this->config->baseURL.'agent/dashboard',
+                'Paylater' => $this->config->baseURL.'agent/sales-paylater',
+                'Detail'   => '', // Current page, no link
             ];
 
             $this->view('sales/agent/sales-detail-paylater', $this->data);
@@ -537,10 +540,12 @@ class SalesPaylater extends BaseController
             $actionButtons .= 'class="btn btn-sm btn-info" title="Detail">';
             $actionButtons .= '<i class="fas fa-eye"></i></a>';
             
-            // Add "Bayar" button (button only, no functionality yet)
-            $actionButtons .= '<a href="' . $this->config->baseURL . 'agent/paylater/pay/' . $row['id'] . '" ';
-            $actionButtons .= 'class="btn btn-sm btn-success btn-bayar" title="Bayar">';
-            $actionButtons .= 'Bayar</a>';
+            // Add "Bayar" button only for role id 4
+            if (isset($this->data['role']['id_role']) && $this->data['role']['id_role'] == 4) {
+                $actionButtons .= '<a href="' . $this->config->baseURL . 'agent/paylater/pay/' . $row['id'] . '" ';
+                $actionButtons .= 'class="btn btn-sm btn-success btn-bayar" title="Bayar">';
+                $actionButtons .= 'Bayar</a>';
+            }
             
             $actionButtons .= '</div>';
 

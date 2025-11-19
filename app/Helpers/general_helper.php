@@ -40,3 +40,18 @@ if (!function_exists('get_payment_status_badge')) {
     }
 }
 
+if (!function_exists('pre')) {
+    /**
+     * Print data in formatted <pre> tag using print_r
+     * 
+     * @param mixed $data Data to be printed
+     * @return void
+     */
+    function pre($data): void
+    {
+        echo '<pre>';
+        print_r($data);
+        echo '</pre>';
+    }
+}
+
