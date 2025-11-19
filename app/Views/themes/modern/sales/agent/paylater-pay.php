@@ -133,7 +133,7 @@ if (!empty($msg)) {
 			</div>
 
 			<div class="d-flex justify-content-between align-items-center mt-4">
-				<a href="<?= $config->baseURL ?>agent/paylater" class="btn btn-secondary">
+				<a href="<?= $config->baseURL ?>agent/sales-paylater" class="btn btn-secondary">
 					<i class="fas fa-arrow-left"></i> Kembali
 				</a>
 				<button type="submit" class="btn btn-success btn-lg">
