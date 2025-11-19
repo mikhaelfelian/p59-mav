@@ -165,12 +165,13 @@ $routes->group('agent', function($routes) {
     $routes->get('sales-paylater', 'Agent\SalesPaylater::index');
     $routes->get('sales-paylater/(:num)', 'Agent\SalesPaylater::detail/$1');
     $routes->post('sales-paylater/getDataDT', 'Agent\SalesPaylater::getDataDT');
+    $routes->post('sales-paylater/bulk-form', 'Agent\SalesPaylater::bulkForm');
 
     // Agent Paylater Management
     $routes->get('paylater', 'Agent\Paylater::index');
     $routes->get('paylater/(:num)', 'Agent\Paylater::detail/$1');
     $routes->match(['get', 'post'], 'paylater/pay/(:num)', 'Agent\Paylater::pay/$1');
-    $routes->get('paylater/pay-bulk/(:num)', 'Agent\Paylater::payBulk/$1');
+    $routes->post('paylater/pay-bulk', 'Agent\Paylater::payBulk');
     $routes->post('paylater/getDataDT', 'Agent\Paylater::getDataDT');
 });
 

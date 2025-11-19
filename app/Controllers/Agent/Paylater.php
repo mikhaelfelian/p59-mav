@@ -674,28 +674,436 @@ class Paylater extends BaseController
     }
 
     /**
-     * Bulk payment form route (placeholder)
-     * 
-     * @param int $id Agent ID
-     * @return void
+     * Handle bulk/single multi-select payment submission (AJAX)
+     *
+     * @return ResponseInterface
      */
-    public function payBulk(int $id): void
+    public function payBulk(): ResponseInterface
     {
-        // Placeholder - will be implemented in next order
-        $this->data = array_merge($this->data, [
-            'title'         => 'Form Pembayaran Bulk',
-            'currentModule' => $this->currentModule,
-            'config'        => $this->config,
-        ]);
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Request tidak valid.'
+            ])->setStatusCode(405);
+        }
 
-        $this->data['breadcrumb'] = [
-            'Home'         => $this->config->baseURL,
-            'Data Paylater' => $this->config->baseURL.'agent/paylater',
-            'Form Pembayaran Bulk' => '',
-        ];
+        try {
+            $saleIdsInput = $this->request->getPost('sale_ids');
+            if (!is_array($saleIdsInput) || empty($saleIdsInput)) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Invoice belum dipilih.',
+                    'csrf_hash' => csrf_hash()
+                ])->setStatusCode(422);
+            }
 
-        // Placeholder view - will be created in next order
-        echo "Bulk payment form for agent ID: {$id} - To be implemented";
+            $saleIds = array_values(array_unique(array_map('intval', $saleIdsInput)));
+            $saleIds = array_filter($saleIds);
+            if (empty($saleIds)) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Invoice tidak valid.',
+                    'csrf_hash' => csrf_hash()
+                ])->setStatusCode(422);
+            }
+
+            $mode = $this->request->getPost('mode') ?? (count($saleIds) > 1 ? 'multiple' : 'single');
+            $platformId = (int) ($this->request->getPost('platform_id') ?? 0);
+            $note = trim($this->request->getPost('note') ?? '');
+
+            if ($platformId <= 0) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Platform pembayaran harus dipilih.',
+                    'csrf_hash' => csrf_hash()
+                ])->setStatusCode(422);
+            }
+
+            $platform = $this->platformModel->find($platformId);
+            if (!$platform || ($platform['status'] ?? '0') !== '1' || ($platform['status_agent'] ?? '0') !== '1') {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Platform pembayaran tidak valid.',
+                    'csrf_hash' => csrf_hash()
+                ])->setStatusCode(422);
+            }
+
+            $sales = $this->salesModel->whereIn('id', $saleIds)->findAll();
+            if (count($sales) !== count($saleIds)) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Sebagian invoice tidak ditemukan.',
+                    'csrf_hash' => csrf_hash()
+                ])->setStatusCode(404);
+            }
+
+            $saleData = [];
+            $agentId = null;
+            foreach ($sales as $sale) {
+                if (($sale['payment_status'] ?? '') !== '3') {
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => 'Terdapat invoice yang bukan paylater.',
+                        'csrf_hash' => csrf_hash()
+                    ])->setStatusCode(422);
+                }
+
+                $saleAgentId = (int) ($sale['warehouse_id'] ?? 0);
+                if ($saleAgentId <= 0) {
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => 'Data agen tidak valid.',
+                        'csrf_hash' => csrf_hash()
+                    ])->setStatusCode(422);
+                }
+
+                if ($agentId === null) {
+                    $agentId = $saleAgentId;
+                } elseif ($agentId !== $saleAgentId) {
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => 'Tidak dapat membayar invoice dari agen berbeda.',
+                        'csrf_hash' => csrf_hash()
+                    ])->setStatusCode(422);
+                }
+
+                $balance = $this->getSaleOutstandingAmount((int) $sale['id']);
+                if ($balance <= 0) {
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => 'Invoice ' . ($sale['invoice_no'] ?? '') . ' sudah lunas.',
+                        'csrf_hash' => csrf_hash()
+                    ])->setStatusCode(422);
+                }
+
+                $saleData[$sale['id']] = [
+                    'id' => (int) $sale['id'],
+                    'invoice_no' => $sale['invoice_no'] ?? 'INV-' . $sale['id'],
+                    'balance' => round($balance, 2),
+                    'agent_id' => $saleAgentId,
+                    'customer_name' => $sale['customer_name'] ?? '-'
+                ];
+            }
+
+            $amountMap = [];
+            if (count($saleIds) > 1) {
+                $mode = 'multiple';
+                foreach ($saleData as $saleId => $info) {
+                    $amountMap[$saleId] = $info['balance'];
+                }
+            } else {
+                $mode = 'single';
+                $singleSaleId = $saleIds[0];
+                $requestedAmount = (float) ($this->request->getPost('amount') ?? 0);
+                if ($requestedAmount <= 0 || $requestedAmount > $saleData[$singleSaleId]['balance']) {
+                    $requestedAmount = $saleData[$singleSaleId]['balance'];
+                }
+                $amountMap[$singleSaleId] = round($requestedAmount, 2);
+            }
+
+            $totalPayment = array_sum($amountMap);
+            if ($totalPayment <= 0) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Nominal pembayaran tidak valid.',
+                    'csrf_hash' => csrf_hash()
+                ])->setStatusCode(422);
+            }
+
+            $agent = $this->agentModel->find($agentId);
+            if (!$agent) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Data agen tidak ditemukan.',
+                    'csrf_hash' => csrf_hash()
+                ])->setStatusCode(404);
+            }
+
+            $gwStatus = (string) ($platform['gw_status'] ?? '0');
+            if ($mode === 'single') {
+                $singleSaleId = $saleIds[0];
+                if ($gwStatus === '1' && $amountMap[$singleSaleId] < $saleData[$singleSaleId]['balance']) {
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => 'Pembayaran sebagian hanya tersedia untuk platform transfer manual.',
+                        'csrf_hash' => csrf_hash()
+                    ])->setStatusCode(422);
+                }
+            }
+
+            $orderId = $this->generateOrderIdForBulk($mode, $saleData, $amountMap, $agentId);
+            $gatewayResponse = null;
+            $isOfflinePlatform = ($gwStatus !== '1');
+            $settlementTime = null;
+
+            if (!$isOfflinePlatform) {
+                $shouldReuseInvoice = false;
+                if ($mode === 'single') {
+                    $singleSaleId = $saleIds[0];
+                    $shouldReuseInvoice = abs($amountMap[$singleSaleId] - $saleData[$singleSaleId]['balance']) < 0.01;
+                    if ($shouldReuseInvoice) {
+                        $orderId = $saleData[$singleSaleId]['invoice_no'];
+                    }
+                }
+
+                if ($shouldReuseInvoice && $this->salesGatewayLogModel->invoiceExists($orderId)) {
+                    $existingGateway = $this->getPaymentStatusFromGateway($orderId);
+                    if ($existingGateway !== null) {
+                        $gatewayResponse = $existingGateway;
+                    }
+                }
+
+                if ($gatewayResponse === null) {
+                    if ($this->salesGatewayLogModel->invoiceExists($orderId)) {
+                        $orderId = $this->generateUniqueOrderId($orderId);
+                    }
+
+                    $customerName = $agent->name ?? 'Agent';
+                    $nameParts = !empty($customerName) ? explode(' ', $customerName, 2) : ['Agent', 'Agent'];
+                    $firstName = $nameParts[0] ?? 'Agent';
+                    $lastName = $nameParts[1] ?? $firstName;
+
+                    $apiData = [
+                        'code'     => $platform['gw_code'] ?? 'QRIS',
+                        'orderId'  => $orderId,
+                        'amount'   => (int) round($totalPayment),
+                        'customer' => [
+                            'firstName' => $firstName,
+                            'lastName'  => $lastName,
+                            'email'     => $agent->email ?? 'agent@example.com',
+                            'phone'     => $agent->phone ?? '',
+                        ],
+                    ];
+
+                    $gatewayResponse = $this->callPaymentGateway($apiData);
+                    if ($gatewayResponse === null) {
+                        $logFile = WRITEPATH . 'logs/log-' . date('Y-m-d') . '.log';
+                        return $this->response->setJSON([
+                            'status' => 'error',
+                            'message' => 'Gagal mengirim ke payment gateway. Silakan cek log di: ' . $logFile,
+                            'csrf_hash' => csrf_hash()
+                        ])->setStatusCode(500);
+                    }
+
+                    $gatewayStatus = $gatewayResponse['status'] ?? null;
+                    $this->salesGatewayLogModel->logGatewayRequest(
+                        $orderId,
+                        $platformId,
+                        $totalPayment,
+                        $apiData,
+                        $gatewayResponse,
+                        $gatewayStatus
+                    );
+                }
+            } else {
+                $settlementTime = date('Y-m-d H:i:s');
+            }
+
+            $db = \Config\Database::connect();
+            $db->transStart();
+
+            try {
+                foreach ($amountMap as $saleId => $amountToPay) {
+                    $description = 'Pembayaran paylater - Invoice: ' . ($saleData[$saleId]['invoice_no'] ?? '');
+                    if ($mode === 'multiple') {
+                        $description = 'Pembayaran bulk paylater - Invoice: ' . ($saleData[$saleId]['invoice_no'] ?? '');
+                    } elseif ($amountToPay < $saleData[$saleId]['balance']) {
+                        $description = 'Pembayaran sebagian paylater - Invoice: ' . ($saleData[$saleId]['invoice_no'] ?? '');
+                    }
+
+                    $this->model->skipValidation(true);
+                    $insertResult = $this->model->insert([
+                        'agent_id'       => $agentId,
+                        'sale_id'        => $saleId,
+                        'mutation_type'  => '2',
+                        'amount'         => -$amountToPay,
+                        'description'    => $description,
+                        'reference_code' => $orderId
+                    ]);
+                    $this->model->skipValidation(false);
+
+                    if (!$insertResult) {
+                        throw new \RuntimeException('Gagal membuat record pembayaran.');
+                    }
+
+                    $remainingAfter = $saleData[$saleId]['balance'] - $amountToPay;
+                    if ($remainingAfter <= 0.01) {
+                        $this->salesModel->skipValidation(true);
+                        $this->salesModel->update($saleId, ['payment_status' => '2']);
+                        $this->salesModel->skipValidation(false);
+                    }
+                }
+
+                $currentCredit = (float) ($agent->credit_limit ?? 0);
+                $this->agentModel->skipValidation(true);
+                $this->agentModel->update($agentId, [
+                    'credit_limit' => $currentCredit + $totalPayment
+                ]);
+                $this->agentModel->skipValidation(false);
+
+                $db->transComplete();
+                if ($db->transStatus() === false) {
+                    throw new \RuntimeException('Transaksi gagal.');
+                }
+            } catch (\Exception $e) {
+                $db->transRollback();
+                throw $e;
+            }
+
+            $responseData = [
+                'mode' => $mode,
+                'sale_ids' => $saleIds,
+                'total_payment' => $totalPayment
+            ];
+
+            if ($gatewayResponse && !empty($gatewayResponse['url'])) {
+                $totalReceive = $totalPayment;
+                if (isset($gatewayResponse['chargeCustomerForPaymentGatewayFee']) && isset($gatewayResponse['originalAmount'])) {
+                    $chargeCustomer = $gatewayResponse['chargeCustomerForPaymentGatewayFee'];
+                    $originalAmount = (float) ($gatewayResponse['originalAmount'] ?? $totalPayment);
+                    if ($chargeCustomer === true || $chargeCustomer === 'true' || $chargeCustomer === 1 || $chargeCustomer === '1') {
+                        $totalReceive = $originalAmount;
+                    } else {
+                        $adminFee = (float) ($gatewayResponse['paymentGatewayAdminFee'] ?? 0);
+                        $totalReceive = $originalAmount - $adminFee;
+                    }
+                }
+
+                $responseData['gateway'] = [
+                    'url' => $gatewayResponse['url'],
+                    'status' => $gatewayResponse['status'] ?? 'PENDING',
+                    'paymentGatewayAdminFee' => $gatewayResponse['paymentGatewayAdminFee'] ?? 0,
+                    'originalAmount' => $gatewayResponse['originalAmount'] ?? $totalPayment,
+                    'chargeCustomerForPaymentGatewayFee' => $gatewayResponse['chargeCustomerForPaymentGatewayFee'] ?? false,
+                    'totalReceive' => $totalReceive
+                ];
+            }
+
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'Pembayaran berhasil diproses.',
+                'data' => $responseData,
+                'csrf_hash' => csrf_hash()
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Paylater::payBulk error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Gagal memproses pembayaran: ' . $e->getMessage(),
+                'csrf_hash' => csrf_hash()
+            ])->setStatusCode(500);
+        }
+    }
+
+    /**
+     * Calculate outstanding amount for a sale from agent_paylater mutations
+     *
+     * @param int $saleId
+     * @return float
+     */
+    protected function getSaleOutstandingAmount(int $saleId): float
+    {
+        if ($saleId <= 0) {
+            return 0;
+        }
+
+        $db = \Config\Database::connect();
+        $row = $db->table('agent_paylater')
+            ->selectSum('amount')
+            ->where('sale_id', $saleId)
+            ->get()
+            ->getRow();
+
+        return round((float) ($row->amount ?? 0), 2);
+    }
+
+    /**
+     * Generate base order ID for bulk/single payment
+     *
+     * @param string $mode
+     * @param array $saleData
+     * @param array $amountMap
+     * @param int $agentId
+     * @return string
+     */
+    protected function generateOrderIdForBulk(string $mode, array $saleData, array $amountMap, int $agentId): string
+    {
+        if ($mode === 'single') {
+            $first = reset($saleData);
+            $singleSaleId = $first['id'] ?? null;
+            if ($singleSaleId && isset($saleData[$singleSaleId])) {
+                if (abs($amountMap[$singleSaleId] - $saleData[$singleSaleId]['balance']) < 0.01) {
+                    return $saleData[$singleSaleId]['invoice_no'] ?? ('PAY-' . date('YmdHis') . '-' . $agentId);
+                }
+            }
+        }
+
+        return 'PAYBULK-' . date('YmdHis') . '-' . $agentId;
+    }
+
+    /**
+     * Generate unique order ID if base already exists in gateway logs
+     *
+     * @param string $baseOrderId
+     * @return string
+     */
+    protected function generateUniqueOrderId(string $baseOrderId): string
+    {
+        $orderId = $baseOrderId;
+        while ($this->salesGatewayLogModel->invoiceExists($orderId)) {
+            $orderId = $baseOrderId . '-' . rand(1000, 9999);
+        }
+        return $orderId;
+    }
+
+    /**
+     * Get payment status from gateway API (GET request)
+     *
+     * @param string $invoiceNo
+     * @return array|null
+     */
+    protected function getPaymentStatusFromGateway(string $invoiceNo): ?array
+    {
+        try {
+            $client = \Config\Services::curlrequest();
+            $apiUrl = 'https://dev.osu.biz.id/mig/esb/v1/api/payments/' . urlencode($invoiceNo);
+
+            log_message('info', 'Agent\Paylater::getPaymentStatusFromGateway - Fetching payment status for: ' . $invoiceNo);
+
+            $response = $client->request('GET', $apiUrl, [
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                    'x-api-key' => 'Lmp1xKoggDE4FH2SKk/d/hqRiF+uxyAZOtO/piLOdox1F0OPr/RyLbhH0JyzNJY2zTI9uEEG4P2Hgeh/i8fiD7ZjsMTEWJXgx8Zgdp74nAOLtel/zi9Z611c+GG4Ra0nMx5K2UjOeZvWFyfXDOuILmu4zYL+MyyW8uSGYO8ug9a17HS6tlmzg7PkdEEb2XzNQ84ahKTRxFTTrxJiFGa34FO0rzLjeNGTV5KihVwUkZjL67DrfiSZweUsKX8NNHgxHy242KPcRWcJ5/sLH/Klus9LRfx9pC3F4gzNr3k1VvoAP5Kv9DTP6IGOZshgDu8WnUAcsvDJG4wtpkZgvYBoUg=='
+                ],
+                'timeout' => 30,
+                'http_errors' => false
+            ]);
+
+            $statusCode = $response->getStatusCode();
+            $body = $response->getBody();
+            $responseData = json_decode($body, true);
+
+            log_message('info', 'Agent\Paylater::getPaymentStatusFromGateway - Response Status: ' . $statusCode);
+            log_message('info', 'Agent\Paylater::getPaymentStatusFromGateway - Response Body: ' . $body);
+
+            if ($statusCode >= 200 && $statusCode < 300 && $responseData) {
+                return $responseData;
+            } else {
+                $errorMsg = 'Payment gateway returned error';
+                if (isset($responseData['message'])) {
+                    $errorMsg = $responseData['message'];
+                } elseif (!empty($body)) {
+                    $errorMsg = 'Response: ' . $body;
+                }
+                log_message('error', 'Agent\Paylater::getPaymentStatusFromGateway - API Error: ' . $errorMsg . ' | Status: ' . $statusCode);
+                return null;
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Agent\Paylater::getPaymentStatusFromGateway error: ' . $e->getMessage());
+            log_message('error', 'Agent\Paylater::getPaymentStatusFromGateway trace: ' . $e->getTraceAsString());
+            return null;
+        }
     }
 
     /**

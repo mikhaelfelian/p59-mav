@@ -31,6 +31,7 @@ use App\Models\UserRoleAgentModel;
 use App\Models\PlatformModel;
 use App\Models\SalesPaymentLogModel;
 use App\Models\SalesGatewayLogModel;
+use App\Models\AgentPaylaterModel;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class SalesPaylater extends BaseController
@@ -50,6 +51,7 @@ class SalesPaylater extends BaseController
     protected $platformModel;
     protected $salesPaymentLogModel;
     protected $salesGatewayLogModel;
+    protected $agentPaylaterModel;
     
     /**
      * Sales channel constants
@@ -78,6 +80,7 @@ class SalesPaylater extends BaseController
         $this->platformModel = new PlatformModel();
         $this->salesPaymentLogModel = new SalesPaymentLogModel();
         $this->salesGatewayLogModel = new SalesGatewayLogModel();
+        $this->agentPaylaterModel = new \App\Models\AgentPaylaterModel();
     }
     
     /**
@@ -98,12 +101,171 @@ class SalesPaylater extends BaseController
             'msg'           => $this->session->getFlashdata('message'),
         ]);
 
+        $allPlatforms = $this->platformModel
+            ->select('platform.*, platform.status_pos, platform.gw_status, platform.gw_code')
+            ->where('status', '1')
+            ->where('status_agent', '1')
+            ->orderBy('platform', 'ASC')
+            ->findAll();
+
+        $platformsManualTransfer = [];
+        $platformsPaymentGateway = [];
+
+        foreach ($allPlatforms as $platform) {
+            $gwStatus = (string) ($platform['gw_status'] ?? '0');
+            if ($gwStatus === '1') {
+                $platformsPaymentGateway[] = $platform;
+            } else {
+                $platformsManualTransfer[] = $platform;
+            }
+        }
+
+        $this->data['platformsManualTransfer'] = $platformsManualTransfer;
+        $this->data['platformsPaymentGateway'] = $platformsPaymentGateway;
+
         $this->data['breadcrumb'] = [
             'Home'                 => $this->config->baseURL,
             'Data Pembayaran Paylater' => '', // Current page, no link
         ];
 
         $this->view('sales/agent/sales-result-paylater', $this->data);
+    }
+
+    /**
+     * Render bulk payment form for Bootbox modal
+     *
+     * @return ResponseInterface
+     */
+    public function bulkForm(): ResponseInterface
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Request tidak valid.'
+            ])->setStatusCode(405);
+        }
+
+        try {
+            $saleIds = $this->request->getPost('sale_ids');
+            if (!is_array($saleIds) || empty($saleIds)) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Invoice belum dipilih.',
+                    'csrf_hash' => csrf_hash()
+                ])->setStatusCode(422);
+            }
+
+            $saleIds = array_values(array_unique(array_filter(array_map('intval', $saleIds))));
+            if (empty($saleIds)) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Invoice tidak valid.',
+                    'csrf_hash' => csrf_hash()
+                ])->setStatusCode(422);
+            }
+
+            $sales = $this->model->whereIn('id', $saleIds)->findAll();
+            if (count($sales) !== count($saleIds)) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Sebagian invoice tidak ditemukan.',
+                    'csrf_hash' => csrf_hash()
+                ])->setStatusCode(404);
+            }
+
+            $selected = [];
+            $agentId = null;
+            foreach ($sales as $sale) {
+                if (($sale['payment_status'] ?? '') !== '3') {
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => 'Terdapat invoice yang bukan paylater.',
+                        'csrf_hash' => csrf_hash()
+                    ])->setStatusCode(422);
+                }
+
+                $saleAgentId = (int) ($sale['warehouse_id'] ?? 0);
+                if ($saleAgentId <= 0) {
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => 'Data agen tidak valid.',
+                        'csrf_hash' => csrf_hash()
+                    ])->setStatusCode(422);
+                }
+
+                if ($agentId === null) {
+                    $agentId = $saleAgentId;
+                } elseif ($agentId !== $saleAgentId) {
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => 'Tidak dapat membayar invoice dari agen berbeda.',
+                        'csrf_hash' => csrf_hash()
+                    ])->setStatusCode(422);
+                }
+
+                $balance = $this->getSaleOutstandingAmount((int) $sale['id']);
+                if ($balance <= 0) {
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => 'Invoice ' . ($sale['invoice_no'] ?? '') . ' sudah lunas.',
+                        'csrf_hash' => csrf_hash()
+                    ])->setStatusCode(422);
+                }
+
+                $selected[] = [
+                    'id' => (int) $sale['id'],
+                    'invoice_no' => $sale['invoice_no'] ?? 'INV-' . $sale['id'],
+                    'customer_name' => $sale['customer_name'] ?? '-',
+                    'grand_total' => (float) ($sale['grand_total'] ?? 0),
+                    'outstanding' => round($balance, 2)
+                ];
+            }
+
+            $mode = count($selected) > 1 ? 'multiple' : 'single';
+            $totalOutstanding = array_sum(array_column($selected, 'outstanding'));
+
+            $allPlatforms = $this->platformModel
+                ->select('platform.*, platform.status_pos, platform.gw_status, platform.gw_code')
+                ->where('status', '1')
+                ->where('status_agent', '1')
+                ->orderBy('platform', 'ASC')
+                ->findAll();
+
+            $platformsManualTransfer = [];
+            $platformsPaymentGateway = [];
+
+            foreach ($allPlatforms as $platform) {
+                $gwStatus = (string) ($platform['gw_status'] ?? '0');
+                if ($gwStatus === '1') {
+                    $platformsPaymentGateway[] = $platform;
+                } else {
+                    $platformsManualTransfer[] = $platform;
+                }
+            }
+
+            $html = view('sales/agent/paylater-bulk-form', [
+                'mode' => $mode,
+                'selected' => $selected,
+                'totalOutstanding' => $totalOutstanding,
+                'platformsManualTransfer' => $platformsManualTransfer,
+                'platformsPaymentGateway' => $platformsPaymentGateway,
+                'csrfName' => csrf_token(),
+                'csrfHash' => csrf_hash()
+            ]);
+
+            return $this->response->setJSON([
+                'status' => 'success',
+                'html' => $html,
+                'csrf_hash' => csrf_hash()
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'SalesPaylater::bulkForm error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Gagal memuat form pembayaran: ' . $e->getMessage(),
+                'csrf_hash' => csrf_hash()
+            ])->setStatusCode(500);
+        }
     }
 
     /**
@@ -326,7 +488,12 @@ class SalesPaylater extends BaseController
         return $builder->select('sales.*, 
             customer.name as customer_name,
             user.nama as user_name,
-            agent.name as agent_name')
+            agent.name as agent_name,
+            COALESCE((
+                SELECT SUM(agent_paylater.amount) 
+                FROM agent_paylater 
+                WHERE agent_paylater.sale_id = sales.id
+            ), 0) as paylater_balance')
             ->join('customer', 'customer.id = sales.customer_id', 'left')
             ->join('user', 'user.id_user = sales.user_id', 'left')
             ->join('agent', 'agent.id = sales.warehouse_id', 'left')
@@ -347,6 +514,24 @@ class SalesPaylater extends BaseController
         $no = $start + 1;
 
         foreach ($data as $row) {
+            $saleId = (int) ($row['id'] ?? 0);
+            $invoiceNo = $row['invoice_no'] ?? '';
+            $customerName = $row['customer_name'] ?? '-';
+            $agentName = $row['agent_name'] ?? '-';
+            $grandTotal = (float) ($row['grand_total'] ?? 0);
+            $outstanding = (float) ($row['paylater_balance'] ?? 0);
+            $outstanding = round($outstanding, 2);
+
+            $checkbox = '<div class="form-check">';
+            $checkbox .= '<input class="form-check-input select-paylater" type="checkbox" ';
+            $checkbox .= 'data-sale-id="' . $saleId . '" ';
+            $checkbox .= 'data-invoice="' . esc($invoiceNo) . '" ';
+            $checkbox .= 'data-customer="' . esc($customerName) . '" ';
+            $checkbox .= 'data-agent="' . esc($agentName) . '" ';
+            $checkbox .= 'data-total="' . $grandTotal . '" ';
+            $checkbox .= 'data-outstanding="' . $outstanding . '">';
+            $checkbox .= '</div>';
+
             $actionButtons = '<div class="btn-group" role="group">';
             $actionButtons .= '<a href="' . $this->config->baseURL . 'agent/sales-paylater/' . $row['id'] . '" ';
             $actionButtons .= 'class="btn btn-sm btn-info" title="Detail">';
@@ -360,10 +545,12 @@ class SalesPaylater extends BaseController
             $actionButtons .= '</div>';
 
             $result[] = [
+                'ignore_search_select'   => $checkbox,
                 'ignore_search_urut'    => $no,
-                'invoice_no'            => esc($row['invoice_no'] ?? ''),
-                'customer_name'         => esc($row['customer_name'] ?? '-'),
-                'grand_total'           => format_angka((float) ($row['grand_total'] ?? 0), 2),
+                'invoice_no'            => esc($invoiceNo),
+                'customer_name'         => esc($customerName),
+                'grand_total'           => format_angka($grandTotal, 2),
+                'balance_due'           => format_angka($outstanding, 2),
                 'created_at'            => tgl_indo8($row['created_at'] ?? ''),
                 'ignore_search_action'  => $actionButtons,
             ];
@@ -372,6 +559,28 @@ class SalesPaylater extends BaseController
         }
 
         return $result;
+    }
+
+    /**
+     * Get outstanding amount for a sale
+     *
+     * @param int $saleId
+     * @return float
+     */
+    protected function getSaleOutstandingAmount(int $saleId): float
+    {
+        if ($saleId <= 0) {
+            return 0;
+        }
+
+        $db = \Config\Database::connect();
+        $row = $db->table('agent_paylater')
+            ->selectSum('amount')
+            ->where('sale_id', $saleId)
+            ->get()
+            ->getRow();
+
+        return round((float) ($row->amount ?? 0), 2);
     }
 }
 
