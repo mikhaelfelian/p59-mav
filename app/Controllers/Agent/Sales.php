@@ -1075,7 +1075,7 @@ class Sales extends BaseController
                 $this->agentPaylaterModel->skipValidation(true);
                 $paylaterData = [
                     'agent_id' => $selectedAgentId,
-                    'sales_id' => $saleId,
+                    'sale_id' => $saleId,
                     'mutation_type' => '1', // purchase
                     'amount' => $grandTotal, // positive value for purchase
                     'description' => 'Pembelian paylater - Invoice: ' . $finalInvoiceNo,

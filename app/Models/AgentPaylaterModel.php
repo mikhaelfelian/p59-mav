@@ -23,7 +23,7 @@ class AgentPaylaterModel extends Model
     protected $protectFields    = true;
     protected $allowedFields    = [
         'agent_id',
-        'sales_id',
+        'sale_id',
         'mutation_type',
         'amount',
         'description',

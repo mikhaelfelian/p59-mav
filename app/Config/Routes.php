@@ -169,7 +169,7 @@ $routes->group('agent', function($routes) {
     // Agent Paylater Management
     $routes->get('paylater', 'Agent\Paylater::index');
     $routes->get('paylater/(:num)', 'Agent\Paylater::detail/$1');
-    $routes->get('paylater/pay/(:num)', 'Agent\Paylater::pay/$1');
+    $routes->match(['get', 'post'], 'paylater/pay/(:num)', 'Agent\Paylater::pay/$1');
     $routes->get('paylater/pay-bulk/(:num)', 'Agent\Paylater::payBulk/$1');
     $routes->post('paylater/getDataDT', 'Agent\Paylater::getDataDT');
 });

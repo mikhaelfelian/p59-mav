@@ -353,9 +353,9 @@ class SalesPaylater extends BaseController
             $actionButtons .= '<i class="fas fa-eye"></i></a>';
             
             // Add "Bayar" button (button only, no functionality yet)
-            $actionButtons .= '<button type="button" class="btn btn-sm btn-success btn-bayar" ';
-            $actionButtons .= 'data-sale-id="' . $row['id'] . '" title="Bayar">';
-            $actionButtons .= 'Bayar</button>';
+            $actionButtons .= '<a href="' . $this->config->baseURL . 'agent/paylater/pay/' . $row['id'] . '" ';
+            $actionButtons .= 'class="btn btn-sm btn-success btn-bayar" title="Bayar">';
+            $actionButtons .= 'Bayar</a>';
             
             $actionButtons .= '</div>';
 
@@ -364,9 +364,7 @@ class SalesPaylater extends BaseController
                 'invoice_no'            => esc($row['invoice_no'] ?? ''),
                 'customer_name'         => esc($row['customer_name'] ?? '-'),
                 'grand_total'           => format_angka((float) ($row['grand_total'] ?? 0), 2),
-                'created_at'            => !empty($row['created_at'])
-                                            ? date('d/m/Y H:i', strtotime($row['created_at']))
-                                            : '-',
+                'created_at'            => tgl_indo8($row['created_at'] ?? ''),
                 'ignore_search_action'  => $actionButtons,
             ];
 

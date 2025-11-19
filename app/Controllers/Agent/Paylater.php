@@ -20,6 +20,8 @@ use App\Models\AgentPaylaterModel;
 use App\Models\AgentModel;
 use App\Models\SalesModel;
 use App\Models\UserRoleAgentModel;
+use App\Models\PlatformModel;
+use App\Models\SalesGatewayLogModel;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class Paylater extends BaseController
@@ -28,6 +30,8 @@ class Paylater extends BaseController
     protected $agentModel;
     protected $salesModel;
     protected $userRoleAgentModel;
+    protected $platformModel;
+    protected $salesGatewayLogModel;
     
     /**
      * Initialize models
@@ -39,6 +43,8 @@ class Paylater extends BaseController
         $this->agentModel = new AgentModel();
         $this->salesModel = new SalesModel();
         $this->userRoleAgentModel = new UserRoleAgentModel();
+        $this->platformModel = new PlatformModel();
+        $this->salesGatewayLogModel = new SalesGatewayLogModel();
     }
     
     /**
@@ -130,10 +136,10 @@ class Paylater extends BaseController
             // Get agent info
             $agent = $this->agentModel->find($transaction->agent_id);
             
-            // Get sales info if sales_id exists
+            // Get sales info if sale_id exists
             $sale = null;
-            if (!empty($transaction->sales_id)) {
-                $sale = $this->salesModel->find($transaction->sales_id);
+            if (!empty($transaction->sale_id)) {
+                $sale = $this->salesModel->find($transaction->sale_id);
             }
 
             // Format mutation type
@@ -170,28 +176,501 @@ class Paylater extends BaseController
     }
 
     /**
-     * Single payment form route (placeholder)
+     * Single payment form route (GET) and payment processing (POST)
      * 
      * @param int $id Paylater transaction ID
-     * @return void
+     * @return \CodeIgniter\HTTP\RedirectResponse|ResponseInterface|void
      */
-    public function pay(int $id): void
+    public function pay(int $id)
     {
-        // Placeholder - will be implemented in next order
-        $this->data = array_merge($this->data, [
-            'title'         => 'Form Pembayaran',
-            'currentModule' => $this->currentModule,
-            'config'        => $this->config,
-        ]);
+        // Handle POST request (payment processing)
+        if ($this->request->getMethod() === 'post') {
+            return $this->processPayment($id);
+        }
 
-        $this->data['breadcrumb'] = [
-            'Home'         => $this->config->baseURL,
-            'Data Paylater' => $this->config->baseURL.'agent/paylater',
-            'Form Pembayaran' => '',
-        ];
+        // Handle GET request (show form)
+        if ($id <= 0) {
+            return redirect()->to('agent/paylater')->with('message', [
+                'status' => 'error',
+                'message' => 'ID transaksi tidak valid.'
+            ]);
+        }
 
-        // Placeholder view - will be created in next order
-        echo "Payment form for transaction ID: {$id} - To be implemented";
+        try {
+            // Get paylater transaction
+            $transaction = $this->model->find($id);
+            
+            if (!$transaction) {
+                return redirect()->to('agent/paylater')->with('message', [
+                    'status' => 'error',
+                    'message' => 'Data transaksi paylater tidak ditemukan.'
+                ]);
+            }
+
+            // Only allow payment for purchase type (mutation_type = '1')
+            if ($transaction->mutation_type !== '1') {
+                return redirect()->to('agent/paylater')->with('message', [
+                    'status' => 'error',
+                    'message' => 'Hanya transaksi pembelian yang dapat dibayar.'
+                ]);
+            }
+
+            // Get agent information
+            $agent = $this->agentModel->find($transaction->agent_id);
+            if (!$agent) {
+                return redirect()->to('agent/paylater')->with('message', [
+                    'status' => 'error',
+                    'message' => 'Data agen tidak ditemukan.'
+                ]);
+            }
+
+            // Get sales information if sale_id exists
+            $sale = null;
+            $invoiceNo = $transaction->reference_code ?? 'N/A';
+            if (!empty($transaction->sale_id)) {
+                $sale = $this->salesModel->find($transaction->sale_id);
+                if ($sale) {
+                    $invoiceNo = $sale['invoice_no'] ?? $invoiceNo;
+                }
+            }
+
+            // Get platforms: status='1' and is_agent='1' (or status_agent='1')
+            // Note: User specified is_agent, but checking both for compatibility
+            $allPlatforms = $this->platformModel
+                ->select('platform.*, platform.status_pos, platform.gw_status, platform.gw_code')
+                ->where('status', '1')
+                ->where('status_agent', '1')
+                ->orderBy('platform', 'ASC')
+                ->findAll();
+
+            // Separate platforms by gw_status
+            $platformsManualTransfer = []; // gw_status = 0
+            $platformsPaymentGateway = []; // gw_status = 1
+
+            foreach ($allPlatforms as $platform) {
+                $gwStatus = (string) ($platform['gw_status'] ?? '0');
+                if ($gwStatus === '0') {
+                    $platformsManualTransfer[] = $platform;
+                } elseif ($gwStatus === '1') {
+                    $platformsPaymentGateway[] = $platform;
+                }
+            }
+
+            // Get amount from transaction
+            $amount = (float) ($transaction->amount ?? 0);
+
+            $this->data = array_merge($this->data, [
+                'title'         => 'Form Pembayaran Paylater',
+                'currentModule' => $this->currentModule,
+                'config'        => $this->config,
+                'transaction'   => $transaction,
+                'agent'         => $agent,
+                'sale'          => $sale,
+                'invoiceNo'     => $invoiceNo,
+                'amount'        => $amount,
+                'platforms'     => $allPlatforms,
+                'platformsManualTransfer' => $platformsManualTransfer,
+                'platformsPaymentGateway' => $platformsPaymentGateway,
+                'msg'           => $this->session->getFlashdata('message'),
+            ]);
+
+            $this->data['breadcrumb'] = [
+                'Home'         => $this->config->baseURL.'agent/dashboard',
+                'Data Paylater' => $this->config->baseURL.'agent/paylater',
+                'Form Pembayaran' => '',
+            ];
+
+            $this->view('sales/agent/paylater-pay', $this->data);
+        } catch (\Exception $e) {
+            log_message('error', 'Paylater::pay error: ' . $e->getMessage());
+            return redirect()->to('agent/paylater')->with('message', [
+                'status' => 'error',
+                'message' => 'Gagal memuat form pembayaran: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Process payment for paylater transaction
+     * 
+     * @param int $id Paylater transaction ID
+     * @return ResponseInterface
+     */
+    public function processPayment(int $id): ResponseInterface
+    {
+        $isAjax = $this->request->isAJAX();
+        
+        try {
+            if ($id <= 0) {
+                $message = 'ID transaksi tidak valid.';
+                if ($isAjax) {
+                    return $this->response->setJSON(['status' => 'error', 'message' => $message]);
+                }
+                return redirect()->to('agent/paylater')->with('message', [
+                    'status' => 'error',
+                    'message' => $message
+                ]);
+            }
+
+            // Get paylater transaction
+            $transaction = $this->model->find($id);
+            if (!$transaction) {
+                $message = 'Data transaksi paylater tidak ditemukan.';
+                if ($isAjax) {
+                    return $this->response->setJSON(['status' => 'error', 'message' => $message]);
+                }
+                return redirect()->to('agent/paylater')->with('message', [
+                    'status' => 'error',
+                    'message' => $message
+                ]);
+            }
+
+            // Only allow payment for purchase type (mutation_type = '1')
+            if ($transaction->mutation_type !== '1') {
+                $message = 'Hanya transaksi pembelian yang dapat dibayar.';
+                if ($isAjax) {
+                    return $this->response->setJSON(['status' => 'error', 'message' => $message]);
+                }
+                return redirect()->to('agent/paylater')->with('message', [
+                    'status' => 'error',
+                    'message' => $message
+                ]);
+            }
+
+            // Get POST data
+            $postData = $this->request->getPost();
+            $platformId = !empty($postData['platform_id']) ? (int)$postData['platform_id'] : null;
+
+            if (!$platformId) {
+                $message = 'Platform pembayaran harus dipilih.';
+                if ($isAjax) {
+                    return $this->response->setJSON(['status' => 'error', 'message' => $message]);
+                }
+                return redirect()->back()->withInput()->with('message', [
+                    'status' => 'error',
+                    'message' => $message
+                ]);
+            }
+
+            // Get platform details
+            $platform = $this->platformModel->find($platformId);
+            if (!$platform) {
+                $message = 'Platform pembayaran tidak ditemukan.';
+                if ($isAjax) {
+                    return $this->response->setJSON(['status' => 'error', 'message' => $message]);
+                }
+                return redirect()->back()->withInput()->with('message', [
+                    'status' => 'error',
+                    'message' => $message
+                ]);
+            }
+
+            // Get amount from transaction
+            $amount = (float) ($transaction->amount ?? 0);
+            if ($amount <= 0) {
+                $message = 'Jumlah pembayaran tidak valid.';
+                if ($isAjax) {
+                    return $this->response->setJSON(['status' => 'error', 'message' => $message]);
+                }
+                return redirect()->back()->withInput()->with('message', [
+                    'status' => 'error',
+                    'message' => $message
+                ]);
+            }
+
+            // Get agent information
+            $agent = $this->agentModel->find($transaction->agent_id);
+            if (!$agent) {
+                $message = 'Data agen tidak ditemukan.';
+                if ($isAjax) {
+                    return $this->response->setJSON(['status' => 'error', 'message' => $message]);
+                }
+                return redirect()->back()->withInput()->with('message', [
+                    'status' => 'error',
+                    'message' => $message
+                ]);
+            }
+
+            // Get sales information for invoice number
+            $invoiceNo = $transaction->reference_code ?? 'PAYLATER-' . $transaction->id;
+            $sale = null;
+            if (!empty($transaction->sale_id)) {
+                $sale = $this->salesModel->find($transaction->sale_id);
+                if ($sale) {
+                    $invoiceNo = $sale['invoice_no'] ?? $invoiceNo;
+                }
+            }
+
+            // Generate payment invoice number
+            $paymentInvoiceNo = 'PAY-' . date('YmdHis') . '-' . $transaction->id;
+
+            // Handle payment gateway API call
+            $gatewayResponse = null;
+            $isOfflinePlatform = false;
+            $settlementTime = null;
+
+            // Only send to gateway if platform.gw_status = '1'
+            $gwStatus = $platform['gw_status'] ?? '0';
+            $gwStatus = (string)$gwStatus;
+            
+            if ($gwStatus === '1') {
+                // Prepare API request data
+                $customerName = $agent->name ?? 'Agent';
+                $nameParts = !empty($customerName) ? explode(' ', $customerName, 2) : ['Agent', 'Agent'];
+                $firstName = $nameParts[0] ?? 'Agent';
+                $lastName = $nameParts[1] ?? $firstName;
+
+                // Check if invoice number has been sent to gateway before
+                if ($this->salesGatewayLogModel->invoiceExists($paymentInvoiceNo)) {
+                    log_message('warning', 'Paylater::processPayment - Invoice number already sent to gateway: ' . $paymentInvoiceNo . '. Generating new invoice number.');
+                    $paymentInvoiceNo = 'PAY-' . date('YmdHis') . '-' . $transaction->id . '-' . rand(1000, 9999);
+                }
+
+                // Prepare API payload
+                $apiData = [
+                    'code'     => $platform['gw_code'] ?? 'QRIS',
+                    'orderId'  => $paymentInvoiceNo,
+                    'amount'   => (int) round($amount),
+                    'customer' => [
+                        'firstName' => $firstName,
+                        'lastName'  => $lastName,
+                        'email'     => $agent->email ?? 'agent@example.com',
+                        'phone'     => $agent->phone ?? '',
+                    ],
+                ];
+
+                // Call payment gateway API
+                $gatewayResponse = $this->callPaymentGateway($apiData);
+
+                if ($gatewayResponse === null) {
+                    $logFile = WRITEPATH . 'logs/log-' . date('Y-m-d') . '.log';
+                    $message = 'Gagal mengirim ke payment gateway. Silakan cek log di: ' . $logFile;
+                    if ($isAjax) {
+                        return $this->response->setJSON([
+                            'status' => 'error', 
+                            'message' => $message
+                        ]);
+                    }
+                    return redirect()->back()->withInput()->with('message', ['status' => 'error', 'message' => $message]);
+                }
+
+                // Log to sales_gateway_logs
+                $gatewayStatus = null;
+                if ($gatewayResponse && isset($gatewayResponse['status'])) {
+                    $gatewayStatus = $gatewayResponse['status'];
+                }
+                
+                $this->salesGatewayLogModel->logGatewayRequest(
+                    $paymentInvoiceNo,
+                    $platformId,
+                    $amount,
+                    $apiData,
+                    $gatewayResponse,
+                    $gatewayStatus
+                );
+            } else {
+                // Offline/cash platform, bypass gateway
+                $isOfflinePlatform = true;
+                $settlementTime = date('Y-m-d H:i:s');
+            }
+
+            // Start database transaction
+            $db = \Config\Database::connect();
+            $db->transStart();
+
+            try {
+                // Create repayment record in agent_paylater (mutation_type = '2', negative amount)
+                $repaymentData = [
+                    'agent_id' => $transaction->agent_id,
+                    'sale_id' => $transaction->sale_id,
+                    'mutation_type' => '2', // repayment
+                    'amount' => -$amount, // negative value for repayment
+                    'description' => 'Pembayaran paylater - Invoice: ' . $invoiceNo,
+                    'reference_code' => $paymentInvoiceNo
+                ];
+
+                $this->model->skipValidation(true);
+                $repaymentInsertResult = $this->model->insert($repaymentData);
+                $this->model->skipValidation(false);
+
+                if (!$repaymentInsertResult) {
+                    $errors = $this->model->errors();
+                    $errorMsg = 'Gagal membuat record pembayaran: ';
+                    if ($errors && is_array($errors)) {
+                        $errorMsg .= implode(', ', array_map(function($e) {
+                            return is_array($e) ? json_encode($e) : $e;
+                        }, $errors));
+                    }
+                    throw new \Exception($errorMsg);
+                }
+
+                // Update agent credit_limit (add back the amount)
+                $currentCredit = (float) ($agent->credit_limit ?? 0);
+                $newCreditLimit = $currentCredit + $amount;
+
+                $this->agentModel->skipValidation(true);
+                $updateResult = $this->agentModel->update($transaction->agent_id, [
+                    'credit_limit' => $newCreditLimit
+                ]);
+                $this->agentModel->skipValidation(false);
+
+                if (!$updateResult) {
+                    throw new \Exception('Gagal memperbarui limit kredit agen.');
+                }
+
+                // Complete transaction
+                $db->transComplete();
+
+                if ($db->transStatus() === false) {
+                    throw new \Exception('Transaksi gagal.');
+                }
+
+                // Prepare response data
+                $message = 'Pembayaran berhasil diproses.';
+                $responseData = ['id' => $id];
+
+                // Include gateway response data if available
+                if ($gatewayResponse && !empty($gatewayResponse['url'])) {
+                    $totalReceive = $amount;
+                    
+                    // Calculate totalReceive based on chargeCustomerForPaymentGatewayFee
+                    if (isset($gatewayResponse['chargeCustomerForPaymentGatewayFee']) && 
+                        isset($gatewayResponse['originalAmount'])) {
+                        
+                        $chargeCustomer = $gatewayResponse['chargeCustomerForPaymentGatewayFee'];
+                        $originalAmount = (float) ($gatewayResponse['originalAmount'] ?? $amount);
+                        
+                        if ($chargeCustomer === true || $chargeCustomer === 'true' || $chargeCustomer === 1 || $chargeCustomer === '1') {
+                            $totalReceive = $originalAmount;
+                        } else {
+                            $adminFee = (float) ($gatewayResponse['paymentGatewayAdminFee'] ?? 0);
+                            $totalReceive = $originalAmount - $adminFee;
+                        }
+                    }
+                    
+                    $responseData['gateway'] = [
+                        'url' => $gatewayResponse['url'],
+                        'status' => $gatewayResponse['status'] ?? 'PENDING',
+                        'paymentGatewayAdminFee' => $gatewayResponse['paymentGatewayAdminFee'] ?? 0,
+                        'originalAmount' => $gatewayResponse['originalAmount'] ?? $amount,
+                        'chargeCustomerForPaymentGatewayFee' => $gatewayResponse['chargeCustomerForPaymentGatewayFee'] ?? false,
+                        'totalReceive' => $totalReceive
+                    ];
+                }
+
+                if ($isAjax) {
+                    return $this->response->setJSON([
+                        'status' => 'success',
+                        'message' => $message,
+                        'data' => $responseData
+                    ]);
+                }
+
+                return redirect()->to("agent/paylater/{$id}")->with('message', [
+                    'status' => 'success',
+                    'message' => $message
+                ]);
+
+            } catch (\Exception $e) {
+                $db->transRollback();
+                throw $e;
+            }
+
+        } catch (\Exception $e) {
+            log_message('error', 'Paylater::processPayment error: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString());
+            
+            $message = 'Gagal memproses pembayaran: ' . $e->getMessage();
+            if ($isAjax) {
+                return $this->response->setJSON(['status' => 'error', 'message' => $message]);
+            }
+            
+            return redirect()->back()->withInput()->with('message', [
+                'status' => 'error',
+                'message' => $message
+            ]);
+        }
+    }
+
+    /**
+     * Call payment gateway API (similar to Sales controller)
+     * 
+     * @param array $apiData API request data
+     * @return array|null Gateway response or null on failure
+     */
+    protected function callPaymentGateway(array $apiData): ?array
+    {
+        $errorDetails = [];
+        
+        try {
+            $client = \Config\Services::curlrequest();
+            $apiUrl = 'https://dev.osu.biz.id/mig/esb/v1/api/payments';
+            
+            try {
+                $response = $client->request(
+                    'POST',
+                    $apiUrl,
+                    [
+                        'headers' => [
+                            'Content-Type'  => 'application/json',
+                            'Accept'        => 'application/json',
+                            'x-api-key'     => 'Lmp1xKoggDE4FH2SKk/d/hqRiF+uxyAZOtO/piLOdox1F0OPr/RyLbhH0JyzNJY2zTI9uEEG4P2Hgeh/i8fiD7ZjsMTEWJXgx8Zgdp74nAOLtel/zi9Z611c+GG4Ra0nMx5K2UjOeZvWFyfXDOuILmu4zYL+MyyW8uSGYO8ug9a17HS6tlmzg7PkdEEb2XzNQ84ahKTRxFTTrxJiFGa34FO0rzLjeNGTV5KihVwUkZjL67DrfiSZweUsKX8NNHgxHy242KPcRWcJ5/sLH/Klus9LRfx9pC3F4gzNr3k1VvoAP5Kv9DTP6IGOZshgDu8WnUAcsvDJG4wtpkZgvYBoUg=='
+                        ],
+                        'json'        => $apiData,
+                        'timeout'     => 30,
+                        'http_errors' => false,
+                    ]
+                );
+                $errorDetails['request'] = 'sent';
+            } catch (\Exception $e) {
+                $errorDetails['request'] = 'failed: ' . $e->getMessage();
+                throw $e;
+            }
+            
+            $statusCode = $response->getStatusCode();
+            $body = $response->getBody();
+            $responseData = json_decode($body, true);
+            
+            // Log response details
+            log_message('error', 'Paylater::callPaymentGateway - Response Status: ' . $statusCode);
+            log_message('error', 'Paylater::callPaymentGateway - Response Body: ' . $body);
+            
+            if ($statusCode >= 200 && $statusCode < 300 && $responseData) {
+                // Return full response data (includes paymentCode, expiredAt, etc.)
+                // Don't format it - keep all fields from gateway
+                log_message('error', 'Paylater::callPaymentGateway - Gateway response received successfully');
+                return $responseData;
+            } else {
+                $errorMsg = 'Payment gateway returned error';
+                if (isset($responseData['message'])) {
+                    $errorMsg = $responseData['message'];
+                } elseif (!empty($body)) {
+                    $errorMsg = 'Response: ' . $body;
+                }
+                
+                // Log detailed error information
+                $logMsg = 'Paylater::callPaymentGateway - API Error: ' . $errorMsg . ' | Status: ' . $statusCode . ' | Body: ' . $body;
+                log_message('error', $logMsg);
+                
+                // Also write to a separate debug file to ensure we capture it
+                $debugFile = WRITEPATH . 'logs/gateway-debug-' . date('Y-m-d') . '.txt';
+                file_put_contents($debugFile, date('Y-m-d H:i:s') . " - " . $logMsg . "\n", FILE_APPEND);
+                
+                return null;
+            }
+            
+        } catch (\Exception $e) {
+            $errorMsg = 'Paylater::callPaymentGateway error: ' . $e->getMessage();
+            $traceMsg = 'Paylater::callPaymentGateway trace: ' . $e->getTraceAsString();
+            
+            log_message('error', $errorMsg);
+            log_message('error', $traceMsg);
+            
+            // Also write to debug file
+            $debugFile = WRITEPATH . 'logs/gateway-debug-' . date('Y-m-d') . '.txt';
+            file_put_contents($debugFile, date('Y-m-d H:i:s') . " - " . $errorMsg . "\n" . $traceMsg . "\n", FILE_APPEND);
+            
+            return null;
+        }
     }
 
     /**
@@ -295,7 +774,7 @@ class Paylater extends BaseController
                     agent.name as agent_name,
                     sales.invoice_no as sales_invoice_no')
                 ->join('agent', 'agent.id = agent_paylater.agent_id', 'left')
-                ->join('sales', 'sales.id = agent_paylater.sales_id', 'left');
+                ->join('sales', 'sales.id = agent_paylater.sale_id', 'left');
 
             // Apply agent filter only for non-admin users
             if (!$isAdmin && !empty($agentIds)) {
@@ -333,7 +812,7 @@ class Paylater extends BaseController
                 $countBuilder = $db->table('agent_paylater')
                     ->select('agent_paylater.id')
                     ->join('agent', 'agent.id = agent_paylater.agent_id', 'left')
-                    ->join('sales', 'sales.id = agent_paylater.sales_id', 'left');
+                    ->join('sales', 'sales.id = agent_paylater.sale_id', 'left');
                 
                 if (!$isAdmin && !empty($agentIds)) {
                     $countBuilder->whereIn('agent_paylater.agent_id', $agentIds);
@@ -414,9 +893,7 @@ class Paylater extends BaseController
             $tipe = $mutationTypeLabels[$mutationType] ?? 'Unknown';
             
             // Tanggal: created_at formatted
-            $tanggal = !empty($row['created_at'])
-                ? date('d/m/Y H:i', strtotime($row['created_at']))
-                : '-';
+            $tanggal = tgl_indo8($row['created_at'] ?? '');
 
             $result[] = [
                 'ignore_search_urut'    => $no,
