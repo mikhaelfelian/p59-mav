@@ -31,6 +31,7 @@ use App\Models\UserRoleAgentModel;
 use App\Models\PlatformModel;
 use App\Models\SalesPaymentLogModel;
 use App\Models\SalesGatewayLogModel;
+use App\Models\AgentPaylaterModel;
 use App\Models\WilayahPropinsiModel;
 use App\Models\WilayahKabupatenModel;
 use App\Models\WilayahKecamatanModel;
@@ -54,6 +55,7 @@ class Sales extends BaseController
     protected $platformModel;
     protected $salesPaymentLogModel;
     protected $salesGatewayLogModel;
+    protected $agentPaylaterModel;
     
     /**
      * Sales status constants
@@ -95,6 +97,7 @@ class Sales extends BaseController
         $this->platformModel = new PlatformModel();
         $this->salesPaymentLogModel = new SalesPaymentLogModel();
         $this->salesGatewayLogModel = new SalesGatewayLogModel();
+        $this->agentPaylaterModel = new AgentPaylaterModel();
     }
     
     /**
@@ -686,9 +689,11 @@ class Sales extends BaseController
                     ]);
                 }
                 
-                $currentCredit = (float) ($agentRecord->credit_limit ?? 0);
-                if ($currentCredit <= 0 || $currentCredit < $grandTotal) {
-                    $message = 'Limit kredit agen tidak mencukupi. Sisa limit: Rp ' . number_format(max($currentCredit, 0), 0, ',', '.');
+                // Get max credit limit from agent (this is the maximum credit allowed)
+                $maxCreditLimit = (float) ($agentRecord->credit_limit ?? 0);
+                
+                if ($maxCreditLimit <= 0) {
+                    $message = 'Agen tidak memiliki limit kredit.';
                     if ($isAjax) {
                         return $this->response->setJSON(['status' => 'error', 'message' => $message]);
                     }
@@ -698,7 +703,35 @@ class Sales extends BaseController
                     ]);
                 }
                 
-                $agentCreditAfter = $currentCredit - $grandTotal;
+                // Calculate current debt balance from agent_paylater transactions
+                // Sum all amounts: positive for purchases (type 1), negative for repayments (type 2)
+                $db = \Config\Database::connect();
+                $debtBalance = $db->table('agent_paylater')
+                    ->selectSum('amount')
+                    ->where('agent_id', $selectedAgentId)
+                    ->get()
+                    ->getRow();
+                
+                $currentDebt = (float) ($debtBalance->amount ?? 0);
+                
+                // Available credit = max limit - current debt
+                $availableCredit = $maxCreditLimit - $currentDebt;
+                
+                // Check if available credit is sufficient
+                if ($availableCredit <= 0 || $availableCredit < $grandTotal) {
+                    $message = 'Limit kredit agen tidak mencukupi. Sisa limit: Rp ' . number_format(max($availableCredit, 0), 0, ',', '.');
+                    if ($isAjax) {
+                        return $this->response->setJSON(['status' => 'error', 'message' => $message]);
+                    }
+                    return redirect()->back()->withInput()->with('message', [
+                        'status' => 'error',
+                        'message' => $message
+                    ]);
+                }
+                
+                // Calculate remaining available credit after this transaction
+                // This will be stored in agent.credit_limit to track remaining credit
+                $agentCreditAfter = $availableCredit - $grandTotal;
                 $shouldDeductCredit = true;
             }
             
@@ -955,8 +988,8 @@ class Sales extends BaseController
             // Determine payment status based on payment type and gateway response
             $paymentStatus = '0'; // Default: unpaid
             if ($paymentType === 'paylater') {
-                // Pay Later: set as unpaid (will be paid later)
-                $paymentStatus = '0'; // unpaid
+                // Pay Later: set as paylater status
+                $paymentStatus = '3'; // paylater
             } elseif ($isOfflinePlatform) {
                 $paymentStatus = '2'; // paid (for offline platforms like cash)
             }
@@ -1036,6 +1069,32 @@ class Sales extends BaseController
                 throw new \Exception('Gagal mendapatkan ID penjualan setelah insert.');
             }
             $this->model->skipValidation(false);
+
+            // Create paylater transaction record if payment type is paylater
+            if ($paymentType === 'paylater' && $selectedAgentId) {
+                $this->agentPaylaterModel->skipValidation(true);
+                $paylaterData = [
+                    'agent_id' => $selectedAgentId,
+                    'sales_id' => $saleId,
+                    'mutation_type' => '1', // purchase
+                    'amount' => $grandTotal, // positive value for purchase
+                    'description' => 'Pembelian paylater - Invoice: ' . $finalInvoiceNo,
+                    'reference_code' => $finalInvoiceNo
+                ];
+                $paylaterInsertResult = $this->agentPaylaterModel->insert($paylaterData);
+                $this->agentPaylaterModel->skipValidation(false);
+                
+                if (!$paylaterInsertResult) {
+                    $errors = $this->agentPaylaterModel->errors();
+                    $errorMsg = 'Gagal membuat record paylater: ';
+                    if ($errors && is_array($errors)) {
+                        $errorMsg .= implode(', ', array_map(function($e) {
+                            return is_array($e) ? json_encode($e) : $e;
+                        }, $errors));
+                    }
+                    throw new \Exception($errorMsg);
+                }
+            }
 
             // Save to sales_detail table only
             $itemModel = new \App\Models\ItemModel();

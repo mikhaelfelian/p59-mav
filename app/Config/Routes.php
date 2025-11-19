@@ -160,6 +160,18 @@ $routes->group('agent', function($routes) {
     $routes->post('sales/receiveAllUnreceivedSN', 'Agent\Sales::receiveAllUnreceivedSN');
     // DataTables endpoint for SN list
     $routes->post('sales/confirm/getSnDataDT/(:num)', 'Agent\SalesConfirm::getSnDataDTForSale/$1');
+
+    // Agent Sales Paylater
+    $routes->get('sales-paylater', 'Agent\SalesPaylater::index');
+    $routes->get('sales-paylater/(:num)', 'Agent\SalesPaylater::detail/$1');
+    $routes->post('sales-paylater/getDataDT', 'Agent\SalesPaylater::getDataDT');
+
+    // Agent Paylater Management
+    $routes->get('paylater', 'Agent\Paylater::index');
+    $routes->get('paylater/(:num)', 'Agent\Paylater::detail/$1');
+    $routes->get('paylater/pay/(:num)', 'Agent\Paylater::pay/$1');
+    $routes->get('paylater/pay-bulk/(:num)', 'Agent\Paylater::payBulk/$1');
+    $routes->post('paylater/getDataDT', 'Agent\Paylater::getDataDT');
 });
 
 # Agent Gateway Check (for agent/post integration)
