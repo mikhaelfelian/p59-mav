@@ -249,6 +249,11 @@ $routes->get('report/sales', 'Report\Sales::index');
 $routes->get('report/sales/(:num)', 'Report\Sales::detail/$1');
 $routes->post('report/sales/getDataDT', 'Report\Sales::getDataDT');
 
+# Report Paylater
+$routes->get('report/paylater', 'Report\Paylater::index');
+$routes->get('report/paylater/(:num)', 'Report\Paylater::detail/$1');
+$routes->post('report/paylater/getDataDT', 'Report\Paylater::getDataDT');
+
 
 
 
