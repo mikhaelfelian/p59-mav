@@ -244,6 +244,11 @@ $routes->group('sales',  function($routes){
 # Payment Gateway Callback (No authentication required - called by Midtrans)
 $routes->match(['get', 'post'], 'api/sales/callback', 'Api\Sales::callback');
 
+# Report Sales
+$routes->get('report/sales', 'Report\Sales::index');
+$routes->get('report/sales/(:num)', 'Report\Sales::detail/$1');
+$routes->post('report/sales/getDataDT', 'Report\Sales::getDataDT');
+
 
 
 
