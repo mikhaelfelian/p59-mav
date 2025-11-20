@@ -46,6 +46,11 @@ class Stok extends BaseController
         $this->addJs($this->config->baseURL . 'public/vendors/datatables/extensions/Buttons/js/buttons.html5.min.js');
         $this->addJs($this->config->baseURL . 'public/vendors/datatables/extensions/Buttons/js/buttons.print.min.js');
         $this->addStyle($this->config->baseURL . 'public/vendors/datatables/extensions/Buttons/css/buttons.bootstrap5.min.css');
+        
+        // Add Select2 for dropdown search
+        $this->addJs($this->config->baseURL . 'public/vendors/jquery.select2/js/select2.full.min.js');
+        $this->addStyle($this->config->baseURL . 'public/vendors/jquery.select2/css/select2.min.css');
+        $this->addStyle($this->config->baseURL . 'public/vendors/jquery.select2/bootstrap-5-theme/select2-bootstrap-5-theme.min.css');
     }
     
     /**
@@ -62,12 +67,20 @@ class Stok extends BaseController
             ->orderBy('agent.name', 'ASC')
             ->findAll();
 
+        // Get all active items for Item dropdown
+        $items = $this->itemModel
+            ->select('item.id, item.name, item.sku')
+            ->where('item.status', '1')
+            ->orderBy('item.name', 'ASC')
+            ->findAll();
+
         $this->data = array_merge($this->data, [
             'title'         => 'Laporan Stok',
             'currentModule' => $this->currentModule,
             'config'        => $this->config,
             'msg'           => $this->session->getFlashdata('message'),
             'agents'        => $agents,
+            'items'         => $items,
         ]);
 
         $this->data['breadcrumb'] = [
@@ -185,6 +198,7 @@ class Stok extends BaseController
             $tanggalRentangStart = $this->request->getPost('tanggal_rentang_start') ?? $this->request->getGet('tanggal_rentang_start') ?? '';
             $tanggalRentangEnd = $this->request->getPost('tanggal_rentang_end') ?? $this->request->getGet('tanggal_rentang_end') ?? '';
             $tanggal = $this->request->getPost('tanggal') ?? $this->request->getGet('tanggal') ?? '';
+            $itemId = $this->request->getPost('item_id') ?? $this->request->getGet('item_id') ?? '';
             $pemilik = $this->request->getPost('pemilik') ?? $this->request->getGet('pemilik') ?? '';
             $pusatAgent = $this->request->getPost('pusat_agent') ?? $this->request->getGet('pusat_agent') ?? '';
 
@@ -200,6 +214,11 @@ class Stok extends BaseController
             } elseif (!empty($tanggalRentangStart) && !empty($tanggalRentangEnd)) {
                 $query->where('DATE(item_sn.created_at) >=', $tanggalRentangStart)
                       ->where('DATE(item_sn.created_at) <=', $tanggalRentangEnd);
+            }
+
+            // Item filter
+            if (!empty($itemId) && $itemId > 0) {
+                $query->where('item_sn.item_id', (int)$itemId);
             }
 
             // Pemilik filter (agent_id)
@@ -223,6 +242,9 @@ class Stok extends BaseController
             } elseif (!empty($tanggalRentangStart) && !empty($tanggalRentangEnd)) {
                 $countQuery->where('DATE(item_sn.created_at) >=', $tanggalRentangStart)
                           ->where('DATE(item_sn.created_at) <=', $tanggalRentangEnd);
+            }
+            if (!empty($itemId) && $itemId > 0) {
+                $countQuery->where('item_sn.item_id', (int)$itemId);
             }
             if (!empty($pemilik) && $pemilik > 0) {
                 $countQuery->where('item_sn.agent_id', (int)$pemilik);
@@ -255,6 +277,9 @@ class Stok extends BaseController
                 } elseif (!empty($tanggalRentangStart) && !empty($tanggalRentangEnd)) {
                     $countQuery->where('DATE(item_sn.created_at) >=', $tanggalRentangStart)
                               ->where('DATE(item_sn.created_at) <=', $tanggalRentangEnd);
+                }
+                if (!empty($itemId) && $itemId > 0) {
+                    $countQuery->where('item_sn.item_id', (int)$itemId);
                 }
                 if (!empty($pemilik) && $pemilik > 0) {
                     $countQuery->where('item_sn.agent_id', (int)$pemilik);

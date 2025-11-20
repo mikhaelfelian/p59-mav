@@ -36,10 +36,22 @@
 						<label for="tanggal" class="form-label">Tanggal</label>
 						<input type="date" class="form-control" id="tanggal" name="tanggal">
 					</div>
+					<!-- Item -->
+					<div class="col-md-3">
+						<label for="item_id" class="form-label">Item</label>
+						<select class="form-select select2" id="item_id" name="item_id" style="width: 100%;">
+							<option value="">Semua Item</option>
+							<?php if (!empty($items)): ?>
+								<?php foreach ($items as $item): ?>
+									<option value="<?= esc($item->id) ?>" data-sku="<?= esc($item->sku ?? '') ?>"><?= esc($item->name . ($item->sku ? ' (' . $item->sku . ')' : '')) ?></option>
+								<?php endforeach; ?>
+							<?php endif; ?>
+						</select>
+					</div>
 					<!-- Pemilik -->
 					<div class="col-md-3">
 						<label for="pemilik" class="form-label">Pemilik</label>
-						<select class="form-select" id="pemilik" name="pemilik">
+						<select class="form-select select2" id="pemilik" name="pemilik" style="width: 100%;">
 							<option value="">Semua Pemilik</option>
 							<?php if (!empty($agents)): ?>
 								<?php foreach ($agents as $agent): ?>
@@ -58,7 +70,7 @@
 						</select>
 					</div>
 					<!-- Action Buttons -->
-					<div class="col-md-9 d-flex align-items-end gap-2">
+					<div class="col-md-12 d-flex align-items-end gap-2">
 						<button type="button" class="btn btn-primary" id="btnFilter">
 							<i class="fas fa-filter me-2"></i>Filter
 						</button>
@@ -147,6 +159,7 @@
 					d.tanggal_rentang_start = $('#tanggal_rentang_start').val();
 					d.tanggal_rentang_end = $('#tanggal_rentang_end').val();
 					d.tanggal = $('#tanggal').val();
+					d.item_id = $('#item_id').val();
 					d.pemilik = $('#pemilik').val();
 					d.pusat_agent = $('#pusat_agent').val();
 					d[csrfName] = csrfHash;
@@ -240,6 +253,9 @@
 		// Reset button click
 		$('#btnReset').on('click', function () {
 			$('#filterForm')[0].reset();
+			// Clear Select2 dropdowns
+			$('#item_id').val(null).trigger('change');
+			$('#pemilik').val(null).trigger('change');
 			table.ajax.reload();
 		});
 
@@ -253,6 +269,36 @@
 		table.on('xhr.dt', function (e, settings, json) {
 			if (json && json.csrf_hash) {
 				csrfHash = json.csrf_hash;
+			}
+		});
+
+		// Initialize Select2 for Item dropdown
+		$('#item_id').select2({
+			placeholder: 'Pilih Item',
+			allowClear: true,
+			width: '100%',
+			language: {
+				noResults: function() {
+					return "Item tidak ditemukan";
+				},
+				searching: function() {
+					return "Mencari...";
+				}
+			}
+		});
+
+		// Initialize Select2 for Pemilik dropdown
+		$('#pemilik').select2({
+			placeholder: 'Pilih Pemilik',
+			allowClear: true,
+			width: '100%',
+			language: {
+				noResults: function() {
+					return "Pemilik tidak ditemukan";
+				},
+				searching: function() {
+					return "Mencari...";
+				}
 			}
 		});
 	});
