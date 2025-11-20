@@ -254,6 +254,11 @@ $routes->get('report/paylater', 'Report\Paylater::index');
 $routes->get('report/paylater/(:num)', 'Report\Paylater::detail/$1');
 $routes->post('report/paylater/getDataDT', 'Report\Paylater::getDataDT');
 
+# Report Stok
+$routes->get('report/items', 'Report\Stok::index');
+$routes->get('report/items/(:num)', 'Report\Stok::detail/$1');
+$routes->post('report/items/getDataDT', 'Report\Stok::getDataDT');
+
 
 
 
