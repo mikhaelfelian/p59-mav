@@ -22,6 +22,8 @@ use App\Models\SalesModel;
 use App\Models\UserRoleAgentModel;
 use App\Models\PlatformModel;
 use App\Models\SalesGatewayLogModel;
+use App\Models\SalesPaymentsModel;
+use App\Models\SalesPaymentLogModel;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class Paylater extends BaseController
@@ -32,6 +34,8 @@ class Paylater extends BaseController
     protected $userRoleAgentModel;
     protected $platformModel;
     protected $salesGatewayLogModel;
+    protected $salesPaymentsModel;
+    protected $salesPaymentLogModel;
     
     /**
      * Initialize models
@@ -45,6 +49,8 @@ class Paylater extends BaseController
         $this->userRoleAgentModel = new UserRoleAgentModel();
         $this->platformModel = new PlatformModel();
         $this->salesGatewayLogModel = new SalesGatewayLogModel();
+        $this->salesPaymentsModel = new SalesPaymentsModel();
+        $this->salesPaymentLogModel = new SalesPaymentLogModel();
     }
     
     /**
@@ -532,9 +538,6 @@ class Paylater extends BaseController
                 }
             }
 
-            // Generate payment invoice number
-            $paymentInvoiceNo = 'PAY-' . date('YmdHis') . '-' . $transaction->id;
-
             // Handle payment gateway API call
             $gatewayResponse = null;
             $isOfflinePlatform = false;
@@ -544,7 +547,10 @@ class Paylater extends BaseController
             $gwStatus = $platform['gw_status'] ?? '0';
             $gwStatus = (string)$gwStatus;
             
+            // Generate payment invoice number / reference_code based on platform type
             if ($gwStatus === '1') {
+                // Payment gateway: generate orderId for gateway
+                $paymentInvoiceNo = 'PAY-' . date('YmdHis') . '-' . $transaction->id;
                 // Prepare API request data
                 $customerName = $agent->name ?? 'Agent';
                 $nameParts = !empty($customerName) ? explode(' ', $customerName, 2) : ['Agent', 'Agent'];
@@ -600,7 +606,12 @@ class Paylater extends BaseController
                     $gatewayStatus
                 );
             } else {
-                // Offline/cash platform, bypass gateway
+                // Manual transfer platform (gw_status != '1') - skip all gateway operations
+                // No SalesGatewayLogModel logging for manual transfer platforms
+                // Generate unique reference_code with timestamp and random to prevent duplicates
+                $timestamp = date('YmdHis');
+                $random = rand(1000, 9999);
+                $paymentInvoiceNo = 'PAY-' . $timestamp . '-' . $transaction->id . '-' . $random;
                 $isOfflinePlatform = true;
                 $settlementTime = date('Y-m-d H:i:s');
             }
@@ -964,10 +975,10 @@ class Paylater extends BaseController
 
             $orderId = $this->generateOrderIdForBulk($mode, $saleData, $amountMap, $agentId);
             $gatewayResponse = null;
-            $isOfflinePlatform = ($gwStatus !== '1');
             $settlementTime = null;
 
-            if (!$isOfflinePlatform) {
+            // Only process payment gateway if platform has gw_status = '1'
+            if ($gwStatus === '1') {
                 $shouldReuseInvoice = false;
                 if ($mode === 'single') {
                     $singleSaleId = $saleIds[0];
@@ -977,6 +988,7 @@ class Paylater extends BaseController
                     }
                 }
 
+                // Check if invoice exists in gateway logs (only for payment gateway)
                 if ($shouldReuseInvoice && $this->salesGatewayLogModel->invoiceExists($orderId)) {
                     $existingGateway = $this->getPaymentStatusFromGateway($orderId);
                     if ($existingGateway !== null) {
@@ -985,6 +997,7 @@ class Paylater extends BaseController
                 }
 
                 if ($gatewayResponse === null) {
+                    // Check if orderId already exists in gateway logs (only for payment gateway)
                     if ($this->salesGatewayLogModel->invoiceExists($orderId)) {
                         $orderId = $this->generateUniqueOrderId($orderId);
                     }
@@ -1016,6 +1029,7 @@ class Paylater extends BaseController
                         ])->setStatusCode(500);
                     }
 
+                    // Log to SalesGatewayLogModel (only for payment gateway)
                     $gatewayStatus = $gatewayResponse['status'] ?? null;
                     $this->salesGatewayLogModel->logGatewayRequest(
                         $orderId,
@@ -1027,6 +1041,7 @@ class Paylater extends BaseController
                     );
                 }
             } else {
+                // Manual transfer platform - skip all gateway operations
                 $settlementTime = date('Y-m-d H:i:s');
             }
 
@@ -1042,19 +1057,137 @@ class Paylater extends BaseController
                         $description = 'Pembayaran sebagian paylater - Invoice: ' . ($saleData[$saleId]['invoice_no'] ?? '');
                     }
 
-                    $this->model->skipValidation(true);
-                    $insertResult = $this->model->insert([
+                    // Generate unique reference_code per sale
+                    // For payment gateway (gw_status = '1'): use orderId (checked for uniqueness in gateway logs)
+                    // For manual transfer (gw_status = '0'): generate unique code with timestamp and random
+                    if ($gwStatus === '1') {
+                        // Payment gateway: use orderId as-is for single mode, append invoice for multiple
+                        $referenceCode = $orderId;
+                        if ($mode === 'multiple') {
+                            $invoiceNo = $saleData[$saleId]['invoice_no'] ?? '';
+                            $referenceCode = $orderId . '-' . $invoiceNo;
+                        }
+                    } else {
+                        // Manual transfer: generate unique reference_code to prevent duplicates
+                        $timestamp = date('YmdHis');
+                        $random = rand(1000, 9999);
+                        $invoiceNo = $saleData[$saleId]['invoice_no'] ?? 'INV-' . $saleId;
+                        $referenceCode = 'PAY-' . $timestamp . '-' . $saleId . '-' . $random;
+                    }
+
+                    $insertData = [
                         'agent_id'       => $agentId,
                         'sale_id'        => $saleId,
                         'mutation_type'  => '2',
                         'amount'         => -$amountToPay,
                         'description'    => $description,
-                        'reference_code' => $orderId
-                    ]);
+                        'reference_code' => $referenceCode
+                    ];
+
+                    $this->model->skipValidation(true);
+                    $insertResult = $this->model->insert($insertData);
                     $this->model->skipValidation(false);
 
                     if (!$insertResult) {
-                        throw new \RuntimeException('Gagal membuat record pembayaran.');
+                        $errors = $this->model->errors();
+                        $dbError = $db->error();
+                        $errorMsg = 'Gagal membuat record pembayaran: ';
+                        if ($errors && is_array($errors)) {
+                            $errorMsg .= 'Validation: ' . implode(', ', array_map(function($e) {
+                                return is_array($e) ? json_encode($e) : $e;
+                            }, $errors));
+                        }
+                        if ($dbError) {
+                            if (is_array($dbError)) {
+                                $errorMsg .= ' Database: ' . (isset($dbError['message']) ? $dbError['message'] : json_encode($dbError));
+                            } else {
+                                $errorMsg .= ' Database: ' . $dbError;
+                            }
+                        }
+                        log_message('error', 'Paylater::payBulk insert failed: ' . $errorMsg);
+                        log_message('error', 'Paylater::payBulk insert data: ' . json_encode($insertData));
+                        throw new \Exception($errorMsg);
+                    }
+
+                    // Save payment records to SalesPaymentsModel and SalesPaymentLogModel
+                    // Determine payment method based on platform
+                    $paymentMethod = 'transfer'; // default for manual transfer
+                    $gatewayResponseJson = null;
+                    
+                    if ($gwStatus === '1' && $gatewayResponse) {
+                        // Payment gateway: determine method from gateway code
+                        $gwCode = strtoupper($platform['gw_code'] ?? '');
+                        if (in_array($gwCode, ['QRIS', 'QR'])) {
+                            $paymentMethod = 'qris';
+                        } elseif (in_array($gwCode, ['BCA_VA', 'BCA', 'MANDIRI', 'BNI', 'BRI'])) {
+                            $paymentMethod = 'transfer';
+                        } else {
+                            $paymentMethod = 'other';
+                        }
+                        $gatewayResponseJson = json_encode($gatewayResponse);
+                    }
+
+                    // Create SalesPaymentsModel record
+                    $paymentData = [
+                        'sale_id'     => $saleId,
+                        'platform_id' => $platformId,
+                        'method'      => $paymentMethod,
+                        'amount'      => $amountToPay,
+                        'note'        => $note,
+                        'response'    => $gatewayResponseJson
+                    ];
+
+                    $this->salesPaymentsModel->skipValidation(true);
+                    $paymentInsertResult = $this->salesPaymentsModel->insert($paymentData);
+                    $this->salesPaymentsModel->skipValidation(false);
+
+                    if (!$paymentInsertResult) {
+                        $errors = $this->salesPaymentsModel->errors();
+                        $errorMsg = 'Gagal menyimpan data pembayaran: ';
+                        if ($errors && is_array($errors)) {
+                            $errorMsg .= implode(', ', $errors);
+                        }
+                        log_message('error', 'Paylater::payBulk payment insert failed: ' . $errorMsg);
+                        throw new \Exception($errorMsg);
+                    }
+
+                    // Create SalesPaymentLogModel record
+                    $logResponse = null;
+                    if ($gwStatus === '1' && $gatewayResponse) {
+                        // Payment gateway: use gateway response
+                        $logResponse = $gatewayResponseJson;
+                    } else {
+                        // Manual transfer: create offline log payload
+                        $offlineLogPayload = [
+                            'status' => 'PAID',
+                            'channel' => 'offline',
+                            'message' => 'Pembayaran paylater ditandai lunas tanpa gateway',
+                            'recorded_at' => date('c'),
+                            'platform' => [
+                                'id' => $platformId,
+                                'name' => $platform['platform'] ?? ''
+                            ],
+                            'amount' => $amountToPay
+                        ];
+                        $logResponse = json_encode($offlineLogPayload);
+                    }
+
+                    $this->salesPaymentLogModel->skipValidation(true);
+                    $logInsertResult = $this->salesPaymentLogModel->insert([
+                        'sale_id'     => $saleId,
+                        'platform_id' => $platformId,
+                        'response'    => $logResponse
+                    ]);
+                    $this->salesPaymentLogModel->skipValidation(false);
+
+                    if (!$logInsertResult) {
+                        $errors = $this->salesPaymentLogModel->errors();
+                        $errorMsg = 'Gagal menyimpan log pembayaran: ';
+                        if ($errors && is_array($errors)) {
+                            $errorMsg .= implode(', ', $errors);
+                        }
+                        log_message('error', 'Paylater::payBulk payment log insert failed: ' . $errorMsg);
+                        throw new \Exception($errorMsg);
                     }
 
                     $remainingAfter = $saleData[$saleId]['balance'] - $amountToPay;
@@ -1081,10 +1214,15 @@ class Paylater extends BaseController
                 throw $e;
             }
 
+            // Fetch updated agent data to get current credit limit
+            $updatedAgent = $this->agentModel->find($agentId);
+            $creditLimitAfter = (float) ($updatedAgent->credit_limit ?? 0);
+
             $responseData = [
                 'mode' => $mode,
                 'sale_ids' => $saleIds,
-                'total_payment' => $totalPayment
+                'total_payment' => $totalPayment,
+                'credit_limit' => $creditLimitAfter
             ];
 
             if ($gatewayResponse && !empty($gatewayResponse['url'])) {

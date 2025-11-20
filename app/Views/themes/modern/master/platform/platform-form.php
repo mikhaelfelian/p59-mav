@@ -87,25 +87,27 @@ $isModal = $isModal ?? false;
 					</div>
 					<small class="text-muted">Status aktif/non-aktif platform</small>
 				</div>
-			</div>			
-			<div class="row mb-3">
-				<label class="col-sm-3 col-form-label">Status Kredit</label>
-				<div class="col-sm-9">
-					<div class="form-check form-switch">
-						<?= form_checkbox([
-							'name' => 'status_kredit',
-							'class' => 'form-check-input',
-							'value' => '1',
-							'id' => 'status_kredit',
-							'checked' => set_value('status_kredit', @$platform['status_kredit'] ?? '0') === '1'
-						]) ?>
-						<label class="form-check-label" for="status_kredit">
-							Izinkan transaksi kredit
-						</label>
-					</div>
-					<small class="text-muted">Aktifkan bila platform mendukung penjualan kredit/cicilan.</small>
-				</div>
 			</div>
+			<?php if($platform['status_sys'] != '1'): ?>		
+				<div class="row mb-3">
+					<label class="col-sm-3 col-form-label">Status Kredit</label>
+					<div class="col-sm-9">
+						<div class="form-check form-switch">
+							<?= form_checkbox([
+								'name' => 'status_kredit',
+								'class' => 'form-check-input',
+								'value' => '1',
+								'id' => 'status_kredit',
+								'checked' => set_value('status_kredit', @$platform['status_kredit'] ?? '0') === '1'
+							]) ?>
+							<label class="form-check-label" for="status_kredit">
+								Izinkan transaksi kredit
+							</label>
+						</div>
+						<small class="text-muted">Aktifkan bila platform mendukung penjualan kredit/cicilan.</small>
+					</div>
+				</div>
+			<?php endif; ?>
 			<div class="row mb-3">
 				<label class="col-sm-3 col-form-label">Aktif di agen</label>
 				<div class="col-sm-9">
@@ -143,98 +145,99 @@ $isModal = $isModal ?? false;
 				</div>
 			</div>
 			
-			<!-- Gateway Payment Section -->
-			<div class="card shadow-sm border-0 mb-3">
-				<div class="card-header bg-primary text-white">
-					<h6 class="card-title mb-0">
-						<i class="fas fa-credit-card me-2"></i>Gateway Pembayaran
-					</h6>
-				</div>
-				<div class="card-body">
-					<div class="row mb-3">
-						<label class="col-sm-3 col-form-label">Kode Gateway <span class="text-danger">*</span></label>
-						<div class="col-sm-9">
-							<?= form_input([
-								'name' => 'gw_code',
-								'class' => 'form-control',
-								'value' => set_value('gw_code', @$platform['gw_code'] ?? ''),
-								'placeholder' => 'Contoh: midtrans, stripe, dll',
-								'maxlength' => '50'
-							]) ?>
-							<small class="text-muted">Kode unik untuk gateway pembayaran (contoh: midtrans, stripe)</small>
-						</div>
+			<?php if($platform['status_sys'] != '1'): ?>
+				<!-- Gateway Payment Section -->
+				<div class="card shadow-sm border-0 mb-3">
+					<div class="card-header bg-primary text-white">
+						<h6 class="card-title mb-0">
+							<i class="fas fa-credit-card me-2"></i>Gateway Pembayaran
+						</h6>
 					</div>
-					
-					<div class="row mb-3">
-						<label class="col-sm-3 col-form-label">Status Gateway</label>
-						<div class="col-sm-9">
-							<div class="form-check form-switch">
-								<?= form_checkbox([
-									'name' => 'gw_status',
-									'class' => 'form-check-input',
-									'value' => '1',
-									'id' => 'gw_status',
-									'checked' => set_value('gw_status', @$platform['gw_status'] ?? '0') === '1'
+					<div class="card-body">
+						<div class="row mb-3">
+							<label class="col-sm-3 col-form-label">Kode Gateway <span class="text-danger">*</span></label>
+							<div class="col-sm-9">
+								<?= form_input([
+									'name' => 'gw_code',
+									'class' => 'form-control',
+									'value' => set_value('gw_code', @$platform['gw_code'] ?? ''),
+									'placeholder' => 'Contoh: midtrans, stripe, dll',
+									'maxlength' => '50'
 								]) ?>
-								<label class="form-check-label" for="gw_status">
-									Aktifkan Gateway
-								</label>
-							</div>
-							<small class="text-muted">Aktifkan gateway pembayaran untuk digunakan di agent/post</small>
-							<div class="mt-2" id="gateway-status-container" style="display: <?= !empty($platform['gw_code']) ? 'block' : 'none' ?>;">
-								<?php 
-								$isActive = (!empty($platform['gw_code']) 
-									&& (@$platform['status'] ?? '0') == '1' 
-									&& (@$platform['status_agent'] ?? '0') == '1' 
-									&& (@$platform['gw_status'] ?? '0') == '1');
-								$badgeClass = $isActive ? 'bg-success' : 'bg-secondary';
-								$badgeText = $isActive ? 'Aktif untuk Agent/Post' : 'Tidak Aktif';
-								?>
-								<span class="badge <?= $badgeClass ?>" id="gateway-status-badge">
-									<i class="fas fa-<?= $isActive ? 'check-circle' : 'times-circle' ?> me-1"></i>
-									<?= $badgeText ?>
-								</span>
-								<button type="button" class="btn btn-sm btn-outline-primary ms-2" id="btn-check-gateway" title="Cek Status Gateway">
-									<i class="fas fa-sync-alt"></i> Cek Status
-								</button>
+								<small class="text-muted">Kode unik untuk gateway pembayaran (contoh: midtrans, stripe)</small>
 							</div>
 						</div>
-					</div>
-					
-					<div class="row mb-3">
-						<label class="col-sm-3 col-form-label">Logo Gateway</label>
-						<div class="col-sm-9">
-							<?php if (!empty($platform['logo']) && file_exists(ROOTPATH . 'public/uploads/platform/' . $platform['logo'])): ?>
-								<div class="mb-2">
-									<img src="<?= base_url('public/uploads/platform/' . $platform['logo']) ?>" 
-										alt="Logo" 
-										class="img-thumbnail" 
-										style="max-width: 150px; max-height: 150px;"
-										id="logo-preview">
+						
+						<div class="row mb-3">
+							<label class="col-sm-3 col-form-label">Status Gateway</label>
+							<div class="col-sm-9">
+								<div class="form-check form-switch">
+									<?= form_checkbox([
+										'name' => 'gw_status',
+										'class' => 'form-check-input',
+										'value' => '1',
+										'id' => 'gw_status',
+										'checked' => set_value('gw_status', @$platform['gw_status'] ?? '0') === '1'
+									]) ?>
+									<label class="form-check-label" for="gw_status">
+										Aktifkan Gateway
+									</label>
 								</div>
-							<?php else: ?>
-								<div class="mb-2">
-									<img src="" alt="Preview" class="img-thumbnail d-none" 
-										style="max-width: 150px; max-height: 150px;"
-										id="logo-preview">
+								<small class="text-muted">Aktifkan gateway pembayaran untuk digunakan di agent/post</small>
+								<div class="mt-2" id="gateway-status-container" style="display: <?= !empty($platform['gw_code']) ? 'block' : 'none' ?>;">
+									<?php 
+									$isActive = (!empty($platform['gw_code']) 
+										&& (@$platform['status'] ?? '0') == '1' 
+										&& (@$platform['status_agent'] ?? '0') == '1' 
+										&& (@$platform['gw_status'] ?? '0') == '1');
+									$badgeClass = $isActive ? 'bg-success' : 'bg-secondary';
+									$badgeText = $isActive ? 'Aktif untuk Agent/Post' : 'Tidak Aktif';
+									?>
+									<span class="badge <?= $badgeClass ?>" id="gateway-status-badge">
+										<i class="fas fa-<?= $isActive ? 'check-circle' : 'times-circle' ?> me-1"></i>
+										<?= $badgeText ?>
+									</span>
+									<button type="button" class="btn btn-sm btn-outline-primary ms-2" id="btn-check-gateway" title="Cek Status Gateway">
+										<i class="fas fa-sync-alt"></i> Cek Status
+									</button>
 								</div>
-							<?php endif; ?>
-							
-							<?= form_upload([
-								'name' => 'logo',
-								'class' => 'form-control',
-								'id' => 'logo-upload',
-								'accept' => 'image/*'
-							]) ?>
-							<small class="text-muted">Upload logo gateway (format: JPG, PNG, maksimal 2MB)</small>
-							<?php if (!empty($platform['logo'])): ?>
-								<?= form_hidden('logo_old', $platform['logo']) ?>
-							<?php endif; ?>
+							</div>
+						</div>
+						
+						<div class="row mb-3">
+							<label class="col-sm-3 col-form-label">Logo Gateway</label>
+							<div class="col-sm-9">
+								<?php if (!empty($platform['logo']) && file_exists(ROOTPATH . 'public/uploads/platform/' . $platform['logo'])): ?>
+									<div class="mb-2">
+										<img src="<?= base_url('public/uploads/platform/' . $platform['logo']) ?>" 
+											alt="Logo" 
+											class="img-thumbnail" 
+											style="max-width: 150px; max-height: 150px;"
+											id="logo-preview">
+									</div>
+								<?php else: ?>
+									<div class="mb-2">
+										<img src="" alt="Preview" class="img-thumbnail d-none" 
+											style="max-width: 150px; max-height: 150px;"
+											id="logo-preview">
+									</div>
+								<?php endif; ?>
+								
+								<?= form_upload([
+									'name' => 'logo',
+									'class' => 'form-control',
+									'id' => 'logo-upload',
+									'accept' => 'image/*'
+								]) ?>
+								<small class="text-muted">Upload logo gateway (format: JPG, PNG, maksimal 2MB)</small>
+								<?php if (!empty($platform['logo'])): ?>
+									<?= form_hidden('logo_old', $platform['logo']) ?>
+								<?php endif; ?>
+							</div>
 						</div>
 					</div>
 				</div>
-			</div>
-			
+			<?php endif; ?>
 		<?= form_close() ?>
 <?php if (!$isModal): ?>
 	</div>

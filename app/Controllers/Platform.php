@@ -434,7 +434,7 @@ class Platform extends BaseController
                 $actionButtons .= '<button type="button" class="btn btn-sm btn-warning btn-edit" data-id="' . $row['id'] . '" title="Edit"><i class="fas fa-edit"></i></button>';
                 $actionButtons .= '<button type="button" class="btn btn-sm btn-danger btn-delete" data-id="' . $row['id'] . '" data-platform="' . esc($row['platform']) . '" title="Hapus"><i class="fas fa-trash"></i></button>';
             } else {
-                $actionButtons .= '';
+                $actionButtons .= '<button type="button" class="btn btn-sm btn-warning btn-edit" data-id="' . $row['id'] . '" title="Edit"><i class="fas fa-edit"></i></button>';
             }
             $actionButtons .= '</div>';
 
