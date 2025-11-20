@@ -162,38 +162,6 @@
 				</div>
 			</div>
 		</div>
-
-		<?php if (!empty($sale)): ?>
-			<div class="info-section mb-4">
-				<h6><i class="fas fa-shopping-cart me-2"></i> Informasi Penjualan Terkait</h6>
-				<dl class="row mb-0">
-					<dt class="col-sm-3 mb-3">Invoice No:</dt>
-					<dd class="col-sm-9 mb-3">
-						<strong><?= esc($sale->invoice_no ?? '-') ?></strong>
-					</dd>
-					
-					<dt class="col-sm-3 mb-3">Total Penjualan:</dt>
-					<dd class="col-sm-9 mb-3">
-						<span class="currency">Rp <?= number_format((float)($sale->grand_total ?? 0), 0, ',', '.') ?></span>
-					</dd>
-					
-					<dt class="col-sm-3 mb-3">Status Pembayaran:</dt>
-					<dd class="col-sm-9 mb-3">
-						<?php
-						$statusLabels = [
-							'0' => ['label' => 'Belum Bayar', 'class' => 'bg-danger'],
-							'1' => ['label' => 'Sebagian', 'class' => 'bg-warning'],
-							'2' => ['label' => 'Lunas', 'class' => 'bg-success'],
-							'3' => ['label' => 'Paylater', 'class' => 'bg-info']
-						];
-						$status = $statusLabels[$sale->payment_status ?? '0'] ?? $statusLabels['0'];
-						?>
-						<span class="badge <?= $status['class'] ?>"><?= esc($status['label']) ?></span>
-					</dd>
-				</dl>
-			</div>
-		<?php endif; ?>
-
 		<div class="row mt-4">
 			<div class="col-md-12 d-flex gap-3">
 				<a href="<?= $config->baseURL ?>agent/paylater" class="btn btn-back text-white">
