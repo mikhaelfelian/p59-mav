@@ -2973,7 +2973,12 @@ class Sales extends BaseController
             $salesStatus = $row['status'] ?? '0';
             $hasUpdateAllPermission = $this->hasPermission('update_all');
             
-            if ($paymentStatus === '2' && $salesStatus !== '1' && $hasUpdateAllPermission) {
+            // Only allow if payment status is 2 or 3, not completed, and has update permission
+            if (
+                (in_array($paymentStatus, ['2', '3']))
+                && $salesStatus !== '1'
+                && $hasUpdateAllPermission
+            ) {
                 $actionButtons .= '<a href="' . $this->config->baseURL . 'agent/sales/confirm/' . $row['id'] . '" ';
                 $actionButtons .= 'class="btn btn-sm btn-success" title="Confirm">';
                 $actionButtons .= '<i class="fas fa-check"></i></a>';
