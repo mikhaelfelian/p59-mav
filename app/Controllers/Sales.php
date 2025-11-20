@@ -248,6 +248,7 @@ class Sales extends BaseController
     public function store()
     {
         $isAjax = $this->request->isAJAX();
+        $gatewayLogBuffer = [];
 
         // Validate user session
         $userSession = session('user');
@@ -494,14 +495,14 @@ class Sales extends BaseController
                                 log_message('warning', 'Sales::store - Detected "different request payload" error. Retry attempt ' . $retryCount . ' of ' . $maxRetries);
                                 
                                 // Log failed attempt to sales_gateway_logs
-                                $this->salesGatewayLogModel->logGatewayRequest(
-                                    $invoiceNo,
-                                    $platformId,
-                                    $grandTotal,
-                                    $apiData,
-                                    null,
-                                    'FAILED'
-                                );
+                                $gatewayLogBuffer[] = [
+                                    'invoice_no' => $invoiceNo,
+                                    'platform_id' => $platformId,
+                                    'amount' => $grandTotal,
+                                    'payload' => $apiData,
+                                    'response' => null,
+                                    'status' => 'FAILED',
+                                ];
                                 
                                 // Generate new invoice number
                                 $invoiceNo = $this->model->generateInvoiceNo($saleChannel);
@@ -522,14 +523,14 @@ class Sales extends BaseController
                                 $gatewayStatus = $gatewayResponse['status'];
                             }
                             
-                            $this->salesGatewayLogModel->logGatewayRequest(
-                                $invoiceNo,
-                                $platformId,
-                                $grandTotal,
-                                $apiData,
-                                $gatewayResponse,
-                                $gatewayStatus
-                            );
+                            $gatewayLogBuffer[] = [
+                                'invoice_no' => $invoiceNo,
+                                'platform_id' => $platformId,
+                                'amount' => $grandTotal,
+                                'payload' => $apiData,
+                                'response' => $gatewayResponse,
+                                'status' => $gatewayStatus,
+                            ];
                             
                             log_message('info', 'Sales::store - Logged invoice number to sales_gateway_logs: ' . $invoiceNo);
                         }
@@ -537,14 +538,14 @@ class Sales extends BaseController
                     
                     // If still failed after retries, log the final attempt
                     if ($gatewayResponse === null && $retryCount > 0) {
-                        $this->salesGatewayLogModel->logGatewayRequest(
-                            $invoiceNo,
-                            $platformId,
-                            $grandTotal,
-                            $apiData,
-                            null,
-                            'FAILED'
-                        );
+                        $gatewayLogBuffer[] = [
+                            'invoice_no' => $invoiceNo,
+                            'platform_id' => $platformId,
+                            'amount' => $grandTotal,
+                            'payload' => $apiData,
+                            'response' => null,
+                            'status' => 'FAILED',
+                        ];
                     }
                 }
 
@@ -723,6 +724,21 @@ class Sales extends BaseController
                 }
             }
             $this->model->skipValidation(false);
+
+            if (!empty($gatewayLogBuffer) && !empty($saleId)) {
+                foreach ($gatewayLogBuffer as $logEntry) {
+                    $this->salesGatewayLogModel->logGatewayRequest(
+                        $logEntry['invoice_no'],
+                        $logEntry['platform_id'],
+                        $logEntry['amount'],
+                        $logEntry['payload'],
+                        $logEntry['response'],
+                        $logEntry['status'] ?? null,
+                        $saleId
+                    );
+                }
+                $gatewayLogBuffer = [];
+            }
 
             // Save to sales_detail table only
             $itemModel = new \App\Models\ItemModel();

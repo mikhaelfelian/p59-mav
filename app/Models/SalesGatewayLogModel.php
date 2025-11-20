@@ -29,7 +29,8 @@ class SalesGatewayLogModel extends Model
         'amount',
         'payload',
         'response',
-        'status'
+        'status',
+        'sale_id'
     ];
 
     // Dates
@@ -85,7 +86,8 @@ class SalesGatewayLogModel extends Model
         float $amount,
         array $payload,
         ?array $response = null,
-        ?string $status = null
+        ?string $status = null,
+        ?int $saleId = null
     ) {
         $data = [
             'invoice_no' => $invoiceNo,
@@ -94,8 +96,14 @@ class SalesGatewayLogModel extends Model
             'amount'     => $amount,
             'payload'    => json_encode($payload),
             'response'   => $response ? json_encode($response) : null,
-            'status'     => $status
+            'status'     => $status,
+            'sale_id'    => $saleId
         ];
+
+        if ($saleId === null) {
+            // Ensure we don't violate FK; skip logging when sale not available
+            return false;
+        }
 
         $this->skipValidation(true);
         $result = $this->insert($data);

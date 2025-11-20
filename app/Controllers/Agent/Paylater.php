@@ -603,7 +603,8 @@ class Paylater extends BaseController
                     $amount,
                     $apiData,
                     $gatewayResponse,
-                    $gatewayStatus
+                    $gatewayStatus,
+                    $transaction->sale_id ?? null
                 );
             } else {
                 // Manual transfer platform (gw_status != '1') - skip all gateway operations
