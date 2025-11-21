@@ -99,6 +99,9 @@ class Sales extends BaseController
         $this->salesGatewayLogModel = new SalesGatewayLogModel();
         $this->agentPaylaterModel = new AgentPaylaterModel();
         $this->data['role'] = $this->hasRole();
+        
+        // Add Material Icons CSS for statistics cards
+        $this->addStyle($this->config->baseURL . 'public/vendors/material-icons/css.css');
     }
     
     /**
