@@ -679,99 +679,66 @@ class SalesConfirm extends \App\Controllers\BaseController
                 ]);
             }
 
-            // Validate: Ensure total assigned serial numbers don't exceed qty (1 SN = 1 Qty)
-            $requiredQty = (int)($salesDetail['qty'] ?? 1);
-            
-            // Count currently assigned serial numbers for this sales_item
-            $currentAssigned = $this->salesItemSnModel
-                ->where('sales_item_id', $salesItemId)
-                ->countAllResults();
-            
-            // Count valid new serial numbers that will be assigned
-            $newAssignments = 0;
-            foreach ($itemSnIds as $itemSnId) {
-                $itemSnId = (int)$itemSnId;
-                if ($itemSnId <= 0) {
-                    continue;
-                }
-
-                // Verify item_sn exists and is available (is_sell = '0')
-                $itemSn = $this->itemSnModel->find($itemSnId);
-                if (!$itemSn) {
-                    continue;
-                }
-
-                $itemSnArray = is_array($itemSn) ? $itemSn : (array)$itemSn;
-                if (($itemSnArray['is_sell'] ?? '0') !== '0') {
-                    continue; // Already sold
-                }
-
-                // Verify item_sn belongs to the same item
-                if ((int)$itemSnArray['item_id'] !== (int)$salesDetail['item_id']) {
-                    continue; // Wrong item
-                }
-
-                // Check if already assigned to this sales_item
-                $existing = $this->salesItemSnModel
-                    ->where('sales_item_id', $salesItemId)
-                    ->where('item_sn_id', $itemSnId)
-                    ->first();
-
-                if ($existing) {
-                    continue; // Already assigned
-                }
-
-                // Check if SN has is_receive='1' in any sales_item_sn record (already received)
-                $receivedSn = $this->salesItemSnModel
-                    ->where('item_sn_id', $itemSnId)
-                    ->where('is_receive', '1')
-                    ->first();
-
-                if ($receivedSn) {
-                    continue; // Already received, cannot assign again
-                }
-
-                // This is a valid new assignment
-                $newAssignments++;
-            }
-            
-            // Validate total doesn't exceed qty
-            $totalAfterAssignment = $currentAssigned + $newAssignments;
-            if ($totalAfterAssignment > $requiredQty) {
-                return $this->response->setJSON([
-                    'status' => 'error',
-                    'message' => "Jumlah serial number yang di-assign melebihi quantity. Quantity: {$requiredQty}, Sudah di-assign: {$currentAssigned}, Akan di-assign: {$newAssignments}, Total: {$totalAfterAssignment}. Maksimal: {$requiredQty} SN (1 SN = 1 Qty)"
-                ]);
-            }
-
+            // Start transaction early to prevent race conditions
             $db = \Config\Database::connect();
             $db->transStart();
 
             try {
+                // Lock sales_detail record to prevent concurrent quantity checks
+                // Use raw query with FOR UPDATE to lock the row
+                $lockedSalesDetail = $db->query(
+                    "SELECT * FROM sales_detail WHERE id = ? AND sale_id = ? FOR UPDATE",
+                    [$salesItemId, $id]
+                )->getRowArray();
+                
+                if (!$lockedSalesDetail) {
+                    $db->transRollback();
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => 'Sales detail tidak ditemukan atau tidak sesuai dengan sale.'
+                    ]);
+                }
+
+                $requiredQty = (int)($lockedSalesDetail['qty'] ?? 1);
+                $itemId = (int)($lockedSalesDetail['item_id'] ?? 0);
+
+                // Count currently assigned serial numbers for this sales_item (inside transaction)
+                $currentAssigned = $this->salesItemSnModel
+                    ->where('sales_item_id', $salesItemId)
+                    ->countAllResults();
+
+                // Validate and lock item_sn records, then assign
                 $assignedCount = 0;
+                $validItemSnIds = [];
+                
                 foreach ($itemSnIds as $itemSnId) {
                     $itemSnId = (int)$itemSnId;
                     if ($itemSnId <= 0) {
                         continue;
                     }
 
-                    // Verify item_sn exists and is available (is_sell = '0')
-                    $itemSn = $this->itemSnModel->find($itemSnId);
-                    if (!$itemSn) {
-                        continue;
+                    // Lock item_sn record with SELECT FOR UPDATE to prevent concurrent assignment
+                    // This ensures only one admin can assign this SN at a time
+                    $lockedItemSn = $db->query(
+                        "SELECT * FROM item_sn WHERE id = ? FOR UPDATE",
+                        [$itemSnId]
+                    )->getRowArray();
+
+                    if (!$lockedItemSn) {
+                        continue; // SN doesn't exist
                     }
 
-                    $itemSnArray = is_array($itemSn) ? $itemSn : (array)$itemSn;
-                    if (($itemSnArray['is_sell'] ?? '0') !== '0') {
+                    // Re-validate: SN must be available (is_sell = '0')
+                    if (($lockedItemSn['is_sell'] ?? '0') !== '0') {
                         continue; // Already sold
                     }
 
-                    // Verify item_sn belongs to the same item
-                    if ((int)$itemSnArray['item_id'] !== (int)$salesDetail['item_id']) {
+                    // Re-validate: SN must belong to the same item
+                    if ((int)($lockedItemSn['item_id'] ?? 0) !== $itemId) {
                         continue; // Wrong item
                     }
 
-                    // Check if already assigned to this sales_item
+                    // Re-validate: Check if already assigned to this sales_item (inside transaction)
                     $existing = $this->salesItemSnModel
                         ->where('sales_item_id', $salesItemId)
                         ->where('item_sn_id', $itemSnId)
@@ -781,7 +748,7 @@ class SalesConfirm extends \App\Controllers\BaseController
                         continue; // Already assigned
                     }
 
-                    // Check if SN has is_receive='1' in any sales_item_sn record (already received)
+                    // Re-validate: Check if SN has is_receive='1' in any sales_item_sn record (already received)
                     $receivedSn = $this->salesItemSnModel
                         ->where('item_sn_id', $itemSnId)
                         ->where('is_receive', '1')
@@ -791,30 +758,59 @@ class SalesConfirm extends \App\Controllers\BaseController
                         continue; // Already received, cannot assign again
                     }
 
-                    // Assign serial number to sales_item
-                    $this->salesItemSnModel->skipValidation(true);
-                    $insertResult = $this->salesItemSnModel->insert([
-                        'sale_id'       => $id,
-                        'sales_item_id' => $salesItemId,
-                        'item_sn_id' => $itemSnId,
-                        'sn' => $itemSnArray['sn'] ?? ''
+                    // This is a valid SN to assign
+                    $validItemSnIds[] = [
+                        'id' => $itemSnId,
+                        'sn' => $lockedItemSn['sn'] ?? ''
+                    ];
+                }
+
+                // Re-validate quantity limit inside transaction
+                $totalAfterAssignment = $currentAssigned + count($validItemSnIds);
+                if ($totalAfterAssignment > $requiredQty) {
+                    $db->transRollback();
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => "Jumlah serial number yang di-assign melebihi quantity. Quantity: {$requiredQty}, Sudah di-assign: {$currentAssigned}, Akan di-assign: " . count($validItemSnIds) . ", Total: {$totalAfterAssignment}. Maksimal: {$requiredQty} SN (1 SN = 1 Qty)"
                     ]);
-                    $this->salesItemSnModel->skipValidation(false);
-                    
-                    if (!$insertResult) {
-                        $errors = $this->salesItemSnModel->errors();
+                }
+
+                // Perform inserts for all valid SNs
+                foreach ($validItemSnIds as $validSn) {
+                    try {
+                        $this->salesItemSnModel->skipValidation(true);
+                        $insertResult = $this->salesItemSnModel->insert([
+                            'sale_id'       => $id,
+                            'sales_item_id' => $salesItemId,
+                            'item_sn_id' => $validSn['id'],
+                            'sn' => $validSn['sn']
+                        ]);
+                        $this->salesItemSnModel->skipValidation(false);
+                        
+                        if (!$insertResult) {
+                            $errors = $this->salesItemSnModel->errors();
+                            $dbError = $db->error();
+                            $errorMsg = 'Gagal menyimpan serial number.';
+                            if ($errors && is_array($errors)) {
+                                $errorMsg .= ' ' . implode(', ', $errors);
+                            }
+                            if (!empty($dbError['message'])) {
+                                $errorMsg .= ' Database: ' . $dbError['message'];
+                            }
+                            throw new \Exception($errorMsg);
+                        }
+                        
+                        $assignedCount++;
+                    } catch (\Exception $e) {
+                        // Handle duplicate key errors (MySQL error 1062) or other database errors
                         $dbError = $db->error();
-                        $errorMsg = 'Gagal menyimpan serial number.';
-                        if ($errors && is_array($errors)) {
-                            $errorMsg .= ' ' . implode(', ', $errors);
+                        if (!empty($dbError['code']) && $dbError['code'] == 1062) {
+                            // Duplicate entry - another admin already assigned this SN
+                            continue; // Skip this SN and continue with others
                         }
-                        if (!empty($dbError['message'])) {
-                            $errorMsg .= ' Database: ' . $dbError['message'];
-                        }
-                        throw new \Exception($errorMsg);
+                        // Re-throw other errors
+                        throw $e;
                     }
-                    
-                    $assignedCount++;
                 }
 
                 $db->transComplete();
@@ -826,6 +822,13 @@ class SalesConfirm extends \App\Controllers\BaseController
                         $errorMsg .= ' Database: ' . $dbError['message'];
                     }
                     throw new \Exception($errorMsg);
+                }
+
+                if ($assignedCount === 0) {
+                    return $this->response->setJSON([
+                        'status' => 'error',
+                        'message' => 'Tidak ada serial number yang berhasil di-assign. Mungkin sudah di-assign oleh admin lain atau tidak memenuhi syarat.'
+                    ]);
                 }
 
                 return $this->response->setJSON([
