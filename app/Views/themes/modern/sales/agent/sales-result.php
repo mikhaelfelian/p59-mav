@@ -9,7 +9,7 @@
 <div class="card">
 	<div class="card-header">
 		<?php
-		// Determine permission and title based on 'read_all'
+		// Tentukan izin dan judul berdasarkan 'read_all'
 		if (!empty($read_all) && $read_all > 0) {
 			$title = 'Penjualan (Online)';
 		} else {
@@ -25,17 +25,17 @@
 			show_alert($msg);
 		}
 
-		// Filter Form (Admin Only)
+		// Form Filter (Hanya Admin)
 		if (!empty($read_all) && $read_all > 0):
 			?>
 			<div class="card mb-3">
 				<div class="card-body">
 					<form id="filterForm" class="row g-3">
-						<!-- Agent Filter -->
+						<!-- Filter Agen -->
 						<div class="col-md-4">
-							<label for="filter_agent_id" class="form-label">Agent</label>
+							<label for="filter_agent_id" class="form-label">Agen</label>
 							<select class="form-select" id="filter_agent_id" name="filter_agent_id">
-								<option value="">Semua Agent</option>
+								<option value="">Semua Agen</option>
 								<?php if (!empty($agents)): ?>
 									<?php foreach ($agents as $agent): ?>
 										<option value="<?= esc($agent->id) ?>"><?= esc($agent->code . ' - ' . $agent->name) ?>
@@ -44,17 +44,17 @@
 								<?php endif; ?>
 							</select>
 						</div>
-						<!-- Platform Filter -->
+						<!-- Filter Platform -->
 						<div class="col-md-4">
 							<label for="filter_platform" class="form-label">Platform</label>
 							<select class="form-select" id="filter_platform" name="filter_platform">
 								<option value="">Semua Platform</option>
-								<option value="2">Paid</option>
+								<option value="2">Lunas</option>
 								<option value="3">Paylater</option>
-								<option value="0">Unpaid</option>
+								<option value="0">Belum Lunas</option>
 							</select>
 						</div>
-						<!-- Action Buttons -->
+						<!-- Tombol Aksi -->
 						<div class="col-md-4 d-flex align-items-end gap-2">
 							<button type="button" class="btn btn-primary" id="btnFilter">
 								<i class="fas fa-filter me-2"></i>Filter
@@ -69,18 +69,18 @@
 		<?php endif; ?>
 
 		<?php
-		// Statistics Cards (Agent Only)
+		// Kartu Statistik (Hanya Agen)
 		if (empty($read_all) || $read_all == 0):
 			if (!empty($statistics)):
 				?>
 				<div class="row">
-					<!-- Total Loan -->
+					<!-- Total Pinjaman -->
 					<div class="col-lg-4 col-sm-6 col-xs-12 mb-4">
 						<div class="card text-white bg-warning shadow">
 							<div class="card-body card-stats">
 								<div class="description">
 									<h5 class="card-title h4"><?= format_number($statistics['total_loan']) ?></h5>
-									<p class="card-text">Total Loan</p>
+									<p class="card-text">Total Hutang</p>
 								</div>
 								<div class="icon">
 									<i class="material-icons">account_balance_wallet</i>
@@ -93,13 +93,13 @@
 							</div>
 						</div>
 					</div>
-					<!-- Total Paid -->
+					<!-- Total Pelunasan -->
 					<div class="col-lg-4 col-sm-6 col-xs-12 mb-4">
 						<div class="card text-white bg-success shadow">
 							<div class="card-body card-stats">
 								<div class="description">
 									<h5 class="card-title h4"><?= format_number($statistics['total_paid']) ?></h5>
-									<p class="card-text">Total Paid</p>
+									<p class="card-text">Total Dibayar</p>
 								</div>
 								<div class="icon">
 									<i class="material-icons">payments</i>
@@ -112,13 +112,13 @@
 							</div>
 						</div>
 					</div>
-					<!-- Total Amount -->
+					<!-- Total Transaksi -->
 					<div class="col-lg-4 col-sm-6 col-xs-12 mb-4">
 						<div class="card text-white bg-primary shadow">
 							<div class="card-body card-stats">
 								<div class="description">
 									<h5 class="card-title h4"><?= format_number($statistics['total_amount']) ?></h5>
-									<p class="card-text">Total Amount</p>
+									<p class="card-text">Total Transaksi</p>
 								</div>
 								<div class="icon">
 									<i class="material-icons">attach_money</i>
@@ -139,7 +139,7 @@
 		?>
 
 		<?php
-		// Define columns for DataTables
+		// Definisikan kolom untuk DataTables
 		$column = [
 			'ignore_search_urut' => 'No',
 			'invoice_no' => 'No Nota',
@@ -151,7 +151,7 @@
 			'ignore_search_action' => '#'
 		];
 
-		$settings['order'] = [7, 'desc']; // Order by created_at descending
+		$settings['order'] = [7, 'desc']; // Urutkan berdasarkan kolom created_at menurun
 		$index = 0;
 		$th = '';
 
@@ -178,7 +178,7 @@
 		</table>
 
 		<?php
-		// Prepare column data for DataTables
+		// Siapkan data kolom untuk DataTables
 		foreach ($column as $key => $val) {
 			$column_dt[] = ['data' => $key];
 		}
@@ -192,7 +192,7 @@
 
 <script>
 	$(document).ready(function () {
-		// Initialize DataTables
+		// Inisialisasi DataTables
 		var column = JSON.parse($('#dataTables-column').text());
 		var settings = JSON.parse($('#dataTables-setting').text());
 		var url = $('#dataTables-url').text();
@@ -204,7 +204,7 @@
 				"url": url,
 				"type": "POST",
 				"data": function (d) {
-					// Add filter values to DataTables request
+					// Tambahkan nilai filter ke request DataTables
 					d.filter_agent_id = $('#filter_agent_id').val();
 					d.filter_platform = $('#filter_platform').val();
 				}
@@ -221,18 +221,18 @@
 			}
 		});
 
-		// Filter button click
+		// Klik tombol filter
 		$('#btnFilter').on('click', function () {
 			table.ajax.reload();
 		});
 
-		// Reset button click
+		// Klik tombol reset
 		$('#btnReset').on('click', function () {
 			$('#filterForm')[0].reset();
 			table.ajax.reload();
 		});
 
-		// Prevent form submission on Enter key
+		// Mencegah submit form saat tekan Enter
 		$('#filterForm').on('submit', function (e) {
 			e.preventDefault();
 			table.ajax.reload();

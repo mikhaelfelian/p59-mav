@@ -3124,10 +3124,11 @@ class Sales extends BaseController
             $salesStatus = $row['status'] ?? '0';
             $hasUpdateAllPermission = $this->hasPermission('update_all');
             
-            // Only allow if payment status is 2 or 3, not completed, and has update permission
+            // Only allow if payment status is 2 or 3, not completed, is_receive is '0', and has update permission
             if (
                 (in_array($paymentStatus, ['2', '3']))
                 && $salesStatus !== '1'
+                && (isset($row['is_receive']) && $row['is_receive'] === '0')
                 && $hasUpdateAllPermission
             ) {
                 $actionButtons .= '<a href="' . $this->config->baseURL . 'agent/sales/confirm/' . $row['id'] . '" ';
