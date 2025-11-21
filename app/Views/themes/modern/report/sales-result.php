@@ -76,8 +76,7 @@
 		$column = [
 			'ignore_search_urut'    => 'No',
 			'invoice_no'            => 'No Nota',
-			'customer_name'         => 'Pelanggan',
-			'agent_name'            => 'Agent',
+			'customer_agent_name'   => 'Pelanggan / Agent',
 			'grand_total'           => 'Total',
 			'payment_status'        => 'Status Pembayaran',
 			'sale_channel'          => 'Channel',
@@ -85,7 +84,7 @@
 			'ignore_search_action'  => 'Aksi'
 		];
 
-		$settings['order'] = [7, 'desc']; // Order by created_at descending
+		$settings['order'] = [6, 'desc']; // Order by created_at descending
 		$index = 0;
 		$th = '';
 
@@ -169,7 +168,7 @@
 					"text": "<i class='far fa-file-excel me-1'></i> Excel",
 					"className": "btn-light me-1",
 					"exportOptions": {
-						"columns": [0, 1, 2, 3, 4, 5, 6, 7],
+						"columns": [0, 1, 2, 3, 4, 5, 6],
 						"modifier": {
 							"selected": null
 						},
@@ -193,7 +192,7 @@
 					"orientation": "landscape",
 					"pageSize": "A4",
 					"exportOptions": {
-						"columns": [0, 1, 2, 3, 4, 5, 6, 7],
+						"columns": [0, 1, 2, 3, 4, 5, 6],
 						"modifier": {
 							"selected": null
 						},

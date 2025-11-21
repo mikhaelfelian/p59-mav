@@ -374,10 +374,18 @@ class Sales extends BaseController
         // Handle payment gateway API call if platform is selected
         $gatewayResponse = null;
         $platformId = !empty($postData['platform_id']) ? (int) $postData['platform_id'] : null;
+        $paymentStatusFromStatusSys = null; // Initialize variable for status_sys check
 
         if ($platformId) {
             // Get platform details
             $platform = $this->platformModel->find($platformId);
+
+            // Check if platform.status_sys = '1', then set payment_status = '2' (paid)
+            $statusSys = $platform['status_sys'] ?? '0';
+            $statusSys = (string) $statusSys;
+            if ($statusSys === '1') {
+                $paymentStatusFromStatusSys = '2'; // Set as paid
+            }
 
             // Only send to gateway if platform.gw_status = '1'
             // Platforms like "Tunai" (Cash) with gw_status = '0' should NOT go through gateway
@@ -636,7 +644,11 @@ class Sales extends BaseController
 
             // Determine payment status based on gateway response
             $paymentStatus = $postData['payment_status'] ?? '0';
-            if ($gatewayResponse && isset($gatewayResponse['status'])) {
+            
+            // If platform.status_sys = '1', set payment_status = '2' and skip gateway response logic
+            if ($paymentStatusFromStatusSys === '2') {
+                $paymentStatus = '2'; // paid
+            } elseif ($gatewayResponse && isset($gatewayResponse['status'])) {
                 $gatewayStatus = strtoupper($gatewayResponse['status']);
                 if ($gatewayStatus === 'PAID') {
                     $paymentStatus = '2'; // paid
@@ -841,12 +853,27 @@ class Sales extends BaseController
                                     // Save to SalesItemSnModel
                                     $this->salesItemSnModel->skipValidation(true);
                                     $salesItemSnData = [
+                                        'sale_id'       => $saleId,
                                         'sales_item_id' => $salesDetailId,
                                         'item_sn_id'    => $itemSnId,
                                         'sn'            => $snValue,
                                     ];
-                                    $this->salesItemSnModel->insert($salesItemSnData);
+                                    $salesItemSnInsertResult = $this->salesItemSnModel->insert($salesItemSnData);
                                     $this->salesItemSnModel->skipValidation(false);
+                                    
+                                    if (!$salesItemSnInsertResult) {
+                                        $errors = $this->salesItemSnModel->errors();
+                                        $errorMsg = 'Gagal menyimpan serial number ke sales_item_sn: ';
+                                        if ($errors && is_array($errors)) {
+                                            $errorMsg .= implode(', ', $errors);
+                                        } else {
+                                            $dbError = $db->error();
+                                            if ($dbError) {
+                                                $errorMsg .= 'Database error: ' . (is_array($dbError) ? json_encode($dbError) : $dbError);
+                                            }
+                                        }
+                                        throw new \Exception($errorMsg);
+                                    }
 
                                     // Update ItemSnModel with warranty expiration
                                     $updateData = [
@@ -863,8 +890,22 @@ class Sales extends BaseController
                                     }
 
                                     $itemSnModel->skipValidation(true);
-                                    $itemSnModel->update($itemSnId, $updateData);
+                                    $itemSnUpdateResult = $itemSnModel->update($itemSnId, $updateData);
                                     $itemSnModel->skipValidation(false);
+                                    
+                                    if (!$itemSnUpdateResult) {
+                                        $errors = $itemSnModel->errors();
+                                        $errorMsg = 'Gagal mengupdate item_sn: ';
+                                        if ($errors && is_array($errors)) {
+                                            $errorMsg .= implode(', ', $errors);
+                                        } else {
+                                            $dbError = $db->error();
+                                            if ($dbError) {
+                                                $errorMsg .= 'Database error: ' . (is_array($dbError) ? json_encode($dbError) : $dbError);
+                                            }
+                                        }
+                                        throw new \Exception($errorMsg);
+                                    }
                                 }
                             }
                         }
@@ -970,7 +1011,40 @@ class Sales extends BaseController
             $db->transComplete();
 
             if ($db->transStatus() === false) {
-                throw new \Exception('Transaksi gagal.');
+                // Get detailed error information
+                $dbError = $db->error();
+                $errorMsg = 'Transaksi gagal.';
+                
+                if ($dbError) {
+                    if (is_array($dbError)) {
+                        $errorMsg .= ' Database: ' . (isset($dbError['message']) ? $dbError['message'] : json_encode($dbError));
+                        if (isset($dbError['code'])) {
+                            $errorMsg .= ' (Code: ' . $dbError['code'] . ')';
+                        }
+                    } else {
+                        $errorMsg .= ' Database: ' . $dbError;
+                    }
+                }
+                
+                // Check for model errors from last operation
+                $lastModelErrors = [];
+                if ($this->salesItemSnModel->errors()) {
+                    $lastModelErrors = array_merge($lastModelErrors, $this->salesItemSnModel->errors());
+                }
+                if ($this->salesDetailModel->errors()) {
+                    $lastModelErrors = array_merge($lastModelErrors, $this->salesDetailModel->errors());
+                }
+                if ($this->model->errors()) {
+                    $lastModelErrors = array_merge($lastModelErrors, $this->model->errors());
+                }
+                
+                if (!empty($lastModelErrors)) {
+                    $errorMsg .= ' Validation: ' . implode(', ', array_map(function ($e) {
+                        return is_array($e) ? json_encode($e) : (string) $e;
+                    }, $lastModelErrors));
+                }
+                
+                throw new \Exception($errorMsg);
             }
 
             // Auto-fetch latest payment status from gateway if payment was created with gateway

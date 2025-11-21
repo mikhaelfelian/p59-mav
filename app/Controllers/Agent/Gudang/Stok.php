@@ -70,7 +70,8 @@ class Stok extends BaseController
         $baseBuilder = $this->salesModel->builder();
         $baseBuilder->select('sales.id, sales.invoice_no, sales.grand_total, sales.balance_due, sales.payment_status, sales.created_at, customer.name as customer_name')
             ->join('customer', 'customer.id = sales.customer_id', 'left')
-            ->where('sales.is_receive', '0');
+            ->where('sales.is_receive', '0')
+            ->where('sales.user_id', $this->user['id_user']);
 
         $recordsTotal = (clone $baseBuilder)->countAllResults(false);
 

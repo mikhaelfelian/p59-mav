@@ -416,11 +416,23 @@ class Sales extends BaseController
         $no = $start + 1;
 
         foreach ($data as $row) {
+            // Determine customer/agent name based on channel
+            // If online (sale_channel = '2'), use agent_name, otherwise use customer_name
+            $saleChannel = $row['sale_channel'] ?? '1';
+            $customerAgentName = '-';
+            
+            if ($saleChannel === self::CHANNEL_ONLINE) {
+                // Online: show agent name
+                $customerAgentName = esc($row['agent_name'] ?? '-');
+            } else {
+                // Offline: show customer name
+                $customerAgentName = esc($row['customer_name'] ?? '-');
+            }
+            
             $result[] = [
                 'ignore_search_urut'    => $no++,
                 'invoice_no'            => esc($row['invoice_no'] ?? '-'),
-                'customer_name'         => esc($row['customer_name'] ?? '-'),
-                'agent_name'            => esc($row['agent_name'] ?? '-'),
+                'customer_agent_name'    => $customerAgentName,
                 'grand_total'           => format_angka($row['grand_total'] ?? 0, 2),
                 'payment_status'        => $this->getPaymentStatusBadge($row['payment_status'] ?? '0', $row['id'] ?? null),
                 'sale_channel'          => $this->getChannelBadge($row['sale_channel'] ?? '1'),
