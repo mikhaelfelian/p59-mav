@@ -25,11 +25,108 @@
 			show_alert($msg);
 		}
 
+		// Filter Form (Admin Only)
+		if (!empty($read_all) && $read_all > 0):
+		?>
+		<div class="card mb-3">
+			<div class="card-body">
+				<form id="filterForm" class="row g-3">
+					<!-- Agent Filter -->
+					<div class="col-md-4">
+						<label for="filter_agent_id" class="form-label">Agent</label>
+						<select class="form-select" id="filter_agent_id" name="filter_agent_id">
+							<option value="">Semua Agent</option>
+							<?php if (!empty($agents)): ?>
+								<?php foreach ($agents as $agent): ?>
+									<option value="<?= esc($agent->id) ?>"><?= esc($agent->code . ' - ' . $agent->name) ?></option>
+								<?php endforeach; ?>
+							<?php endif; ?>
+						</select>
+					</div>
+					<!-- Platform Filter -->
+					<div class="col-md-4">
+						<label for="filter_platform" class="form-label">Platform</label>
+						<select class="form-select" id="filter_platform" name="filter_platform">
+							<option value="">Semua Platform</option>
+							<option value="2">Paid</option>
+							<option value="3">Paylater</option>
+							<option value="0">Unpaid</option>
+						</select>
+					</div>
+					<!-- Action Buttons -->
+					<div class="col-md-4 d-flex align-items-end gap-2">
+						<button type="button" class="btn btn-primary" id="btnFilter">
+							<i class="fas fa-filter me-2"></i>Filter
+						</button>
+						<button type="button" class="btn btn-secondary" id="btnReset">
+							<i class="fas fa-redo me-2"></i>Reset
+						</button>
+					</div>
+				</form>
+			</div>
+		</div>
+		<?php endif; ?>
+
+		<?php
+		// Statistics Cards (Agent Only)
+		if (empty($read_all) || $read_all == 0):
+			if (!empty($statistics)):
+		?>
+		<div class="row mb-3">
+			<!-- Total Loan -->
+			<div class="col-lg-4 col-md-6 col-sm-6 col-xs-12 mb-3">
+				<div class="card text-white bg-warning shadow">
+					<div class="card-body card-stats">
+						<div class="description">
+							<h5 class="card-title h4"><?= format_number($statistics['total_loan']) ?></h5>
+							<p class="card-text">Total Loan</p>
+						</div>
+						<div class="icon">
+							<i class="material-icons">account_balance_wallet</i>
+						</div>
+					</div>
+				</div>
+			</div>
+			<!-- Total Paid -->
+			<div class="col-lg-4 col-md-6 col-sm-6 col-xs-12 mb-3">
+				<div class="card text-white bg-success shadow">
+					<div class="card-body card-stats">
+						<div class="description">
+							<h5 class="card-title h4"><?= format_number($statistics['total_paid']) ?></h5>
+							<p class="card-text">Total Paid</p>
+						</div>
+						<div class="icon">
+							<i class="material-icons">payments</i>
+						</div>
+					</div>
+				</div>
+			</div>
+			<!-- Total Amount -->
+			<div class="col-lg-4 col-md-6 col-sm-6 col-xs-12 mb-3">
+				<div class="card text-white bg-primary shadow">
+					<div class="card-body card-stats">
+						<div class="description">
+							<h5 class="card-title h4"><?= format_number($statistics['total_amount']) ?></h5>
+							<p class="card-text">Total Amount</p>
+						</div>
+						<div class="icon">
+							<i class="material-icons">attach_money</i>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<?php
+			endif;
+		endif;
+		?>
+
+		<?php
 		// Define columns for DataTables
 		$column = [
 			'ignore_search_urut'    => 'No',
 			'invoice_no'            => 'No Nota',
-			'customer_name'         => 'Pelanggan',
+			'customer_name'         => 'Agen',
 			'grand_total'           => 'Total',
 			'balance_due'           => 'Kurang Bayar',
 			'payment_status'        => 'Status',
@@ -83,12 +180,17 @@ $(document).ready(function() {
 	var settings = JSON.parse($('#dataTables-setting').text());
 	var url = $('#dataTables-url').text();
 
-	$('#table-result').DataTable({
+	var table = $('#table-result').DataTable({
 		"processing": true,
 		"serverSide": true,
 		"ajax": {
 			"url": url,
-			"type": "POST"
+			"type": "POST",
+			"data": function (d) {
+				// Add filter values to DataTables request
+				d.filter_agent_id = $('#filter_agent_id').val();
+				d.filter_platform = $('#filter_platform').val();
+			}
 		},
 		"columns": column,
 		"order": settings.order,
@@ -100,6 +202,23 @@ $(document).ready(function() {
 			"emptyTable": "Tidak ada data",
 			"zeroRecords": "Data tidak ditemukan"
 		}
+	});
+
+	// Filter button click
+	$('#btnFilter').on('click', function () {
+		table.ajax.reload();
+	});
+
+	// Reset button click
+	$('#btnReset').on('click', function () {
+		$('#filterForm')[0].reset();
+		table.ajax.reload();
+	});
+
+	// Prevent form submission on Enter key
+	$('#filterForm').on('submit', function (e) {
+		e.preventDefault();
+		table.ajax.reload();
 	});
 });
 </script>

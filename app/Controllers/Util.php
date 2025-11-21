@@ -118,12 +118,33 @@ class Util extends Controller
     {
         $modules = [
             [
-                'nama_module'      => 'agent/gudang/stok-masuk',
-                'judul_module'     => 'Agent Gudang - Stok Masuk',
-                'deskripsi'        => 'Module khusus untuk proses penerimaan stok (SN) gudang agent.',
+                'nama_module'      => 'warranty/history',
+                'judul_module'     => 'Warranty Claim History',
+                'deskripsi'        => 'Menampilkan daftar pengajuan klaim garansi beserta statusnya.',
                 'id_module_status' => 1,
                 'login'            => 'Y'
-            ]
+            ],
+            [
+                'nama_module'      => 'warranty/claim',
+                'judul_module'     => 'Warranty Claim Form',
+                'deskripsi'        => 'Formulir untuk pengajuan klaim garansi oleh agen.',
+                'id_module_status' => 1,
+                'login'            => 'Y'
+            ],
+            [
+                'nama_module'      => 'warranty/review',
+                'judul_module'     => 'Warranty Claim Review',
+                'deskripsi'        => 'Halaman verifikasi gudang untuk menyetujui atau menolak klaim.',
+                'id_module_status' => 1,
+                'login'            => 'Y'
+            ],
+            [
+                'nama_module'      => 'warranty/detail',
+                'judul_module'     => 'Warranty Claim Detail',
+                'deskripsi'        => 'Detail lengkap klaim garansi termasuk riwayat penggantian.',
+                'id_module_status' => 1,
+                'login'            => 'Y'
+            ],
         ];
         
         $results = [];

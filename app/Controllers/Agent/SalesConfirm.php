@@ -747,12 +747,26 @@ class SalesConfirm extends \App\Controllers\BaseController
 
                     // Assign serial number to sales_item
                     $this->salesItemSnModel->skipValidation(true);
-                    $this->salesItemSnModel->insert([
+                    $insertResult = $this->salesItemSnModel->insert([
+                        'sale_id'       => $id,
                         'sales_item_id' => $salesItemId,
                         'item_sn_id' => $itemSnId,
                         'sn' => $itemSnArray['sn'] ?? ''
                     ]);
                     $this->salesItemSnModel->skipValidation(false);
+                    
+                    if (!$insertResult) {
+                        $errors = $this->salesItemSnModel->errors();
+                        $dbError = $db->error();
+                        $errorMsg = 'Gagal menyimpan serial number.';
+                        if ($errors && is_array($errors)) {
+                            $errorMsg .= ' ' . implode(', ', $errors);
+                        }
+                        if (!empty($dbError['message'])) {
+                            $errorMsg .= ' Database: ' . $dbError['message'];
+                        }
+                        throw new \Exception($errorMsg);
+                    }
                     
                     $assignedCount++;
                 }
@@ -760,7 +774,12 @@ class SalesConfirm extends \App\Controllers\BaseController
                 $db->transComplete();
 
                 if ($db->transStatus() === false) {
-                    throw new \Exception('Transaksi gagal.');
+                    $dbError = $db->error();
+                    $errorMsg = 'Transaksi gagal.';
+                    if (!empty($dbError['message'])) {
+                        $errorMsg .= ' Database: ' . $dbError['message'];
+                    }
+                    throw new \Exception($errorMsg);
                 }
 
                 return $this->response->setJSON([

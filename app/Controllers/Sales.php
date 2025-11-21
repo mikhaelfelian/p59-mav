@@ -95,6 +95,8 @@ class Sales extends BaseController
         $this->customerModel = new CustomerModel();
         $this->salesGatewayLogModel = new SalesGatewayLogModel();
         $this->userRoleAgentModel = new UserRoleAgentModel();
+
+        $this->data['role'] = $this->hasRole();
     }
 
     /**

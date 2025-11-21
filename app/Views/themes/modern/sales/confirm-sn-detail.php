@@ -260,6 +260,39 @@ helper('angka');
 									<span>Subtotal:
 										<strong><?= format_angka((float) ($item['amount'] ?? 0), 2) ?></strong></span>
 								</div>
+								<?php
+								$assignedSns = $item['pending_sns'] ?? [];
+								$assignedCount = is_array($assignedSns) ? count($assignedSns) : 0;
+								?>
+								<div class="mt-2">
+									<small class="text-muted d-block mb-1">
+										Serial Number Ter-assign:
+										<strong><?= $assignedCount ?></strong>
+									</small>
+									<?php if ($assignedCount > 0): ?>
+										<div class="d-flex flex-wrap gap-2">
+											<ul class="list-unstyled mb-0">
+												<?php foreach ($assignedSns as $assigned): ?>
+													<?php
+													$isObject = is_object($assigned);
+													$snValue = $isObject ? ($assigned->sn ?? '-') : ($assigned['sn'] ?? '-');
+													$isReceived = $isObject ? (($assigned->is_receive ?? '0') === '1') : ((($assigned['is_receive'] ?? '0') === '1'));
+													$badgeClass = $isReceived ? 'bg-success' : 'text-dark';
+													$statusText = $isReceived ? '<i class="fas fa-check-circle"></i>' : '';
+													?>
+													<li>
+														<span class="badge <?= $badgeClass ?> sn-badge">
+															- <?= esc($snValue) ?>
+															<small class="ms-1"><?= $statusText ?></small>
+														</span>
+													</li>
+												<?php endforeach; ?>
+											</ul>
+										</div>
+									<?php else: ?>
+										<span class="badge bg-light text-muted sn-badge">Belum ada serial number</span>
+									<?php endif; ?>
+								</div>
 							</div>
 
 							<div class="mt-3">

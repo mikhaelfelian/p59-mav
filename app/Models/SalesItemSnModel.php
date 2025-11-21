@@ -23,6 +23,7 @@ class SalesItemSnModel extends Model
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
     protected $allowedFields    = [
+        'sale_id',
         'sales_item_id',
         'item_sn_id',
         'sn',
@@ -46,6 +47,7 @@ class SalesItemSnModel extends Model
 
     // Validation
     protected $validationRules      = [
+        'sale_id' => 'required|integer',
         'sales_item_id' => 'required|integer',
         'item_sn_id' => 'required|integer',
         'sn' => 'required|max_length[100]',

@@ -577,35 +577,20 @@ class Paylater extends BaseController
                 ];
 
                 // Call payment gateway API
-                $gatewayResponse = $this->callPaymentGateway($apiData);
-
-                if ($gatewayResponse === null) {
-                    $logFile = WRITEPATH . 'logs/log-' . date('Y-m-d') . '.log';
-                    $message = 'Gagal mengirim ke payment gateway. Silakan cek log di: ' . $logFile;
-                    if ($isAjax) {
-                        return $this->response->setJSON([
-                            'status' => 'error', 
-                            'message' => $message
-                        ]);
-                    }
-                    return redirect()->back()->withInput()->with('message', ['status' => 'error', 'message' => $message]);
-                }
-
-                // Log to sales_gateway_logs
-                $gatewayStatus = null;
-                if ($gatewayResponse && isset($gatewayResponse['status'])) {
-                    $gatewayStatus = $gatewayResponse['status'];
-                }
-                
-                $this->salesGatewayLogModel->logGatewayRequest(
+                $gatewayResponse = $this->sendGatewayPaymentRequest(
+                    $apiData,
                     $paymentInvoiceNo,
                     $platformId,
                     $amount,
-                    $apiData,
-                    $gatewayResponse,
-                    $gatewayStatus,
                     $transaction->sale_id ?? null
                 );
+
+                if ($gatewayResponse === null) {
+                    return redirect()->back()->withInput()->with('message', [
+                        'status' => 'error',
+                        'message' => 'Gagal mengirim ke payment gateway. Silakan coba kembali atau gunakan platform lain.'
+                    ]);
+                }
             } else {
                 // Manual transfer platform (gw_status != '1') - skip all gateway operations
                 // No SalesGatewayLogModel logging for manual transfer platforms
@@ -743,6 +728,7 @@ class Paylater extends BaseController
     protected function callPaymentGateway(array $apiData): ?array
     {
         $errorDetails = [];
+        $this->lastGatewayErrorCode = null;
         
         try {
             $client = \Config\Services::curlrequest();
@@ -773,42 +759,43 @@ class Paylater extends BaseController
             $body = $response->getBody();
             $responseData = json_decode($body, true);
             
-            // Log response details
             log_message('error', 'Paylater::callPaymentGateway - Response Status: ' . $statusCode);
             log_message('error', 'Paylater::callPaymentGateway - Response Body: ' . $body);
             
             if ($statusCode >= 200 && $statusCode < 300 && $responseData) {
-                // Return full response data (includes paymentCode, expiredAt, etc.)
-                // Don't format it - keep all fields from gateway
                 log_message('error', 'Paylater::callPaymentGateway - Gateway response received successfully');
                 return $responseData;
-            } else {
-                $errorMsg = 'Payment gateway returned error';
-                if (isset($responseData['message'])) {
-                    $errorMsg = $responseData['message'];
-                } elseif (!empty($body)) {
-                    $errorMsg = 'Response: ' . $body;
-                }
-                
-                // Log detailed error information
-                $logMsg = 'Paylater::callPaymentGateway - API Error: ' . $errorMsg . ' | Status: ' . $statusCode . ' | Body: ' . $body;
-                log_message('error', $logMsg);
-                
-                // Also write to a separate debug file to ensure we capture it
-                $debugFile = WRITEPATH . 'logs/gateway-debug-' . date('Y-m-d') . '.txt';
-                file_put_contents($debugFile, date('Y-m-d H:i:s') . " - " . $logMsg . "\n", FILE_APPEND);
-                
-                return null;
             }
+
+            $errorMsg = 'Payment gateway returned error';
+            if (isset($responseData['message'])) {
+                $errorMsg = $responseData['message'];
+            } elseif (!empty($body)) {
+                $errorMsg = 'Response: ' . $body;
+            }
+
+            if (stripos($errorMsg, 'different request payload') !== false) {
+                $this->lastGatewayErrorCode = 'different_payload';
+            } else {
+                $this->lastGatewayErrorCode = 'api_error';
+            }
+            
+            $logMsg = 'Paylater::callPaymentGateway - API Error: ' . $errorMsg . ' | Status: ' . $statusCode . ' | Body: ' . $body;
+            log_message('error', $logMsg);
+            
+            $debugFile = WRITEPATH . 'logs/gateway-debug-' . date('Y-m-d') . '.txt';
+            file_put_contents($debugFile, date('Y-m-d H:i:s') . " - " . $logMsg . "\n", FILE_APPEND);
+            
+            return null;
             
         } catch (\Exception $e) {
             $errorMsg = 'Paylater::callPaymentGateway error: ' . $e->getMessage();
             $traceMsg = 'Paylater::callPaymentGateway trace: ' . $e->getTraceAsString();
+            $this->lastGatewayErrorCode = 'exception';
             
             log_message('error', $errorMsg);
             log_message('error', $traceMsg);
             
-            // Also write to debug file
             $debugFile = WRITEPATH . 'logs/gateway-debug-' . date('Y-m-d') . '.txt';
             file_put_contents($debugFile, date('Y-m-d H:i:s') . " - " . $errorMsg . "\n" . $traceMsg . "\n", FILE_APPEND);
             
@@ -998,7 +985,6 @@ class Paylater extends BaseController
                 }
 
                 if ($gatewayResponse === null) {
-                    // Check if orderId already exists in gateway logs (only for payment gateway)
                     if ($this->salesGatewayLogModel->invoiceExists($orderId)) {
                         $orderId = $this->generateUniqueOrderId($orderId);
                     }
@@ -1020,26 +1006,21 @@ class Paylater extends BaseController
                         ],
                     ];
 
-                    $gatewayResponse = $this->callPaymentGateway($apiData);
-                    if ($gatewayResponse === null) {
-                        $logFile = WRITEPATH . 'logs/log-' . date('Y-m-d') . '.log';
-                        return $this->response->setJSON([
-                            'status' => 'error',
-                            'message' => 'Gagal mengirim ke payment gateway. Silakan cek log di: ' . $logFile,
-                            'csrf_hash' => csrf_hash()
-                        ])->setStatusCode(500);
-                    }
-
-                    // Log to SalesGatewayLogModel (only for payment gateway)
-                    $gatewayStatus = $gatewayResponse['status'] ?? null;
-                    $this->salesGatewayLogModel->logGatewayRequest(
+                    $gatewayResponse = $this->sendGatewayPaymentRequest(
+                        $apiData,
                         $orderId,
                         $platformId,
                         $totalPayment,
-                        $apiData,
-                        $gatewayResponse,
-                        $gatewayStatus
+                        $saleIds[0] ?? null
                     );
+
+                    if ($gatewayResponse === null) {
+                        return $this->response->setJSON([
+                            'status' => 'error',
+                            'message' => 'Gagal mengirim ke payment gateway. Silakan coba kembali atau gunakan platform lain.',
+                            'csrf_hash' => csrf_hash()
+                        ])->setStatusCode(500);
+                    }
                 }
             } else {
                 // Manual transfer platform - skip all gateway operations
@@ -1296,6 +1277,8 @@ class Paylater extends BaseController
      * @param int $agentId
      * @return string
      */
+    protected $lastGatewayErrorCode = null;
+
     protected function generateOrderIdForBulk(string $mode, array $saleData, array $amountMap, int $agentId): string
     {
         if ($mode === 'single') {
@@ -1308,7 +1291,7 @@ class Paylater extends BaseController
             }
         }
 
-        return 'PAYBULK-' . date('YmdHis') . '-' . $agentId;
+        return 'PAYBULK-' . date('YmdHis') . '-' . $agentId . '-' . rand(1000, 9999);
     }
 
     /**
@@ -1324,6 +1307,61 @@ class Paylater extends BaseController
             $orderId = $baseOrderId . '-' . rand(1000, 9999);
         }
         return $orderId;
+    }
+
+    protected function sendGatewayPaymentRequest(
+        array $apiData,
+        string &$orderId,
+        int $platformId,
+        float $amount,
+        ?int $saleIdForLog = null
+    ): ?array {
+        $maxRetries = 3;
+        $attempt = 0;
+
+        do {
+            $apiData['orderId'] = $orderId;
+            $gatewayResponse = $this->callPaymentGateway($apiData);
+
+            if ($gatewayResponse !== null) {
+                $gatewayStatus = $gatewayResponse['status'] ?? null;
+                if ($saleIdForLog) {
+                    $this->salesGatewayLogModel->logGatewayRequest(
+                        $orderId,
+                        $platformId,
+                        $amount,
+                        $apiData,
+                        $gatewayResponse,
+                        $gatewayStatus,
+                        $saleIdForLog
+                    );
+                }
+
+                return $gatewayResponse;
+            }
+
+            if ($this->lastGatewayErrorCode === 'different_payload') {
+                $orderId = $this->generateUniqueOrderId($orderId);
+                $attempt++;
+                continue;
+            }
+
+            break;
+        } while ($attempt < $maxRetries);
+
+        if ($saleIdForLog && $attempt > 0) {
+            $this->salesGatewayLogModel->logGatewayRequest(
+                $orderId,
+                $platformId,
+                $amount,
+                $apiData,
+                null,
+                'FAILED',
+                $saleIdForLog
+            );
+        }
+
+        return null;
     }
 
     /**

@@ -51,6 +51,10 @@ class Stok extends BaseController
         $this->addJs($this->config->baseURL . 'public/vendors/jquery.select2/js/select2.full.min.js');
         $this->addStyle($this->config->baseURL . 'public/vendors/jquery.select2/css/select2.min.css');
         $this->addStyle($this->config->baseURL . 'public/vendors/jquery.select2/bootstrap-5-theme/select2-bootstrap-5-theme.min.css');
+        
+        // Add flatpickr for date range picker
+        $this->addJs($this->config->baseURL . 'public/vendors/flatpickr/dist/flatpickr.js');
+        $this->addStyle($this->config->baseURL . 'public/vendors/flatpickr/dist/flatpickr.min.css');
     }
     
     /**
@@ -195,9 +199,7 @@ class Stok extends BaseController
             }
 
             // Get filter values
-            $tanggalRentangStart = $this->request->getPost('tanggal_rentang_start') ?? $this->request->getGet('tanggal_rentang_start') ?? '';
-            $tanggalRentangEnd = $this->request->getPost('tanggal_rentang_end') ?? $this->request->getGet('tanggal_rentang_end') ?? '';
-            $tanggal = $this->request->getPost('tanggal') ?? $this->request->getGet('tanggal') ?? '';
+            $dateRange = $this->request->getPost('date_range') ?? $this->request->getGet('date_range') ?? '';
             $itemId = $this->request->getPost('item_id') ?? $this->request->getGet('item_id') ?? '';
             $pemilik = $this->request->getPost('pemilik') ?? $this->request->getGet('pemilik') ?? '';
             $pusatAgent = $this->request->getPost('pusat_agent') ?? $this->request->getGet('pusat_agent') ?? '';
@@ -207,13 +209,18 @@ class Stok extends BaseController
             // Build base query
             $query = $this->buildStockQuery();
 
-            // Apply filters
-            // Date filter: single date takes precedence over date range
-            if (!empty($tanggal)) {
-                $query->where('DATE(item_sn.created_at)', $tanggal);
-            } elseif (!empty($tanggalRentangStart) && !empty($tanggalRentangEnd)) {
-                $query->where('DATE(item_sn.created_at) >=', $tanggalRentangStart)
-                      ->where('DATE(item_sn.created_at) <=', $tanggalRentangEnd);
+            // Apply date range filter
+            // Parse date_range from flatpickr format: "YYYY-MM-DD to YYYY-MM-DD"
+            if (!empty($dateRange)) {
+                $dateParts = preg_split('/\s+to\s+/i', trim($dateRange));
+                if (count($dateParts) === 2) {
+                    $tanggalRentangStart = trim($dateParts[0]);
+                    $tanggalRentangEnd = trim($dateParts[1]);
+                    if (!empty($tanggalRentangStart) && !empty($tanggalRentangEnd)) {
+                        $query->where('DATE(item_sn.created_at) >=', $tanggalRentangStart)
+                              ->where('DATE(item_sn.created_at) <=', $tanggalRentangEnd);
+                    }
+                }
             }
 
             // Item filter
@@ -236,12 +243,17 @@ class Stok extends BaseController
             // Count total records with filters (rebuild query for count)
             $countQuery = $this->buildStockQuery();
             
-            // Re-apply filters for count
-            if (!empty($tanggal)) {
-                $countQuery->where('DATE(item_sn.created_at)', $tanggal);
-            } elseif (!empty($tanggalRentangStart) && !empty($tanggalRentangEnd)) {
-                $countQuery->where('DATE(item_sn.created_at) >=', $tanggalRentangStart)
-                          ->where('DATE(item_sn.created_at) <=', $tanggalRentangEnd);
+            // Re-apply date range filter for count
+            if (!empty($dateRange)) {
+                $dateParts = preg_split('/\s+to\s+/i', trim($dateRange));
+                if (count($dateParts) === 2) {
+                    $tanggalRentangStart = trim($dateParts[0]);
+                    $tanggalRentangEnd = trim($dateParts[1]);
+                    if (!empty($tanggalRentangStart) && !empty($tanggalRentangEnd)) {
+                        $countQuery->where('DATE(item_sn.created_at) >=', $tanggalRentangStart)
+                                  ->where('DATE(item_sn.created_at) <=', $tanggalRentangEnd);
+                    }
+                }
             }
             if (!empty($itemId) && $itemId > 0) {
                 $countQuery->where('item_sn.item_id', (int)$itemId);
@@ -271,12 +283,17 @@ class Stok extends BaseController
                 // Rebuild query for filtered count
                 $countQuery = $this->buildStockQuery();
                 
-                // Re-apply filters
-                if (!empty($tanggal)) {
-                    $countQuery->where('DATE(item_sn.created_at)', $tanggal);
-                } elseif (!empty($tanggalRentangStart) && !empty($tanggalRentangEnd)) {
-                    $countQuery->where('DATE(item_sn.created_at) >=', $tanggalRentangStart)
-                              ->where('DATE(item_sn.created_at) <=', $tanggalRentangEnd);
+                // Re-apply date range filter
+                if (!empty($dateRange)) {
+                    $dateParts = preg_split('/\s+to\s+/i', trim($dateRange));
+                    if (count($dateParts) === 2) {
+                        $tanggalRentangStart = trim($dateParts[0]);
+                        $tanggalRentangEnd = trim($dateParts[1]);
+                        if (!empty($tanggalRentangStart) && !empty($tanggalRentangEnd)) {
+                            $countQuery->where('DATE(item_sn.created_at) >=', $tanggalRentangStart)
+                                      ->where('DATE(item_sn.created_at) <=', $tanggalRentangEnd);
+                        }
+                    }
                 }
                 if (!empty($itemId) && $itemId > 0) {
                     $countQuery->where('item_sn.item_id', (int)$itemId);

@@ -301,6 +301,7 @@ class BaseModel extends Model
             $menu[$val['id_menu']] = $val;
             $menu[$val['id_menu']]['highlight'] = 0;
             $menu[$val['id_menu']]['depth'] = 0;
+            $menu[$val['id_menu']]['aktif'] = $val['aktif'];
 
             if ($current_module == $val['nama_module']) {
                 $current_id = $val['id_menu'];

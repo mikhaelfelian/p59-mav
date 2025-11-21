@@ -22,19 +22,10 @@
 		<div class="card mb-3">
 			<div class="card-body">
 				<form id="filterForm" class="row g-3">
-					<!-- Tanggal Rentang -->
+					<!-- Date Range Picker -->
 					<div class="col-md-3">
-						<label for="tanggal_rentang_start" class="form-label">Tanggal Rentang (Dari)</label>
-						<input type="date" class="form-control" id="tanggal_rentang_start" name="tanggal_rentang_start">
-					</div>
-					<div class="col-md-3">
-						<label for="tanggal_rentang_end" class="form-label">Tanggal Rentang (Sampai)</label>
-						<input type="date" class="form-control" id="tanggal_rentang_end" name="tanggal_rentang_end">
-					</div>
-					<!-- Tanggal -->
-					<div class="col-md-3">
-						<label for="tanggal" class="form-label">Tanggal</label>
-						<input type="date" class="form-control" id="tanggal" name="tanggal">
+						<label for="date_range" class="form-label">Tanggal Rentang</label>
+						<input type="text" class="form-control" id="date_range" name="date_range" placeholder="Pilih tanggal rentang">
 					</div>
 					<!-- Agent -->
 					<div class="col-md-3">
@@ -154,9 +145,7 @@
 				"type": "POST",
 				"data": function (d) {
 					// Add filter values to DataTables request
-					d.tanggal_rentang_start = $('#tanggal_rentang_start').val();
-					d.tanggal_rentang_end = $('#tanggal_rentang_end').val();
-					d.tanggal = $('#tanggal').val();
+					d.date_range = $('#date_range').val();
 					d.agent_id = $('#agent_id').val();
 					d.platform = $('#platform').val();
 					d.channel = $('#channel').val();
@@ -254,6 +243,14 @@
 			if (json && json.csrf_hash) {
 				csrfHash = json.csrf_hash;
 			}
+		});
+
+		// Initialize flatpickr for date range
+		$('#date_range').flatpickr({
+			mode: "range",
+			dateFormat: "Y-m-d",
+			locale: "id",
+			allowInput: true
 		});
 	});
 </script>

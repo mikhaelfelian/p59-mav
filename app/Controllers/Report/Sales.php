@@ -79,6 +79,10 @@ class Sales extends BaseController
         $this->addJs($this->config->baseURL . 'public/vendors/datatables/extensions/Buttons/js/buttons.html5.min.js');
         $this->addJs($this->config->baseURL . 'public/vendors/datatables/extensions/Buttons/js/buttons.print.min.js');
         $this->addStyle($this->config->baseURL . 'public/vendors/datatables/extensions/Buttons/css/buttons.bootstrap5.min.css');
+        
+        // Add flatpickr for date range picker
+        $this->addJs($this->config->baseURL . 'public/vendors/flatpickr/dist/flatpickr.js');
+        $this->addStyle($this->config->baseURL . 'public/vendors/flatpickr/dist/flatpickr.min.css');
     }
     
     /**
@@ -243,9 +247,7 @@ class Sales extends BaseController
             }
 
             // Get filter values
-            $tanggalRentangStart = $this->request->getPost('tanggal_rentang_start') ?? $this->request->getGet('tanggal_rentang_start') ?? '';
-            $tanggalRentangEnd = $this->request->getPost('tanggal_rentang_end') ?? $this->request->getGet('tanggal_rentang_end') ?? '';
-            $tanggal = $this->request->getPost('tanggal') ?? $this->request->getGet('tanggal') ?? '';
+            $dateRange = $this->request->getPost('date_range') ?? $this->request->getGet('date_range') ?? '';
             $agentId = $this->request->getPost('agent_id') ?? $this->request->getGet('agent_id') ?? '';
             $platform = $this->request->getPost('platform') ?? $this->request->getGet('platform') ?? '';
             $channel = $this->request->getPost('channel') ?? $this->request->getGet('channel') ?? '';
@@ -255,13 +257,18 @@ class Sales extends BaseController
             // Build base query
             $query = $this->buildSalesQuery();
 
-            // Apply filters
-            // Date filter: single date takes precedence over date range
-            if (!empty($tanggal)) {
-                $query->where('DATE(sales.created_at)', $tanggal);
-            } elseif (!empty($tanggalRentangStart) && !empty($tanggalRentangEnd)) {
-                $query->where('DATE(sales.created_at) >=', $tanggalRentangStart)
-                      ->where('DATE(sales.created_at) <=', $tanggalRentangEnd);
+            // Apply date range filter
+            // Parse date_range from flatpickr format: "YYYY-MM-DD to YYYY-MM-DD"
+            if (!empty($dateRange)) {
+                $dateParts = preg_split('/\s+to\s+/i', trim($dateRange));
+                if (count($dateParts) === 2) {
+                    $tanggalRentangStart = trim($dateParts[0]);
+                    $tanggalRentangEnd = trim($dateParts[1]);
+                    if (!empty($tanggalRentangStart) && !empty($tanggalRentangEnd)) {
+                        $query->where('DATE(sales.created_at) >=', $tanggalRentangStart)
+                              ->where('DATE(sales.created_at) <=', $tanggalRentangEnd);
+                    }
+                }
             }
 
             // Agent filter
@@ -282,12 +289,17 @@ class Sales extends BaseController
             // Count total records with filters (rebuild query for count)
             $countQuery = $this->buildSalesQuery();
             
-            // Re-apply filters for count
-            if (!empty($tanggal)) {
-                $countQuery->where('DATE(sales.created_at)', $tanggal);
-            } elseif (!empty($tanggalRentangStart) && !empty($tanggalRentangEnd)) {
-                $countQuery->where('DATE(sales.created_at) >=', $tanggalRentangStart)
-                          ->where('DATE(sales.created_at) <=', $tanggalRentangEnd);
+            // Re-apply date range filter for count
+            if (!empty($dateRange)) {
+                $dateParts = preg_split('/\s+to\s+/i', trim($dateRange));
+                if (count($dateParts) === 2) {
+                    $tanggalRentangStart = trim($dateParts[0]);
+                    $tanggalRentangEnd = trim($dateParts[1]);
+                    if (!empty($tanggalRentangStart) && !empty($tanggalRentangEnd)) {
+                        $countQuery->where('DATE(sales.created_at) >=', $tanggalRentangStart)
+                                  ->where('DATE(sales.created_at) <=', $tanggalRentangEnd);
+                    }
+                }
             }
             if (!empty($agentId) && $agentId > 0) {
                 $countQuery->where('sales.warehouse_id', (int)$agentId);

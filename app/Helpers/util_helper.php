@@ -457,7 +457,7 @@ function menu_list($result)
 	// echo '<pre>'; print_r($result);
 	foreach ($result as $key => $data)
 	{
-		if (!$key || empty($data['id_menu'])) // Highlight OR No parent
+		if (!$key || empty($data['id_menu']))
 			continue;
 		
 		$thisref = &$refs[ $data['id_menu'] ];

@@ -98,6 +98,7 @@ class Sales extends BaseController
         $this->salesPaymentLogModel = new SalesPaymentLogModel();
         $this->salesGatewayLogModel = new SalesGatewayLogModel();
         $this->agentPaylaterModel = new AgentPaylaterModel();
+        $this->data['role'] = $this->hasRole();
     }
     
     /**
@@ -616,6 +617,44 @@ class Sales extends BaseController
                 ]);
             }
             
+            // Get logged-in agent ID from user_role_agent relationship
+            // This will be used for sales.customer_id instead of actual customer ID
+            $loggedInAgentId = null;
+            if ($userId) {
+                // Find agent through user_role_agent relationship
+                $userRoleAgent = $this->userRoleAgentModel->where('user_id', $userId)->first();
+                if ($userRoleAgent) {
+                    // If user has multiple agents, prefer the one matching selectedAgentId if available
+                    if ($selectedAgentId) {
+                        $matchingAgent = $this->userRoleAgentModel
+                            ->where('user_id', $userId)
+                            ->where('agent_id', $selectedAgentId)
+                            ->first();
+                        if ($matchingAgent) {
+                            $loggedInAgentId = $matchingAgent->agent_id;
+                        } else {
+                            // Use first agent if selected one doesn't match
+                            $loggedInAgentId = $userRoleAgent->agent_id;
+                        }
+                    } else {
+                        // Use first agent found
+                        $loggedInAgentId = $userRoleAgent->agent_id;
+                    }
+                }
+            }
+            
+            // Validate that logged-in agent ID exists
+            if (!$loggedInAgentId) {
+                $message = 'Agen tidak ditemukan untuk user ini. Silakan hubungi administrator.';
+                if ($isAjax) {
+                    return $this->response->setJSON(['status' => 'error', 'message' => $message]);
+                }
+                return redirect()->back()->withInput()->with('message', [
+                    'status' => 'error',
+                    'message' => $message
+                ]);
+            }
+            
             // Prepare plate data for customer lookup
             $platCode = !empty($postData['plate_code']) ? trim($postData['plate_code']) : null;
             $platNumber = !empty($postData['plate_number']) ? trim($postData['plate_number']) : null;
@@ -1013,7 +1052,7 @@ class Sales extends BaseController
             $saleData = [
                 'invoice_no' 		=> $finalInvoiceNo,
                 'user_id' 			=> $userId,
-                'customer_id' 		=> $customerId,
+                'customer_id' 		=> $loggedInAgentId, // Use logged-in agent ID instead of actual customer ID
                 'warehouse_id' 		=> !empty($postData['agent_id']) ? (int)$postData['agent_id'] : null,
                 'sale_channel' 		=> self::CHANNEL_ONLINE,
                 'total_amount' 		=> (float)($postData['subtotal'] ?? $subtotal),
@@ -1729,11 +1768,74 @@ class Sales extends BaseController
             $title = 'Pembelian';
         }
 
+        // Get all active agents for filter dropdown (admin only)
+        $agents = [];
+        if ($isAdmin) {
+            $agents = $this->agentModel
+                ->where('is_active', '1')
+                ->orderBy('name', 'ASC')
+                ->findAll();
+        }
+
+        // Get logged-in agent ID for statistics calculation (agent users only)
+        $agentId = null;
+        $statistics = [
+            'total_loan' => 0,
+            'total_paid' => 0,
+            'total_amount' => 0
+        ];
+
+        if (!$isAdmin) {
+            $userId = $this->user['id_user'] ?? null;
+            if ($userId) {
+                $userRoleAgent = $this->userRoleAgentModel->where('user_id', $userId)->first();
+                if ($userRoleAgent) {
+                    $agentId = $userRoleAgent->agent_id;
+                }
+            }
+
+            // Calculate statistics for agent users
+            if ($agentId) {
+                $db = \Config\Database::connect();
+                
+                // Total Loan: sum of grand_total where payment_status = 3
+                $totalLoan = $db->table('sales')
+                    ->selectSum('grand_total')
+                    ->where('sale_channel', self::CHANNEL_ONLINE)
+                    ->where('warehouse_id', $agentId)
+                    ->where('payment_status', '3')
+                    ->get()
+                    ->getRow();
+                $statistics['total_loan'] = $totalLoan->grand_total ?? 0;
+                
+                // Total Paid: sum of total_payment where payment_status = 2
+                $totalPaid = $db->table('sales')
+                    ->selectSum('total_payment')
+                    ->where('sale_channel', self::CHANNEL_ONLINE)
+                    ->where('warehouse_id', $agentId)
+                    ->where('payment_status', '2')
+                    ->get()
+                    ->getRow();
+                $statistics['total_paid'] = $totalPaid->total_payment ?? 0;
+                
+                // Total Amount: sum of grand_total for all sales
+                $totalAmount = $db->table('sales')
+                    ->selectSum('grand_total')
+                    ->where('sale_channel', self::CHANNEL_ONLINE)
+                    ->where('warehouse_id', $agentId)
+                    ->get()
+                    ->getRow();
+                $statistics['total_amount'] = $totalAmount->grand_total ?? 0;
+            }
+        }
+
         $this->data = array_merge($this->data, [
             'title'         => 'Data ' . $title,
             'currentModule' => $this->currentModule,
             'config'        => $this->config,
             'msg'           => $this->session->getFlashdata('message'),
+            'agents'        => $agents,
+            'statistics'    => $statistics,
         ]);
 
         $this->data['breadcrumb'] = [
@@ -2875,15 +2977,36 @@ class Sales extends BaseController
                 $searchValue = trim($search);
             }
 
+            // Get filter parameters
+            $filterAgentId = $this->request->getPost('filter_agent_id') ?? $this->request->getGet('filter_agent_id') ?? '';
+            $filterPlatform = $this->request->getPost('filter_platform') ?? $this->request->getGet('filter_platform') ?? '';
+
             $db = \Config\Database::connect();
             
             // Count total records with channel filter
-            $totalRecords = $db->table('sales')
-                ->where('sale_channel', self::CHANNEL_ONLINE)
-                ->countAllResults();
+            $totalRecordsQuery = $db->table('sales')
+                ->where('sale_channel', self::CHANNEL_ONLINE);
+            
+            // Apply filters to count query
+            if (!empty($filterAgentId) && $filterAgentId > 0) {
+                $totalRecordsQuery->where('sales.warehouse_id', (int)$filterAgentId);
+            }
+            if (!empty($filterPlatform)) {
+                $totalRecordsQuery->where('sales.payment_status', $filterPlatform);
+            }
+            
+            $totalRecords = $totalRecordsQuery->countAllResults();
 
             // Main query builder with joins and channel filter
             $query = $this->buildSalesQuery();
+
+            // Apply filters
+            if (!empty($filterAgentId) && $filterAgentId > 0) {
+                $query->where('sales.warehouse_id', (int)$filterAgentId);
+            }
+            if (!empty($filterPlatform)) {
+                $query->where('sales.payment_status', $filterPlatform);
+            }
 
             // Apply filtering if search term present
             $totalFiltered = $totalRecords;
@@ -2898,6 +3021,15 @@ class Sales extends BaseController
 
                 // Clone query for the count (mimics actual filter)
                 $countQuery = $this->buildSalesQuery();
+                
+                // Apply filters to count query
+                if (!empty($filterAgentId) && $filterAgentId > 0) {
+                    $countQuery->where('sales.warehouse_id', (int)$filterAgentId);
+                }
+                if (!empty($filterPlatform)) {
+                    $countQuery->where('sales.payment_status', $filterPlatform);
+                }
+                
                 $countQuery->groupStart()
                            ->like('sales.invoice_no', $searchValue)
                            ->orLike('customer.name', $searchValue)
@@ -2949,12 +3081,12 @@ class Sales extends BaseController
         $db = \Config\Database::connect();
         $builder = $db->table('sales');
         
+        // customer_name now refers to agent.name only, customer table not needed
         return $builder->select('sales.*, 
-            customer.name as customer_name,
+            agent.name as customer_name,
             user.nama as user_name,
             agent.name as agent_name,
             COALESCE(sales.balance_due, sales.grand_total - COALESCE(sales.total_payment, 0)) as balance_due')
-            ->join('customer', 'customer.id = sales.customer_id', 'left')
             ->join('user', 'user.id_user = sales.user_id', 'left')
             ->join('agent', 'agent.id = sales.warehouse_id', 'left')
             ->where('sales.sale_channel', self::CHANNEL_ONLINE);
@@ -3000,26 +3132,45 @@ class Sales extends BaseController
                 $actionButtons .= '<i class="fas fa-check"></i></a>';
             }
 
+            // Add "Bayar" button only for role id 4
+            if (isset($this->data['role']['id_role']) && $this->data['role']['id_role'] == 4) {
+                $actionButtons .= '<a href="' . $this->config->baseURL . 'agent/paylater/pay/' . $row['id'] . '" ';
+                $actionButtons .= 'class="btn btn-sm btn-success btn-bayar" title="Bayar">';
+                $actionButtons .= 'Bayar</a>';
+            }
+
             $actionButtons .= '</div>';
 
             // Calculate balance_due
-            $balanceDue = 0;
-            if (isset($row['balance_due'])) {
-                $balanceDue = (float)$row['balance_due'];
-            } else {
+            // $balanceDue = 0;
+            // if (isset($row['total_payment'])) {
+            //     $balanceDue = (float)$row['total_payment'];
+            // } else {
                 $grandTotal = (float)($row['grand_total'] ?? 0);
                 $totalPayment = (float)($row['total_payment'] ?? 0);
                 $balanceDue = $grandTotal - $totalPayment;
+            // }
+
+            // Ensure customer_name is correctly retrieved (not agent.name)
+            // Explicitly check for customer_name field and fallback to '-' if null/empty
+            $customerName = '';
+            if (isset($row['customer_name']) && !empty($row['customer_name'])) {
+                $customerName = $row['customer_name'];
+            } else {
+                $customerName = '-';
             }
+            
+            // Ensure agent_name is correctly retrieved
+            $agentName = isset($row['agent_name']) && !empty($row['agent_name']) ? $row['agent_name'] : '-';
 
             $result[] = [
                 'ignore_search_urut'    => $no,
                 'id'                    => $row['id'] ?? 0,
                 'invoice_no'            => esc($row['invoice_no'] ?? ''),
-                'customer_name'         => esc($row['customer_name'] ?? '-'),
-                'agent_name'            => esc($row['agent_name'] ?? '-'),
-                'grand_total'           => format_angka((float) ($row['grand_total'] ?? 0), 2),
-                'balance_due'           => format_angka($balanceDue, 2),
+                'customer_name'         => esc($customerName),
+                'agent_name'            => esc($agentName),
+                'grand_total'           => format_angka((float) ($row['grand_total'] ?? 0), 0),
+                'balance_due'           => format_angka($balanceDue, 0),
                 'payment_status'        => $statusDisplay,
                 'created_at'            => !empty($row['created_at'])
                                             ? date('d/m/Y H:i', strtotime($row['created_at']))

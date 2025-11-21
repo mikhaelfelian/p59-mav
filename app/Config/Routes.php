@@ -94,6 +94,17 @@ $routes->get('agent-rules/form/(:num)', 'AgentRules::form/$1');
 $routes->post('agent-rules/save', 'AgentRules::save');
 $routes->post('agent-rules/delete/(:num)', 'AgentRules::delete/$1');
 
+$routes->group('warranty', ['namespace' => 'App\Controllers\Warranty'], function($routes) {
+    $routes->get('claim', 'Claim::form');
+    $routes->post('submit', 'Claim::submit');
+    $routes->get('review/(:num)', 'Review::index/$1');
+    $routes->post('approve/(:num)', 'Review::approve/$1');
+    $routes->post('reject/(:num)', 'Review::reject/$1');
+    $routes->post('replacement/(:num)', 'Review::processReplacement/$1');
+    $routes->get('detail/(:num)', 'Detail::index/$1');
+    $routes->get('history', 'History::index');
+});
+
 /* Bagian agen */
 $routes->group('agent', function($routes) {
     // Agent Dashboard
