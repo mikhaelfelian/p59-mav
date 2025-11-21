@@ -319,15 +319,30 @@ helper('angka');
 									}
 
 									// Filter available_sns to only show is_sell='0' serial numbers that are not already assigned
+									// Also exclude SNs that have is_receive='1' (already received)
 									$filteredAvailableSns = [];
 									if (!empty($item['available_sns'])) {
+										// Get list of SN IDs that have is_receive='1' as a safeguard
+										$salesItemSnModel = new \App\Models\SalesItemSnModel();
+										$receivedSnRecords = $salesItemSnModel
+											->select('item_sn_id')
+											->where('is_receive', '1')
+											->findAll();
+										$receivedSnIds = [];
+										foreach ($receivedSnRecords as $receivedSn) {
+											$receivedSnId = is_object($receivedSn) ? ($receivedSn->item_sn_id ?? null) : ($receivedSn['item_sn_id'] ?? null);
+											if ($receivedSnId) {
+												$receivedSnIds[] = (int) $receivedSnId;
+											}
+										}
+										
 										foreach ($item['available_sns'] as $sn) {
 											// Handle both object and array
 											$isSell = is_object($sn) ? ($sn->is_sell ?? '0') : ($sn['is_sell'] ?? '0');
 											$snId = is_object($sn) ? ($sn->id ?? null) : ($sn['id'] ?? null);
 
-											// Only include serial numbers where is_sell='0' and not already assigned
-											if (($isSell === '0' || $isSell === 0) && $snId && !in_array((int) $snId, $assignedSnIds, true)) {
+											// Only include serial numbers where is_sell='0', not already assigned, and not received (is_receive='1')
+											if (($isSell === '0' || $isSell === 0) && $snId && !in_array((int) $snId, $assignedSnIds, true) && !in_array((int) $snId, $receivedSnIds, true)) {
 												$filteredAvailableSns[] = $sn;
 											}
 										}

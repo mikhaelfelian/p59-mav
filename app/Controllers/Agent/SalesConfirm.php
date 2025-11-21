@@ -66,10 +66,11 @@ class SalesConfirm extends \App\Controllers\BaseController
         $this->data['title'] = 'Verifikasi Order Agent';
         $this->data['currentModule'] = $this->currentModule;
         $this->data['config'] = $this->config;
-        $this->data['msg'] = $this->session->getFlashdata('message');            $this->data['breadcrumb'] = [
+        $this->data['msg'] = $this->session->getFlashdata('message');
+        $this->data['breadcrumb'] = [
             'Home' => $this->config->baseURL,
-            'Items' => base_url('item'),
-            'Detail' => base_url('item/detail/' . $id)
+            'Penjualan' => $this->config->baseURL . 'agent/sales',
+            'Verifikasi SN' => ''
         ];
         
         $this->view('sales/confirm-sn-list', $this->data);
@@ -323,6 +324,31 @@ class SalesConfirm extends \App\Controllers\BaseController
                         ->where('sales_item_sn.id IS NULL')
                         ->orderBy('item_sn.created_at', 'ASC')
                         ->findAll();
+                    
+                    // Additional filter: exclude SNs that have is_receive='1' in any sales_item_sn record
+                    // This prevents assigning SNs that have already been received, regardless of which sales_item_id
+                    $receivedSnIds = $this->salesItemSnModel
+                        ->select('item_sn_id')
+                        ->where('is_receive', '1')
+                        ->findAll();
+                    
+                    $receivedSnIdArray = [];
+                    foreach ($receivedSnIds as $receivedSn) {
+                        $snId = is_object($receivedSn) ? ($receivedSn->item_sn_id ?? null) : ($receivedSn['item_sn_id'] ?? null);
+                        if ($snId) {
+                            $receivedSnIdArray[] = (int)$snId;
+                        }
+                    }
+                    
+                    // Filter out received SNs from available list
+                    if (!empty($receivedSnIdArray)) {
+                        $availableSns = array_filter($availableSns, function($sn) use ($receivedSnIdArray) {
+                            $snId = is_object($sn) ? ($sn->id ?? null) : ($sn['id'] ?? null);
+                            return $snId && !in_array((int)$snId, $receivedSnIdArray, true);
+                        });
+                        // Re-index array after filtering
+                        $availableSns = array_values($availableSns);
+                    }
 
                     // Convert objects to arrays properly
                     foreach ($availableSns as $sn) {
@@ -695,6 +721,16 @@ class SalesConfirm extends \App\Controllers\BaseController
                     continue; // Already assigned
                 }
 
+                // Check if SN has is_receive='1' in any sales_item_sn record (already received)
+                $receivedSn = $this->salesItemSnModel
+                    ->where('item_sn_id', $itemSnId)
+                    ->where('is_receive', '1')
+                    ->first();
+
+                if ($receivedSn) {
+                    continue; // Already received, cannot assign again
+                }
+
                 // This is a valid new assignment
                 $newAssignments++;
             }
@@ -743,6 +779,16 @@ class SalesConfirm extends \App\Controllers\BaseController
 
                     if ($existing) {
                         continue; // Already assigned
+                    }
+
+                    // Check if SN has is_receive='1' in any sales_item_sn record (already received)
+                    $receivedSn = $this->salesItemSnModel
+                        ->where('item_sn_id', $itemSnId)
+                        ->where('is_receive', '1')
+                        ->first();
+
+                    if ($receivedSn) {
+                        continue; // Already received, cannot assign again
                     }
 
                     // Assign serial number to sales_item
