@@ -1809,7 +1809,7 @@ class Sales extends BaseController
                     ->where('payment_status', '3')
                     ->get()
                     ->getRow();
-                $statistics['total_loan'] = $totalLoan->grand_total ?? 0;
+                $statistics['total_loan'] = (float)($totalLoan->grand_total ?? 0);
                 
                 // Total Paid: sum of total_payment where payment_status = 2
                 $totalPaid = $db->table('sales')
@@ -1819,7 +1819,7 @@ class Sales extends BaseController
                     ->where('payment_status', '2')
                     ->get()
                     ->getRow();
-                $statistics['total_paid'] = $totalPaid->total_payment ?? 0;
+                $statistics['total_paid'] = (float)($totalPaid->total_payment ?? 0);
                 
                 // Total Amount: sum of grand_total for all sales
                 $totalAmount = $db->table('sales')
@@ -1828,7 +1828,7 @@ class Sales extends BaseController
                     ->where('warehouse_id', $agentId)
                     ->get()
                     ->getRow();
-                $statistics['total_amount'] = $totalAmount->grand_total ?? 0;
+                $statistics['total_amount'] = (float)($totalAmount->grand_total ?? 0);
             }
         }
 

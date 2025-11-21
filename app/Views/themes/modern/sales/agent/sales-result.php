@@ -73,90 +73,66 @@
 		if (empty($read_all) || $read_all == 0):
 			if (!empty($statistics)):
 				?>
-				<div class="row">
-					<!-- Total Loan -->
-					<div class="col-lg-4 col-sm-6 col-xs-12 mb-4">
-						<div class="card text-white bg-warning shadow">
-							<div class="card-body card-stats">
-								<div class="description">
-									<h5 class="card-title h4">
-										<?= format_number($statistics['total_loan']) ?>
-									</h5>
-									<p class="card-text">Total Loan</p>
-								</div>
-								<div class="icon">
-									<i class="material-icons">account_balance_wallet</i>
-								</div>
+			<div class="row">
+				<!-- Total Loan -->
+				<div class="col-lg-4 col-sm-6 col-xs-12 mb-4">
+					<div class="card text-white bg-warning shadow">
+						<div class="card-body card-stats">
+							<div class="description">
+								<h5 class="card-title h4"><?= format_number($statistics['total_loan']) ?></h5>
+								<p class="card-text">Total Loan</p>
 							</div>
-							<div class="card-footer">
-								<div class="card-footer-left">
-									<div class="icon me-2">
-										<i class="fas fa-minus"></i>
-									</div>
-									<p>-</p>
-								</div>
-								<div class="card-footer-right">
-									<p><?= date('Y') ?></p>
-								</div>
+							<div class="icon">
+								<i class="material-icons">account_balance_wallet</i>
 							</div>
 						</div>
-					</div>
-					<!-- Total Paid -->
-					<div class="col-lg-4 col-sm-6 col-xs-12 mb-4">
-						<div class="card text-white bg-success shadow">
-							<div class="card-body card-stats">
-								<div class="description">
-									<h5 class="card-title h4">
-										<?= format_number($statistics['total_paid']) ?>
-									</h5>
-									<p class="card-text">Total Paid</p>
-								</div>
-								<div class="icon">
-									<i class="material-icons">payments</i>
-								</div>
-							</div>
-							<div class="card-footer">
-								<div class="card-footer-left">
-									<div class="icon me-2">
-										<i class="fas fa-minus"></i>
-									</div>
-									<p>-</p>
-								</div>
-								<div class="card-footer-right">
-									<p><?= date('Y') ?></p>
-								</div>
-							</div>
-						</div>
-					</div>
-					<!-- Total Amount -->
-					<div class="col-lg-4 col-sm-6 col-xs-12 mb-4">
-						<div class="card text-white bg-primary shadow">
-							<div class="card-body card-stats">
-								<div class="description">
-									<h5 class="card-title h4">
-										<?= format_number($statistics['total_amount']) ?>
-									</h5>
-									<p class="card-text">Total Amount</p>
-								</div>
-								<div class="icon">
-									<i class="material-icons">attach_money</i>
-								</div>
-							</div>
-							<div class="card-footer">
-								<div class="card-footer-left">
-									<div class="icon me-2">
-										<i class="fas fa-minus"></i>
-									</div>
-									<p>-</p>
-								</div>
-								<div class="card-footer-right">
-									<p><?= date('Y') ?></p>
-								</div>
+						<div class="card-footer">
+							<div class="card-footer-right">
+								<p><?= date('Y') ?></p>
 							</div>
 						</div>
 					</div>
 				</div>
-				<!-- /row -->
+				<!-- Total Paid -->
+				<div class="col-lg-4 col-sm-6 col-xs-12 mb-4">
+					<div class="card text-white bg-success shadow">
+						<div class="card-body card-stats">
+							<div class="description">
+								<h5 class="card-title h4"><?= format_number($statistics['total_paid']) ?></h5>
+								<p class="card-text">Total Paid</p>
+							</div>
+							<div class="icon">
+								<i class="material-icons">payments</i>
+							</div>
+						</div>
+						<div class="card-footer">
+							<div class="card-footer-right">
+								<p><?= date('Y') ?></p>
+							</div>
+						</div>
+					</div>
+				</div>
+				<!-- Total Amount -->
+				<div class="col-lg-4 col-sm-6 col-xs-12 mb-4">
+					<div class="card text-white bg-primary shadow">
+						<div class="card-body card-stats">
+							<div class="description">
+								<h5 class="card-title h4"><?= format_number($statistics['total_amount']) ?></h5>
+								<p class="card-text">Total Amount</p>
+							</div>
+							<div class="icon">
+								<i class="material-icons">attach_money</i>
+							</div>
+						</div>
+						<div class="card-footer">
+							<div class="card-footer-right">
+								<p><?= date('Y') ?></p>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<!-- /row -->
 				<?php
 			endif;
 		endif;
