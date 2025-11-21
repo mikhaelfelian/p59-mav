@@ -143,12 +143,7 @@ html[data-bs-theme="dark"] .sn-table tbody tr:nth-child(even):hover {
 		<!-- Tabs Navigation -->
 		<ul class="nav nav-tabs nav-tabs-custom" id="snTabs" role="tablist">
 			<li class="nav-item" role="presentation">
-				<button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" type="button" role="tab" aria-controls="all" aria-selected="true">
-					Belum diterima
-				</button>
-			</li>
-			<li class="nav-item" role="presentation">
-				<button class="nav-link" id="unused-tab" data-bs-toggle="tab" data-bs-target="#unused" type="button" role="tab" aria-controls="unused" aria-selected="false">
+				<button class="nav-link active" id="unused-tab" data-bs-toggle="tab" data-bs-target="#unused" type="button" role="tab" aria-controls="unused" aria-selected="true">
 					Belum Digunakan
 				</button>
 			</li>
@@ -161,74 +156,8 @@ html[data-bs-theme="dark"] .sn-table tbody tr:nth-child(even):hover {
 
 		<!-- Tab Content -->
 		<div class="tab-content" id="snTabContent">
-			<!-- Belum diterima Tab -->
-			<div class="tab-pane fade show active" id="all" role="tabpanel" aria-labelledby="all-tab">
-				<?php
-				// Show "Terima Semua" button if there are unreceived SNs and user is agent
-				$hasUnreceivedSNs = !empty($totalUnreceivedCount) && $totalUnreceivedCount > 0;
-				$showReceiveAllBtn = !empty($isAgent) && $isAgent && $hasUnreceivedSNs;
-				?>
-				
-				<?php if ($showReceiveAllBtn): ?>
-				<div class="mb-3 d-flex justify-content-end">
-					<button type="button" class="btn btn-success text-white" id="btnReceiveAllUnreceived">
-						<i class="fas fa-check-double me-1"></i>Terima Semua (<?= $totalUnreceivedCount ?> SN)
-					</button>
-				</div>
-				<?php endif; ?>
-
-				<?php
-				// Define columns for DataTables
-				$column_all = [
-					'ignore_search_urut'    => 'No',
-					'invoice_no'            => 'No Nota',
-					'sn'                    => 'SN',
-					'item_name'             => 'Item',
-					'item_sku'              => 'Item Code',
-					'ignore_search_action'  => 'Aksi'
-				];
-
-				$settings_all['order'] = [1, 'desc']; // Order by SN descending
-				$index_all = 0;
-				$th_all = '';
-				
-				foreach ($column_all as $key => $val) {
-					$th_all .= '<th>' . $val . '</th>';
-					if (strpos($key, 'ignore_search') !== false) {
-						$settings_all['columnDefs'][] = ["targets" => $index_all, "orderable" => false];
-					}
-					$index_all++;
-				}
-				?>
-
-				<table id="table-all" class="table display table-striped table-bordered table-hover sn-table" style="width:100%">
-					<thead>
-						<tr>
-							<?= $th_all ?>
-						</tr>
-					</thead>
-					<tfoot>
-						<tr>
-							<?= $th_all ?>
-						</tr>
-					</tfoot>
-				</table>
-				
-				<?php
-				// Prepare column data for DataTables
-				$column_dt_all = [];
-				foreach ($column_all as $key => $val) {
-					$column_dt_all[] = ['data' => $key];
-				}
-				?>
-				
-				<span id="dataTables-column-all" style="display:none"><?= json_encode($column_dt_all) ?></span>
-				<span id="dataTables-setting-all" style="display:none"><?= json_encode($settings_all) ?></span>
-				<span id="dataTables-url-all" style="display:none"><?= $config->baseURL ?>agent/sales/getSnDataDT</span>
-			</div>
-
 			<!-- Belum Digunakan Tab -->
-			<div class="tab-pane fade" id="unused" role="tabpanel" aria-labelledby="unused-tab">
+			<div class="tab-pane fade show active" id="unused" role="tabpanel" aria-labelledby="unused-tab">
 				<?php
 				// Define columns for DataTables
 				$column = [
@@ -336,33 +265,6 @@ html[data-bs-theme="dark"] .sn-table tbody tr:nth-child(even):hover {
 
 <script>
 $(document).ready(function() {
-	// Initialize DataTables for all tab (Belum diterima)
-	var columnAll = JSON.parse($('#dataTables-column-all').text());
-	var settingsAll = JSON.parse($('#dataTables-setting-all').text());
-	var urlAll = $('#dataTables-url-all').text();
-
-	var tableAll = $('#table-all').DataTable({
-		"processing": true,
-		"serverSide": true,
-		"ajax": {
-			"url": urlAll,
-			"type": "POST",
-			"data": function(d) {
-				d.filter = 'unreceived';
-			}
-		},
-		"columns": columnAll,
-		"order": settingsAll.order,
-		"columnDefs": settingsAll.columnDefs,
-		"pageLength": 10,
-		"lengthMenu": [[10, 25, 50, 100], [10, 25, 50, 100]],
-		"language": {
-			"processing": "Memuat...",
-			"emptyTable": "Tidak ada data serial number yang belum diterima",
-			"zeroRecords": "Data tidak ditemukan"
-		}
-	});
-
 	// Initialize DataTables for unused tab
 	var columnUnused = JSON.parse($('#dataTables-column-unused').text());
 	var settingsUnused = JSON.parse($('#dataTables-setting-unused').text());
@@ -418,10 +320,6 @@ $(document).ready(function() {
 	});
 
 	// Reload DataTables when tab is shown
-	$('#all-tab').on('shown.bs.tab', function() {
-		tableAll.columns.adjust().draw();
-	});
-
 	$('#used-tab').on('shown.bs.tab', function() {
 		tableUsed.columns.adjust().draw();
 	});
@@ -493,11 +391,11 @@ $(document).ready(function() {
 							timer: 2000,
 							showConfirmButton: false
 						}).then(function() {
-							tableAll.ajax.reload();
+							tableUnused.ajax.reload();
 						});
 					} else {
 						alert(response.message);
-						tableAll.ajax.reload();
+						tableUnused.ajax.reload();
 					}
 				} else {
 					$btn.prop('disabled', false).html('<i class="fas fa-check me-1"></i>Terima');
@@ -597,13 +495,13 @@ $(document).ready(function() {
 							showConfirmButton: false
 						}).then(function() {
 							// Reload the DataTable
-							tableAll.ajax.reload();
+							tableUnused.ajax.reload();
 							// Reload page to update count
 							location.reload();
 						});
 					} else {
 						alert(response.message || 'Serial number berhasil diterima');
-						tableAll.ajax.reload();
+						tableUnused.ajax.reload();
 						location.reload();
 					}
 				} else {
