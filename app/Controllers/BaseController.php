@@ -100,7 +100,46 @@ class BaseController extends Controller
 		$this->currentModule = $module;
 		$this->moduleURL = $web['module_url'];
 		$this->user = $this->session->get('user');
+		
+		// Check remember me cookie (may set logged_in to true)
 		$this->model->checkRememberme();
+		
+		// Update isLoggedIn after checkRememberme (it might have logged user in)
+		$this->isLoggedIn = $this->session->get('logged_in');
+		$this->user = $this->session->get('user');
+		
+		// Activity-based session extension (12 hours expiration)
+		if ($this->isLoggedIn) {
+			$sessionConfig = config('Session');
+			$sessionExpiration = $sessionConfig->expiration ?? 43200; // 12 hours default
+			$currentTime = time();
+			$lastActivity = $this->session->get('last_activity');
+			
+			// Check if session has expired due to inactivity
+			if ($lastActivity !== null) {
+				$timeSinceActivity = $currentTime - $lastActivity;
+				if ($timeSinceActivity > $sessionExpiration) {
+					// Session expired due to inactivity
+					$this->session->destroy();
+					$this->isLoggedIn = false;
+					$this->user = null;
+					
+					// Redirect to login if not already on login page
+					if ($nama_module != 'login') {
+						header('Location: ' . $this->config->baseURL . 'login?expired=1');
+						exit();
+					}
+				} else {
+					// Update last activity and extend session
+					$this->session->set('last_activity', $currentTime);
+					// Regenerate session ID to extend cookie lifetime
+					$this->session->regenerate(false);
+				}
+			} else {
+				// First activity after login, set initial timestamp
+				$this->session->set('last_activity', $currentTime);
+			}
+		}
 		
 		$this->data['current_module'] = $this->currentModule;
 		$this->data['scripts'] = array($this->config->baseURL . '/public/assets/vendors/jquery/jquery.min.js'

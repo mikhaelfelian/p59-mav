@@ -134,6 +134,7 @@ class BaseModel extends Model
                     $user_detail = $this->getUserById($data['id_user']);
                     $this->session->set('user', $user_detail);
                     $this->session->set('logged_in', true);
+                    $this->session->set('last_activity', time());
                     return true;
                 }
             }

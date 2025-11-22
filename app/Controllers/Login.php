@@ -94,6 +94,7 @@ class Login extends \App\Controllers\BaseController
 
 		$this->session->set('user', $user);
 		$this->session->set('logged_in', true);
+		$this->session->set('last_activity', time());
 		$this->model->recordLogin();
 	}
 	
