@@ -21,8 +21,8 @@ daftar aktivasi berupa sn | produk | kode | qty | aksi |
 ====================================================
 Bonus Cashback rule :
 - mengikat ke agen, jika lebih dari x hari tidak akan mendapat cashback
-- Dalam waktu x hari, jika transaksi mencapai nominal x rupiah maka mendapatkan cashcack Y dan berlaku kelipatan
-- Di tempelkan ke agen buat tab baru
+  Dalam waktu x hari, jika transaksi mencapai nominal x rupiah maka mendapatkan cashcack Y dan berlaku kelipatan
+  Di tempelkan ke agen buat tab baru
 
 ITEM
 - pada "Input Serial Number (SN)" ditambahkan tab "SN terjual" tanpa form input (v)
@@ -68,8 +68,17 @@ Pada Admin
 - tambahkan page tersendiri untuk pelaporan data penjualan online (assign serial, tambah biaya, no resi, dan kurir)
 
 
-setelah assign, neclose hrs e g perlu
+setelah assign, neclose hrs e g perlu (v)
 biaya msh ada di agen (v)
+
+
+===============================================================================================
+1. Tanggal rentang diganti daterange, tgl biasa hapus (v)
+2. Informasi nama pelanggan ditampilkan di penjualan online (v)
+3. kurang bayar di tampilkan di penjualan (v)
+4. data dan riwayat paylater dihilangkan, jadikan satu dengan data penjualan dan pembelian ditambah button bayar aja hanya untuk agen (v)
+5. Di munculkan total transaksi hutang (amount), transaksi (amount), dan yang sudah dibayar berapa. (v)
+6. Assign masih error (v)
 
 
 
