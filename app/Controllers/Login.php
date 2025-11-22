@@ -113,6 +113,9 @@ class Login extends \App\Controllers\BaseController
 		}
 		$this->session->destroy();
 
-		return redirect()->to('/login');
+		// Use header() and exit() to avoid multiple Location headers
+		// redirect()->to() can conflict with other redirects in BaseController
+		header('Location: ' . $this->config->baseURL . 'login');
+		exit();
 	}
 }
