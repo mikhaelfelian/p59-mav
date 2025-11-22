@@ -72,6 +72,43 @@
 .item-subtotal {
 	font-weight: 600;
 	color: #28a745;
+	transition: all 0.3s ease;
+}
+
+.item-subtotal.text-success {
+	animation: pulse-success 0.5s ease;
+}
+
+@keyframes pulse-success {
+	0% { transform: scale(1); }
+	50% { transform: scale(1.1); color: #20c997; }
+	100% { transform: scale(1); }
+}
+
+.btn-quantity {
+	transition: all 0.2s ease;
+	min-width: 32px;
+}
+
+.btn-quantity:hover:not(:disabled) {
+	transform: scale(1.1);
+	box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-quantity:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.quantity-input {
+	transition: border-color 0.2s ease;
+	text-align: center;
+	font-weight: 500;
+}
+
+.quantity-input:focus {
+	border-color: #4e73df;
+	box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
 }
 
 .summary-card {
@@ -258,7 +295,7 @@
 										</td>
 										<td>
 											<div class="input-group input-group-sm">
-												<button type="button" class="btn btn-outline-secondary btn-quantity" onclick="updateCartQty(<?= $item['item_id'] ?>, <?= ($item['qty'] ?? 1) - 1 ?>)">
+												<button type="button" class="btn btn-outline-secondary btn-quantity btn-minus" data-item-id="<?= $item['item_id'] ?>" data-action="decrease">
 													<i class="fas fa-minus"></i>
 												</button>
 												<input type="number" 
@@ -266,8 +303,8 @@
 													value="<?= $item['qty'] ?? 1 ?>" 
 													min="1" 
 													id="qty-<?= $item['item_id'] ?>"
-													onchange="updateCartQty(<?= $item['item_id'] ?>, this.value)">
-												<button type="button" class="btn btn-outline-secondary btn-quantity" onclick="updateCartQty(<?= $item['item_id'] ?>, <?= ($item['qty'] ?? 1) + 1 ?>)">
+													data-item-id="<?= $item['item_id'] ?>">
+												<button type="button" class="btn btn-outline-secondary btn-quantity btn-plus" data-item-id="<?= $item['item_id'] ?>" data-action="increase">
 													<i class="fas fa-plus"></i>
 												</button>
 											</div>
@@ -276,7 +313,7 @@
 											<?= format_angka_rp($item['subtotal'] ?? 0) ?>
 										</td>
 										<td>
-											<button type="button" class="btn btn-sm btn-danger" onclick="removeFromCart(<?= $item['item_id'] ?>)">
+											<button type="button" class="btn btn-sm btn-danger btn-remove-item" data-item-id="<?= $item['item_id'] ?>">
 												<i class="fas fa-trash"></i> Hapus
 											</button>
 										</td>
@@ -454,8 +491,53 @@ $(document).ready(function() {
 	// Store platform data for API check
 	let platformsData = <?= json_encode($platforms ?? []) ?>;
 	
+	// Initialize original values for rollback
+	$('#cart-items-table tbody tr[data-item-id]').each(function() {
+		var $row = $(this);
+		var itemId = parseInt($row.data('item-id'));
+		var qty = parseInt($row.find('.quantity-input').val()) || 1;
+		originalValues[itemId] = qty;
+	});
+	
 	// Calculate initial totals
 	calculateTotals();
+	
+	// Event delegation for quantity buttons (decrease/increase)
+	$(document).on('click', '.btn-quantity', function() {
+		var $btn = $(this);
+		var itemId = parseInt($btn.data('item-id'));
+		var action = $btn.data('action');
+		var $row = $('tr[data-item-id="' + itemId + '"]');
+		var $input = $row.find('.quantity-input');
+		var currentQty = parseInt($input.val()) || 1;
+		
+		if (action === 'decrease') {
+			updateCartQty(itemId, currentQty - 1, true);
+		} else if (action === 'increase') {
+			updateCartQty(itemId, currentQty + 1, true);
+		}
+	});
+	
+	// Event delegation for quantity input changes (debounced)
+	$(document).on('input change', '.quantity-input', function() {
+		var $input = $(this);
+		var itemId = parseInt($input.data('item-id'));
+		var qty = parseInt($input.val()) || 1;
+		
+		// Ensure minimum value
+		if (qty < 1) {
+			$input.val(1);
+			qty = 1;
+		}
+		
+		updateCartQty(itemId, qty, false);
+	});
+	
+	// Event delegation for remove button
+	$(document).on('click', '.btn-remove-item', function() {
+		var itemId = parseInt($(this).closest('tr').data('item-id'));
+		removeFromCart(itemId);
+	});
 	
 	// Handle payment type selection
 	$('input[name="payment_type"]').on('change', function() {
@@ -735,39 +817,155 @@ function calculateTotals() {
 	$('#grand-total-input').val(grandTotal);
 }
 
-function updateCartQty(itemId, qty) {
+// Debounce utility function
+function debounce(func, wait) {
+	var timeout;
+	return function executedFunction() {
+		var context = this;
+		var args = arguments;
+		var later = function() {
+			timeout = null;
+			func.apply(context, args);
+		};
+		clearTimeout(timeout);
+		timeout = setTimeout(later, wait);
+	};
+}
+
+// Store original values for error rollback
+var originalValues = {};
+
+function updateCartQty(itemId, qty, isButtonClick) {
+	// Validate quantity
 	if (qty < 1) {
 		if (confirm('Hapus item dari keranjang?')) {
 			removeFromCart(itemId);
+		} else {
+			// Restore previous value if user cancels
+			var $row = $('tr[data-item-id="' + itemId + '"]');
+			var $input = $row.find('.quantity-input');
+			$input.val(originalValues[itemId] || 1);
 		}
 		return;
 	}
 	
-	$.ajax({
-		url: '<?= $config->baseURL ?>agent/sales/updateCart',
-		type: 'POST',
-		data: {
-			item_id: itemId,
-			qty: qty
-		},
-		dataType: 'json',
-		headers: {
-			'X-Requested-With': 'XMLHttpRequest'
-		},
-		success: function(response) {
-			if (response.status === 'success') {
-				// Update header cart count
-				updateHeaderCartCount(response.cart_count || 0);
-				// Reload page to update cart display
-				location.reload();
-			} else {
-				alert(response.message || 'Gagal memperbarui keranjang');
+	var $row = $('tr[data-item-id="' + itemId + '"]');
+	if ($row.length === 0) return;
+	
+	var $input = $row.find('.quantity-input');
+	var $subtotal = $('#subtotal-' + itemId);
+	var $buttons = $row.find('.btn-quantity');
+	var price = parseFloat($row.data('price')) || 0;
+	
+	// Store original value for potential rollback
+	if (!originalValues[itemId]) {
+		originalValues[itemId] = parseFloat($input.val()) || 1;
+	}
+	
+	// Optimistic UI update - immediate visual feedback
+	$input.val(qty);
+	var newSubtotal = qty * price;
+	$subtotal.text(formatCurrency(newSubtotal));
+	
+	// Add loading state to buttons
+	$buttons.prop('disabled', true);
+	$buttons.find('i').removeClass('fa-plus fa-minus').addClass('fa-spinner fa-spin');
+	
+	// Recalculate totals immediately
+	calculateTotals();
+	
+	// AJAX call in background (debounced for input changes, immediate for buttons)
+	var ajaxCall = function() {
+		$.ajax({
+			url: '<?= $config->baseURL ?>agent/sales/updateCart',
+			type: 'POST',
+			data: {
+				item_id: itemId,
+				qty: qty
+			},
+			dataType: 'json',
+			headers: {
+				'X-Requested-With': 'XMLHttpRequest'
+			},
+			success: function(response) {
+				if (response.status === 'success') {
+					// Update header cart count
+					updateHeaderCartCount(response.cart_count || 0);
+					// Update original value
+					originalValues[itemId] = qty;
+					// Success feedback - subtle animation
+					$subtotal.addClass('text-success');
+					setTimeout(function() {
+						$subtotal.removeClass('text-success');
+					}, 500);
+				} else {
+					// Rollback on error
+					rollbackQtyChange(itemId, response.message || 'Gagal memperbarui keranjang');
+				}
+			},
+			error: function() {
+				// Rollback on error
+				rollbackQtyChange(itemId, 'Terjadi kesalahan saat memperbarui keranjang');
+			},
+			complete: function() {
+				// Remove loading state
+				$buttons.prop('disabled', false);
+				$buttons.each(function() {
+					var $btn = $(this);
+					var $icon = $btn.find('i');
+					$icon.removeClass('fa-spinner fa-spin');
+					if ($btn.data('action') === 'decrease') {
+						$icon.addClass('fa-minus');
+					} else {
+						$icon.addClass('fa-plus');
+					}
+				});
 			}
-		},
-		error: function() {
-			alert('Terjadi kesalahan saat memperbarui keranjang');
+		});
+	};
+	
+	// For button clicks, call immediately. For input changes, use debounced version
+	if (isButtonClick) {
+		ajaxCall();
+	} else {
+		// Debounced version for input field changes
+		if (!window.debouncedUpdateCart) {
+			window.debouncedUpdateCart = debounce(ajaxCall, 300);
 		}
-	});
+		window.debouncedUpdateCart();
+	}
+}
+
+function rollbackQtyChange(itemId, errorMessage) {
+	var $row = $('tr[data-item-id="' + itemId + '"]');
+	var $input = $row.find('.quantity-input');
+	var $subtotal = $('#subtotal-' + itemId);
+	var price = parseFloat($row.data('price')) || 0;
+	
+	// Restore original value
+	var originalQty = originalValues[itemId] || 1;
+	$input.val(originalQty);
+	
+	// Restore original subtotal
+	var originalSubtotal = originalQty * price;
+	$subtotal.text(formatCurrency(originalSubtotal));
+	
+	// Recalculate totals
+	calculateTotals();
+	
+	// Show error message
+	if (typeof Swal !== 'undefined') {
+		Swal.fire({
+			icon: 'error',
+			title: 'Error',
+			text: errorMessage,
+			confirmButtonColor: '#dc3545',
+			timer: 3000,
+			timerProgressBar: true
+		});
+	} else {
+		alert(errorMessage);
+	}
 }
 
 function removeFromCart(itemId) {
@@ -775,6 +973,22 @@ function removeFromCart(itemId) {
 		return;
 	}
 	
+	var $row = $('tr[data-item-id="' + itemId + '"]');
+	if ($row.length === 0) return;
+	
+	// Optimistic UI update - remove row immediately
+	$row.fadeOut(300, function() {
+		$row.remove();
+		calculateTotals();
+		
+		// Check if cart is empty
+		if ($('#cart-items-table tbody tr').length === 0) {
+			$('#cart-items-table tbody').html('<tr><td colspan="6" class="empty-state"><i class="fas fa-shopping-cart"></i><div>Keranjang kosong. <a href="<?= $config->baseURL ?>agent/item">Klik di sini untuk menambahkan produk</a></div></td></tr>');
+			$('#btn-pay').prop('disabled', true);
+		}
+	});
+	
+	// AJAX call in background
 	$.ajax({
 		url: '<?= $config->baseURL ?>agent/sales/removeFromCart',
 		type: 'POST',
@@ -789,13 +1003,17 @@ function removeFromCart(itemId) {
 			if (response.status === 'success') {
 				// Update header cart count
 				updateHeaderCartCount(response.cart_count || 0);
-				// Reload page to update cart display
-				location.reload();
+				// Remove from original values
+				delete originalValues[itemId];
 			} else {
+				// Reload on error to restore state
+				location.reload();
 				alert(response.message || 'Gagal menghapus item');
 			}
 		},
 		error: function() {
+			// Reload on error to restore state
+			location.reload();
 			alert('Terjadi kesalahan saat menghapus item');
 		}
 	});
