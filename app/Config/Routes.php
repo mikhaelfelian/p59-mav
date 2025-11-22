@@ -107,6 +107,13 @@ $routes->group('warranty', ['namespace' => 'App\Controllers\Warranty'], function
     $routes->get('history', 'History::index');
 });
 
+// Receivables Monitoring
+$routes->get('receivables', 'Receivables::index');
+$routes->match(['get', 'post'], 'receivables/getDataDT', 'Receivables::getDataDT');
+$routes->post('receivables/block/(:num)', 'Receivables::blockAgent/$1');
+$routes->post('receivables/unblock/(:num)', 'Receivables::unblockAgent/$1');
+$routes->post('receivables/reminder/(:num)', 'Receivables::sendReminder/$1');
+
 /* Bagian agen */
 $routes->group('agent', function($routes) {
     // Agent Dashboard

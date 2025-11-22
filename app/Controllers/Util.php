@@ -145,6 +145,13 @@ class Util extends Controller
                 'id_module_status' => 1,
                 'login'            => 'Y'
             ],
+            [
+                'nama_module'      => 'receivables',
+                'judul_module'     => 'Monitoring Piutang Agen',
+                'deskripsi'        => 'Monitoring piutang agen dengan laporan aging, pemblokiran order, dan reminder pembayaran.',
+                'id_module_status' => 1,
+                'login'            => 'Y'
+            ],
         ];
         
         $results = [];

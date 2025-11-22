@@ -731,6 +731,21 @@ class Sales extends BaseController
                         'message' => $message
                     ]);
                 }
+
+                // Check if agent is blocked
+                if (($agentRecord->is_blocked ?? 0) == 1) {
+                    $blockedReason = !empty($agentRecord->blocked_reason) 
+                        ? $agentRecord->blocked_reason 
+                        : 'Agen diblokir karena limit kredit terlampaui atau jatuh tempo pembayaran.';
+                    $message = 'Agen diblokir. ' . $blockedReason . ' Silakan hubungi admin untuk membuka blokir.';
+                    if ($isAjax) {
+                        return $this->response->setJSON(['status' => 'error', 'message' => $message]);
+                    }
+                    return redirect()->back()->withInput()->with('message', [
+                        'status' => 'error',
+                        'message' => $message
+                    ]);
+                }
                 
                 // Get max credit limit from agent (this is the maximum credit allowed)
                 $maxCreditLimit = (float) ($agentRecord->credit_limit ?? 0);

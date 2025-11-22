@@ -36,7 +36,11 @@ class AgentModel extends Model
         'tax_number',
         'credit_limit',
         'payment_terms',
-        'is_active'
+        'is_active',
+        'is_blocked',
+        'blocked_reason',
+        'blocked_at',
+        'last_reminder_sent'
     ];
 
     // Dates
