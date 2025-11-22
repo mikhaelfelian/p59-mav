@@ -35,34 +35,19 @@ class Claim extends BaseWarrantyController
             $serialNumber = $this->request->getPost('serial_number');
             $issueReason = $this->request->getPost('issue_reason');
 
+            // Basic validation: only check required fields
             if (empty($serialNumber) || empty($issueReason)) {
                 $message = empty($serialNumber) ? 'Serial number harus diisi.' : 'Alasan klaim harus diisi.';
                 return $this->handleErrorResponse($message, $isAjax);
             }
 
+            // Get old SN for routing (validation will happen in system validation step)
             $oldSn = $this->itemSnModel->where('sn', $serialNumber)->first();
             if (!$oldSn) {
                 return $this->handleErrorResponse('Serial number tidak ditemukan.', $isAjax);
             }
 
-            if ($oldSn->is_activated != '1') {
-                return $this->handleErrorResponse('Serial number belum diaktifkan.', $isAjax);
-            }
-
-            if ($oldSn->is_sell != '1') {
-                return $this->handleErrorResponse('Serial number belum terjual.', $isAjax);
-            }
-
-            if (empty($oldSn->expired_at)) {
-                return $this->handleErrorResponse('Serial number tidak memiliki masa garansi.', $isAjax);
-            }
-
-            $expiredAt = new \DateTime($oldSn->expired_at);
-            $now = new \DateTime();
-            if ($expiredAt <= $now) {
-                return $this->handleErrorResponse('Masa garansi serial number sudah habis.', $isAjax);
-            }
-
+            // Handle photo upload
             $photoPath = null;
             $file = $this->request->getFile('photo');
 
@@ -94,13 +79,15 @@ class Claim extends BaseWarrantyController
                 return $this->handleErrorResponse('Agen tidak ditemukan.', $isAjax);
             }
 
+            // Create claim record immediately with status='pending'
+            // System validation will happen automatically after creation
             $claimData = [
                 'agent_id'        => (int) $agentId,
                 'old_sn_id'       => $oldSn->id,
                 'issue_reason'    => $issueReason,
                 'photo_path'      => $photoPath,
                 'status'          => 'pending',
-                'routed_store_id' => $oldSn->agent_id,
+                'routed_store_id' => $oldSn->agent_id, // Route to store that owns the stock
             ];
 
             $this->warrantyClaimModel->skipValidation(true);
@@ -115,6 +102,9 @@ class Claim extends BaseWarrantyController
                 }
                 throw new \Exception($errorMsg);
             }
+
+            // Trigger automatic system validation after claim creation
+            $this->validateClaim($claimId);
 
             $message = 'Klaim garansi berhasil diajukan.';
             if ($isAjax) {

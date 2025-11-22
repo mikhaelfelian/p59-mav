@@ -51,7 +51,7 @@ $statusBadges = [
 					</dl>
 				</div>
 
-				<div class="info-section">
+				<div class="info-section mb-4">
 					<h6 class="mb-3"><i class="fas fa-microchip me-2 text-primary"></i>Informasi Serial Number</h6>
 					<dl class="row mb-0">
 						<dt class="col-sm-4">Item</dt>
@@ -67,6 +67,27 @@ $statusBadges = [
 						<dd class="col-sm-8"><?= esc($claim->routed_store_id ?? '-') ?></dd>
 					</dl>
 				</div>
+
+				<div class="info-section">
+					<h6 class="mb-3"><i class="fas fa-shield-alt me-2 text-primary"></i>Status Validasi Sistem</h6>
+					<dl class="row mb-0">
+						<dt class="col-sm-4">Validasi Sistem</dt>
+						<dd class="col-sm-8">
+							<?php if ($claim->system_validated == 1) : ?>
+								<span class="badge bg-success">Valid</span>
+							<?php elseif ($claim->status === 'invalid') : ?>
+								<span class="badge bg-danger">Invalid</span>
+							<?php else : ?>
+								<span class="badge bg-warning text-dark">Pending</span>
+							<?php endif; ?>
+						</dd>
+
+						<?php if (!empty($claim->system_validation_note)) : ?>
+							<dt class="col-sm-4">Catatan Validasi</dt>
+							<dd class="col-sm-8"><?= esc($claim->system_validation_note) ?></dd>
+						<?php endif; ?>
+					</dl>
+				</div>
 			</div>
 
 			<div class="col-lg-4">
@@ -77,18 +98,23 @@ $statusBadges = [
 					</div>
 				<?php endif; ?>
 
-				<?php if ($claim->status === 'pending' || $claim->status === 'approved') : ?>
+				<?php if ($claim->status === 'pending' && $claim->system_validated == 1) : ?>
 					<div class="info-section">
 						<h6 class="mb-3"><i class="fas fa-check-circle me-2 text-primary"></i>Aksi</h6>
 
 						<form action="<?= $config->baseURL ?>warranty/approve/<?= esc($claim->id) ?>" method="post" class="mb-3">
 							<?= csrf_field(); ?>
 							<div class="mb-3">
+								<label class="form-label">Serial Number Pengganti <span class="text-danger">*</span></label>
+								<input type="number" name="new_sn_id" class="form-control" placeholder="Masukkan ID serial number baru" required>
+								<small class="text-muted">Serial number akan diaktifkan dan garansi mengikuti sisa waktu serial lama</small>
+							</div>
+							<div class="mb-3">
 								<label class="form-label">Catatan (Opsional)</label>
 								<textarea name="store_note" class="form-control" rows="2" placeholder="Tambahkan catatan jika diperlukan"><?= set_value('store_note', $claim->store_note ?? '') ?></textarea>
 							</div>
 							<button type="submit" class="btn btn-success w-100">
-								<i class="fas fa-check me-1"></i> Setujui Klaim
+								<i class="fas fa-check me-1"></i> Setujui & Proses Penggantian
 							</button>
 						</form>
 
@@ -103,28 +129,15 @@ $statusBadges = [
 							</button>
 						</form>
 					</div>
+				<?php elseif ($claim->status === 'pending' && $claim->system_validated != 1) : ?>
+					<div class="alert alert-warning">
+						<i class="fas fa-exclamation-triangle me-2"></i>
+						Klaim menunggu validasi sistem. Validasi akan dilakukan otomatis setelah klaim dibuat.
+					</div>
 				<?php endif; ?>
 			</div>
 		</div>
 
-		<?php if ($claim->status === 'approved') : ?>
-			<hr class="my-4">
-			<div class="info-section">
-				<h6 class="mb-3"><i class="fas fa-random me-2 text-primary"></i>Penugasan Serial Pengganti</h6>
-				<form action="<?= $config->baseURL ?>warranty/replacement/<?= esc($claim->id) ?>" method="post" class="row g-3">
-					<?= csrf_field(); ?>
-					<div class="col-md-8">
-						<label class="form-label">Serial Number Baru <span class="text-danger">*</span></label>
-						<input type="number" name="new_sn_id" class="form-control" placeholder="Masukkan ID serial number baru" required>
-					</div>
-					<div class="col-md-4 d-flex align-items-end">
-						<button type="submit" class="btn btn-primary w-100">
-							<i class="fas fa-exchange-alt me-1"></i> Proses Penggantian
-						</button>
-					</div>
-				</form>
-			</div>
-		<?php endif; ?>
 
 		<div class="mt-4 d-flex justify-content-between">
 			<a href="<?= $config->baseURL ?>warranty/history" class="btn btn-light">

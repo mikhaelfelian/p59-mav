@@ -97,6 +97,8 @@ $routes->post('agent-rules/delete/(:num)', 'AgentRules::delete/$1');
 $routes->group('warranty', ['namespace' => 'App\Controllers\Warranty'], function($routes) {
     $routes->get('claim', 'Claim::form');
     $routes->post('submit', 'Claim::submit');
+    $routes->get('list', 'Review::list');
+    $routes->match(['get', 'post'], 'review/getDataDT', 'Review::getDataDT');
     $routes->get('review/(:num)', 'Review::index/$1');
     $routes->post('approve/(:num)', 'Review::approve/$1');
     $routes->post('reject/(:num)', 'Review::reject/$1');
