@@ -2472,6 +2472,10 @@ class Sales extends BaseController
             $itemWarranty = isset($snRecord['item_warranty']) ? (int)$snRecord['item_warranty'] : 0;
             $itemWarrantyDays = $itemWarranty * 30; // Convert months to days (1 month = 30 days)
 
+            // Add flatpickr for date picker
+            $this->addJs($this->config->baseURL . 'public/vendors/flatpickr/dist/flatpickr.js');
+            $this->addStyle($this->config->baseURL . 'public/vendors/flatpickr/dist/flatpickr.min.css');
+
             $this->data['title'] = 'Form Aktivasi SN';
             $this->data['currentModule'] = $this->currentModule;
             $this->data['config'] = $this->config;

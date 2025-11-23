@@ -306,15 +306,17 @@ helper('angka');
 									$assignedCount = count($item['pending_sns'] ?? []);
 									$needsMore = $requiredQty > $assignedCount;
 
-									// Collect assigned serial number IDs from pending_sns
+									// Query SalesItemSnModel directly to get all assigned SN IDs for this sales_item_id
+									$salesItemSnModel = new \App\Models\SalesItemSnModel();
+									$assignedRecords = $salesItemSnModel
+										->select('item_sn_id')
+										->where('sales_item_id', $item['id'])
+										->findAll();
 									$assignedSnIds = [];
-									if (!empty($item['pending_sns'])) {
-										foreach ($item['pending_sns'] as $pendingSn) {
-											// Handle both object and array
-											$itemSnId = is_object($pendingSn) ? ($pendingSn->item_sn_id ?? null) : ($pendingSn['item_sn_id'] ?? null);
-											if ($itemSnId) {
-												$assignedSnIds[] = (int) $itemSnId;
-											}
+									foreach ($assignedRecords as $record) {
+										$itemSnId = is_object($record) ? ($record->item_sn_id ?? null) : ($record['item_sn_id'] ?? null);
+										if ($itemSnId) {
+											$assignedSnIds[] = (int) $itemSnId;
 										}
 									}
 

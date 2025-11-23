@@ -202,6 +202,26 @@ class Review extends BaseWarrantyController
                 $item = $itemModel->find($oldSn->item_id);
             }
 
+            // Load available SNs for the same item (available for replacement)
+            $availableSns = [];
+            if ($oldSn && $oldSn->item_id) {
+                $db = \Config\Database::connect();
+                $availableSns = $db->table('item_sn')
+                    ->select('item_sn.*, agent.name as agent_name, agent.code as agent_code')
+                    ->join('agent', 'agent.id = item_sn.agent_id', 'left')
+                    ->where('item_sn.item_id', $oldSn->item_id)
+                    ->where('item_sn.is_sell', '0')
+                    ->where('item_sn.is_activated', '0')
+                    ->where('item_sn.id !=', $oldSn->id)
+                    ->groupStart()
+                        ->where('item_sn.expired_at IS NULL')
+                        ->orWhere('item_sn.expired_at >', date('Y-m-d H:i:s'))
+                    ->groupEnd()
+                    ->orderBy('item_sn.sn', 'ASC')
+                    ->get()
+                    ->getResult();
+            }
+
             $this->data = array_merge($this->data, [
                 'title'         => 'Review Klaim Garansi',
                 'currentModule' => $this->currentModule,
@@ -210,6 +230,7 @@ class Review extends BaseWarrantyController
                 'claim'         => $claim,
                 'old_sn'        => $oldSn,
                 'item'          => $item,
+                'availableSns'  => $availableSns,
             ]);
 
             $this->data['breadcrumb'] = [

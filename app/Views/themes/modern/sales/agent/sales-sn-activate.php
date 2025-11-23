@@ -214,7 +214,7 @@ html[data-bs-theme="dark"] .activation-header h5 {
 						<!-- Tanggal Aktif -->
 						<div class="mb-3">
 							<label class="activation-form-label">Tanggal Aktif <span class="text-danger">*</span></label>
-							<input type="date" class="form-control activation-form-input" name="activated_at" id="activated_at" 
+							<input type="text" class="form-control activation-form-input" name="activated_at" id="activated_at" 
 								value="<?= set_value('activated_at', !empty($sn['activated_at']) ? date('Y-m-d', strtotime($sn['activated_at'])) : '') ?>" 
 								required>
 							<small class="text-muted">Maksimal backdate 2 minggu dari hari ini, tidak bisa future</small>
@@ -223,7 +223,7 @@ html[data-bs-theme="dark"] .activation-header h5 {
 						<!-- Tanggal Exp -->
 						<div class="mb-3" id="expired-date-wrapper" style="display: none;">
 							<label class="activation-form-label">Tanggal Exp</label>
-							<input type="date" class="form-control activation-form-input" name="expired_at" id="expired_at" 
+							<input type="text" class="form-control activation-form-input" name="expired_at" id="expired_at" 
 								value="<?= set_value('expired_at', !empty($sn['expired_at']) ? date('Y-m-d', strtotime($sn['expired_at'])) : '') ?>" readonly>
 							<small class="text-muted">Otomatis dihitung dari Tanggal Aktif + garansi (<?= $itemWarrantyDays ?? 0 ?> hari)</small>
 						</div>
@@ -346,125 +346,89 @@ function formatFileSize(bytes) {
 	return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
 }
 
-// Date validation: Set min (2 weeks ago) and max (today) for activated_at
-// Auto-calculate expired_at from activated_at + warranty days
+// Initialize flatpickr for date pickers
 $(document).ready(function() {
 	var activatedAtInput = document.getElementById('activated_at');
 	var expiredAtInput = document.getElementById('expired_at');
 	var expiredDateWrapper = document.getElementById('expired-date-wrapper');
 	var warrantyDays = <?= $itemWarrantyDays ?? 0 ?>;
 	
-	if (activatedAtInput && expiredAtInput && expiredDateWrapper) {
+	if (activatedAtInput) {
 		var today = new Date();
 		var twoWeeksAgo = new Date();
 		twoWeeksAgo.setDate(today.getDate() - 14);
 		
-		// Format dates as YYYY-MM-DD
-		var todayStr = today.toISOString().split('T')[0];
-		var twoWeeksAgoStr = twoWeeksAgo.toISOString().split('T')[0];
-		
-		// Set min and max attributes
-		activatedAtInput.setAttribute('max', todayStr);
-		activatedAtInput.setAttribute('min', twoWeeksAgoStr);
-		
-		// Set expired_at as readonly
-		expiredAtInput.setAttribute('readonly', 'readonly');
-		
-		// Check if activation date or expired date already has a value on page load
-		if (activatedAtInput.value || expiredAtInput.value) {
-			expiredDateWrapper.style.display = 'block';
-		}
-		
-		// Function to calculate expired date
-		function calculateExpiredDate(activatedDate) {
-			if (!activatedDate || !warrantyDays || warrantyDays <= 0) {
-				return '';
-			}
-			
-			var activated = new Date(activatedDate + 'T00:00:00'); // Add time to avoid timezone issues
-			activated.setDate(activated.getDate() + warrantyDays);
-			return activated.toISOString().split('T')[0];
-		}
-		
-		// Function to handle date validation and calculation
-		function handleDateChange() {
-			if (!this.value) {
-				// Hide expired date wrapper if activation date is cleared
-				expiredDateWrapper.style.display = 'none';
-				expiredAtInput.value = '';
-				return;
-			}
-			
-			var selectedDate = new Date(this.value + 'T00:00:00');
-			var today = new Date();
-			today.setHours(0, 0, 0, 0);
-			var twoWeeksAgo = new Date();
-			twoWeeksAgo.setDate(today.getDate() - 14);
-			twoWeeksAgo.setHours(0, 0, 0, 0);
-			
-			if (selectedDate > today) {
-				this.setCustomValidity('Tanggal tidak boleh lebih dari hari ini');
-				if (typeof Swal !== 'undefined') {
-					Swal.fire({
-						icon: 'error',
-						title: 'Tanggal Tidak Valid',
-						text: 'Tanggal aktif tidak boleh lebih dari hari ini'
-					});
-				} else {
-					alert('Tanggal aktif tidak boleh lebih dari hari ini');
-				}
-				this.value = todayStr;
-				// Recalculate after setting to today
+		// Initialize flatpickr for activated_at
+		$('#activated_at').flatpickr({
+			dateFormat: "Y-m-d",
+			maxDate: today,
+			minDate: twoWeeksAgo,
+			allowInput: true,
+			onChange: function(selectedDates, dateStr, instance) {
+				// Auto-calculate expired date if warranty exists
 				if (warrantyDays > 0 && expiredAtInput) {
-					var expiredDate = calculateExpiredDate(this.value);
-					if (expiredDate) {
-						expiredAtInput.value = expiredDate;
-						expiredDateWrapper.style.display = 'block';
+					var activatedDate = new Date(dateStr);
+					if (!isNaN(activatedDate.getTime())) {
+						var expiredDate = new Date(activatedDate);
+						expiredDate.setDate(expiredDate.getDate() + warrantyDays);
+						
+						// Format date as Y-m-d
+						var year = expiredDate.getFullYear();
+						var month = String(expiredDate.getMonth() + 1).padStart(2, '0');
+						var day = String(expiredDate.getDate()).padStart(2, '0');
+						var expiredDateStr = year + '-' + month + '-' + day;
+						
+						// Update expired date flatpickr instance
+						if (expiredAtFlatpickr) {
+							expiredAtFlatpickr.setDate(expiredDateStr, false);
+						}
+						expiredAtInput.value = expiredDateStr;
+						// Show expired date wrapper
+						if (expiredDateWrapper) {
+							expiredDateWrapper.style.display = 'block';
+						}
+					}
+				} else {
+					// Hide if no warranty
+					if (expiredDateWrapper) {
+						expiredDateWrapper.style.display = 'none';
 					}
 				}
-				return;
-			} else if (selectedDate < twoWeeksAgo) {
-				this.setCustomValidity('Tanggal tidak boleh lebih dari 2 minggu yang lalu');
-				if (typeof Swal !== 'undefined') {
-					Swal.fire({
-						icon: 'error',
-						title: 'Tanggal Tidak Valid',
-						text: 'Tanggal aktif maksimal backdate 2 minggu dari hari ini'
-					});
-				} else {
-					alert('Tanggal aktif maksimal backdate 2 minggu dari hari ini');
-				}
-				this.value = twoWeeksAgoStr;
-				// Recalculate after setting to two weeks ago
-				if (warrantyDays > 0 && expiredAtInput) {
-					var expiredDate = calculateExpiredDate(this.value);
-					if (expiredDate) {
-						expiredAtInput.value = expiredDate;
-						expiredDateWrapper.style.display = 'block';
-					}
-				}
-				return;
-			} else {
-				this.setCustomValidity('');
 			}
-			
-			// Auto-calculate expired date if warranty exists
-			if (warrantyDays > 0 && expiredAtInput) {
-				var expiredDate = calculateExpiredDate(this.value);
-				if (expiredDate) {
-					expiredAtInput.value = expiredDate;
-					// Show expired date wrapper
-					expiredDateWrapper.style.display = 'block';
+		});
+	}
+	
+	// Initialize flatpickr for expired_at (readonly)
+	var expiredAtFlatpickr = null;
+	if (expiredAtInput) {
+		expiredAtFlatpickr = $('#expired_at').flatpickr({
+			dateFormat: "Y-m-d",
+			allowInput: false,
+			clickOpens: false
+		});
+	}
+	
+	// Check if activation date or expired date already has a value on page load
+	if (activatedAtInput && activatedAtInput.value) {
+		// Trigger onChange to calculate expired date if needed
+		if (warrantyDays > 0 && expiredAtInput && expiredDateWrapper) {
+			var activatedDate = new Date(activatedAtInput.value);
+			if (!isNaN(activatedDate.getTime())) {
+				var expiredDate = new Date(activatedDate);
+				expiredDate.setDate(expiredDate.getDate() + warrantyDays);
+				
+				var year = expiredDate.getFullYear();
+				var month = String(expiredDate.getMonth() + 1).padStart(2, '0');
+				var day = String(expiredDate.getDate()).padStart(2, '0');
+				var expiredDateStr = year + '-' + month + '-' + day;
+				
+				if (expiredAtFlatpickr) {
+					expiredAtFlatpickr.setDate(expiredDateStr, false);
 				}
-			} else {
-				// Hide if no warranty
-				expiredDateWrapper.style.display = 'none';
+				expiredAtInput.value = expiredDateStr;
+				expiredDateWrapper.style.display = 'block';
 			}
 		}
-		
-		// Add event listeners for both change and input events
-		activatedAtInput.addEventListener('change', handleDateChange);
-		activatedAtInput.addEventListener('input', handleDateChange);
 	}
 });
 
@@ -478,27 +442,31 @@ $(document).ready(function() {
 			var activatedAtInput = document.getElementById('activated_at');
 			if (activatedAtInput && activatedAtInput.value) {
 				var selectedDate = new Date(activatedAtInput.value);
+
+				// Get today's date and hour
+				var now = new Date();
 				var today = new Date();
 				today.setHours(0, 0, 0, 0);
+
+				var isToday = false;
+				// Check if selectedDate is today (ignoring time)
+				if (
+					selectedDate.getFullYear() === today.getFullYear() &&
+					selectedDate.getMonth() === today.getMonth() &&
+					selectedDate.getDate() === today.getDate()
+				) {
+					isToday = true;
+				}
+
 				var twoWeeksAgo = new Date();
 				twoWeeksAgo.setDate(today.getDate() - 14);
 				twoWeeksAgo.setHours(0, 0, 0, 0);
-				
-				if (selectedDate > today) {
-					event.preventDefault();
-					event.stopPropagation();
-					activatedAtInput.setCustomValidity('Tanggal tidak boleh lebih dari hari ini');
-					if (typeof Swal !== 'undefined') {
-						Swal.fire({
-							icon: 'error',
-							title: 'Tanggal Tidak Valid',
-							text: 'Tanggal aktif tidak boleh lebih dari hari ini'
-						});
-					} else {
-						alert('Tanggal aktif tidak boleh lebih dari hari ini');
-					}
-					return false;
-				} else if (selectedDate < twoWeeksAgo) {
+
+				// Allow activation date > today (future dates), but if today, only allow when hour >= 24 (i.e. allow for the 24th hour of today as today)
+				// But in JS, getHours() returns 0-23, so no hour 24. 
+				// So, logic as per instruction: If selectedDate is today, it's allowed, no error. Future date allowed. Only prevent if selectedDate < (today - 14 days)
+
+				if (selectedDate < twoWeeksAgo) {
 					event.preventDefault();
 					event.stopPropagation();
 					activatedAtInput.setCustomValidity('Tanggal tidak boleh lebih dari 2 minggu yang lalu');
@@ -513,8 +481,10 @@ $(document).ready(function() {
 					}
 					return false;
 				}
+				// removed: if (selectedDate > today) error. Now future dates ARE allowed.
+				// If you want to restrict future dates except for today, adjust here, but per instructions, future is okay, today is okay.
 			}
-			
+
 			if (!form.checkValidity()) {
 				event.preventDefault();
 				event.stopPropagation();

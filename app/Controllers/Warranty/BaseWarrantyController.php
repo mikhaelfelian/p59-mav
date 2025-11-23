@@ -31,6 +31,11 @@ class BaseWarrantyController extends BaseController
         $this->itemSnModel = new ItemSnModel();
         $this->agentModel = new AgentModel();
         $this->userRoleAgentModel = new UserRoleAgentModel();
+        
+        // Add Select2 for dropdown search
+        $this->addJs($this->config->baseURL . 'public/vendors/jquery.select2/js/select2.full.min.js');
+        $this->addStyle($this->config->baseURL . 'public/vendors/jquery.select2/css/select2.min.css');
+        $this->addStyle($this->config->baseURL . 'public/vendors/jquery.select2/bootstrap-5-theme/select2-bootstrap-5-theme.min.css');
     }
 
     protected function getUserAgentId(): ?int

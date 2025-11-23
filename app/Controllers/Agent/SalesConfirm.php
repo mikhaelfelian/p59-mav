@@ -303,13 +303,8 @@ class SalesConfirm extends \App\Controllers\BaseController
                     ->orderBy('sales_item_sn.created_at', 'ASC')
                     ->findAll();
 
-                // Filter only those with is_sell = '0' (not yet activated)
-                $pendingSns = [];
-                foreach ($salesItemSns as $salesItemSn) {
-                    if (($salesItemSn['is_sell'] ?? '0') === '0') {
-                        $pendingSns[] = $salesItemSn;
-                    }
-                }
+                // Show all assigned SNs regardless of status (active/inactive, received/unreceived)
+                $pendingSns = $salesItemSns;
 
                 // Only fetch available serial numbers if the item has serial numbers
                 $availableSnsArray = [];

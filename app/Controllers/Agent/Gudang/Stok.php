@@ -208,11 +208,20 @@ class Stok extends BaseController
         }
 
         $snData = $this->salesItemSnModel
-            ->select('sales_item_sn.*, sales_detail.sale_id, sales_detail.item_id, item_sn.id as base_item_sn_id')
+            ->select('sales_item_sn.*, sales_detail.sale_id, sales_detail.item_id, item_sn.id as base_item_sn_id, sales.customer_id')
             ->join('sales_detail', 'sales_detail.id = sales_item_sn.sales_item_id', 'left')
+            ->join('sales', 'sales.id = sales_detail.sale_id', 'left')
             ->join('item_sn', 'item_sn.id = sales_item_sn.item_sn_id', 'left')
             ->where('sales_item_sn.id', $snId)
             ->first();
+        // MySQL pure query equivalent:
+        // SELECT sales_item_sn.*, sales_detail.sale_id, sales_detail.item_id, item_sn.id as base_item_sn_id, sales.customer_id
+        // FROM sales_item_sn
+        // LEFT JOIN sales_detail ON sales_detail.id = sales_item_sn.sales_item_id
+        // LEFT JOIN sales ON sales.id = sales_detail.sale_id
+        // LEFT JOIN item_sn ON item_sn.id = sales_item_sn.item_sn_id
+        // WHERE sales_item_sn.id = {$snId}
+        // LIMIT 1;
 
         if (!$snData) {
             return $this->response->setJSON([
@@ -231,7 +240,7 @@ class Stok extends BaseController
         $now = date('Y-m-d H:i:s');
 
         $this->salesItemSnModel->skipValidation(true);
-        $this->salesItemSnModel->update($snId, [
+        $this->salesItemSnModel->update($snId, [            
             'is_receive' => '1',
             'receive_at' => $now,
             'updated_at' => $now,
@@ -241,8 +250,9 @@ class Stok extends BaseController
         if (!empty($snData['base_item_sn_id'])) {
             $this->itemSnModel->skipValidation(true);
             $this->itemSnModel->update($snData['base_item_sn_id'], [
-                'is_sell' => '1',
-                'updated_at' => $now,
+                'agent_id'      => $snData['customer_id'] ?? null,
+                'is_sell'       => '1',
+                'updated_at'    => $now,
             ]);
             $this->itemSnModel->skipValidation(false);
         }

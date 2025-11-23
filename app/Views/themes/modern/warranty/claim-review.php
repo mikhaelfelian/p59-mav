@@ -106,7 +106,19 @@ $statusBadges = [
 							<?= csrf_field(); ?>
 							<div class="mb-3">
 								<label class="form-label">Serial Number Pengganti <span class="text-danger">*</span></label>
-								<input type="number" name="new_sn_id" class="form-control" placeholder="Masukkan ID serial number baru" required>
+								<select name="new_sn_id" id="new_sn_id" class="form-select select2" style="width: 100%;" required>
+									<option value="">Pilih Serial Number Pengganti</option>
+									<?php if (!empty($availableSns)): ?>
+										<?php foreach ($availableSns as $sn): ?>
+											<?php
+											$pemilik = ($sn->agent_id == 0) ? 'Pusat' : esc($sn->agent_name ?? 'Agent #' . $sn->agent_id);
+											?>
+											<option value="<?= esc($sn->id) ?>">
+												<?= esc($sn->sn) ?><?= !empty($sn->barcode) ? ' - Barcode: ' . esc($sn->barcode) : '' ?> - Pemilik: <?= $pemilik ?>
+											</option>
+										<?php endforeach; ?>
+									<?php endif; ?>
+								</select>
 								<small class="text-muted">Serial number akan diaktifkan dan garansi mengikuti sisa waktu serial lama</small>
 							</div>
 							<div class="mb-3">
@@ -146,4 +158,14 @@ $statusBadges = [
 		</div>
 	</div>
 </div>
+
+<script>
+$(document).ready(function() {
+	$('#new_sn_id').select2({
+		placeholder: 'Pilih Serial Number Pengganti',
+		allowClear: true,
+		width: '100%'
+	});
+});
+</script>
 

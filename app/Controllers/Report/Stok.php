@@ -159,7 +159,7 @@ class Stok extends BaseController
 
     /**
      * Get DataTables data for stock report
-     * Supports filters: date range, date, pemilik (agent), pusat/agent
+     * Supports filters: date range, date, pemilik (agent - includes "0" for Pusat)
      * 
      * @return ResponseInterface
      */
@@ -202,7 +202,8 @@ class Stok extends BaseController
             $dateRange = $this->request->getPost('date_range') ?? $this->request->getGet('date_range') ?? '';
             $itemId = $this->request->getPost('item_id') ?? $this->request->getGet('item_id') ?? '';
             $pemilik = $this->request->getPost('pemilik') ?? $this->request->getGet('pemilik') ?? '';
-            $pusatAgent = $this->request->getPost('pusat_agent') ?? $this->request->getGet('pusat_agent') ?? '';
+            $isSell = $this->request->getPost('is_sell') ?? $this->request->getGet('is_sell') ?? '';
+            $isActivated = $this->request->getPost('is_activated') ?? $this->request->getGet('is_activated') ?? '';
 
             $db = \Config\Database::connect();
             
@@ -229,15 +230,23 @@ class Stok extends BaseController
             }
 
             // Pemilik filter (agent_id)
-            if (!empty($pemilik) && $pemilik > 0) {
-                $query->where('item_sn.agent_id', (int)$pemilik);
+            // Handles: empty = all, "0" = Pusat (agent_id = 0), > 0 = specific agent
+            if ($pemilik !== '' && $pemilik !== null) {
+                if ($pemilik === '0' || $pemilik === 0) {
+                    $query->where('item_sn.agent_id', 0);
+                } else {
+                    $query->where('item_sn.agent_id', (int)$pemilik);
+                }
             }
 
-            // Pusat/Agent filter
-            if ($pusatAgent === 'pusat') {
-                $query->where('item_sn.agent_id', 0);
-            } elseif ($pusatAgent === 'agent') {
-                $query->where('item_sn.agent_id >', 0);
+            // Apply is_sell filter
+            if ($isSell !== '' && $isSell !== null) {
+                $query->where('item_sn.is_sell', $isSell);
+            }
+
+            // Apply is_activated filter
+            if ($isActivated !== '' && $isActivated !== null) {
+                $query->where('item_sn.is_activated', $isActivated);
             }
 
             // Count total records with filters (rebuild query for count)
@@ -258,13 +267,21 @@ class Stok extends BaseController
             if (!empty($itemId) && $itemId > 0) {
                 $countQuery->where('item_sn.item_id', (int)$itemId);
             }
-            if (!empty($pemilik) && $pemilik > 0) {
-                $countQuery->where('item_sn.agent_id', (int)$pemilik);
+            // Pemilik filter (agent_id)
+            if ($pemilik !== '' && $pemilik !== null) {
+                if ($pemilik === '0' || $pemilik === 0) {
+                    $countQuery->where('item_sn.agent_id', 0);
+                } else {
+                    $countQuery->where('item_sn.agent_id', (int)$pemilik);
+                }
             }
-            if ($pusatAgent === 'pusat') {
-                $countQuery->where('item_sn.agent_id', 0);
-            } elseif ($pusatAgent === 'agent') {
-                $countQuery->where('item_sn.agent_id >', 0);
+            // Apply is_sell filter
+            if ($isSell !== '' && $isSell !== null) {
+                $countQuery->where('item_sn.is_sell', $isSell);
+            }
+            // Apply is_activated filter
+            if ($isActivated !== '' && $isActivated !== null) {
+                $countQuery->where('item_sn.is_activated', $isActivated);
             }
             
             $totalRecords = $countQuery->countAllResults(false);
@@ -298,13 +315,21 @@ class Stok extends BaseController
                 if (!empty($itemId) && $itemId > 0) {
                     $countQuery->where('item_sn.item_id', (int)$itemId);
                 }
-                if (!empty($pemilik) && $pemilik > 0) {
-                    $countQuery->where('item_sn.agent_id', (int)$pemilik);
+                // Pemilik filter (agent_id)
+                if ($pemilik !== '' && $pemilik !== null) {
+                    if ($pemilik === '0' || $pemilik === 0) {
+                        $countQuery->where('item_sn.agent_id', 0);
+                    } else {
+                        $countQuery->where('item_sn.agent_id', (int)$pemilik);
+                    }
                 }
-                if ($pusatAgent === 'pusat') {
-                    $countQuery->where('item_sn.agent_id', 0);
-                } elseif ($pusatAgent === 'agent') {
-                    $countQuery->where('item_sn.agent_id >', 0);
+                // Apply is_sell filter
+                if ($isSell !== '' && $isSell !== null) {
+                    $countQuery->where('item_sn.is_sell', $isSell);
+                }
+                // Apply is_activated filter
+                if ($isActivated !== '' && $isActivated !== null) {
+                    $countQuery->where('item_sn.is_activated', $isActivated);
                 }
                 
                 $countQuery->groupStart()

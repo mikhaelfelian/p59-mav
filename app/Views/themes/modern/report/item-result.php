@@ -23,12 +23,12 @@
 			<div class="card-body">
 				<form id="filterForm" class="row g-3">
 					<!-- Date Range Picker -->
-					<div class="col-md-3">
+					<div class="col-md-2">
 						<label for="date_range" class="form-label">Tanggal Rentang</label>
 						<input type="text" class="form-control" id="date_range" name="date_range" placeholder="Pilih tanggal rentang">
 					</div>
 					<!-- Item -->
-					<div class="col-md-3">
+					<div class="col-md-2">
 						<label for="item_id" class="form-label">Item</label>
 						<select class="form-select select2" id="item_id" name="item_id" style="width: 100%;">
 							<option value="">Semua Item</option>
@@ -40,10 +40,11 @@
 						</select>
 					</div>
 					<!-- Pemilik -->
-					<div class="col-md-3">
+					<div class="col-md-2">
 						<label for="pemilik" class="form-label">Pemilik</label>
 						<select class="form-select select2" id="pemilik" name="pemilik" style="width: 100%;">
 							<option value="">Semua Pemilik</option>
+							<option value="0">Pusat</option>
 							<?php if (!empty($agents)): ?>
 								<?php foreach ($agents as $agent): ?>
 									<option value="<?= esc($agent->id) ?>"><?= esc($agent->code . ' - ' . $agent->name) ?></option>
@@ -51,13 +52,22 @@
 							<?php endif; ?>
 						</select>
 					</div>
-					<!-- Pusat / Agent -->
-					<div class="col-md-3">
-						<label for="pusat_agent" class="form-label">Pusat / Agent</label>
-						<select class="form-select" id="pusat_agent" name="pusat_agent">
-							<option value="">Semua</option>
-							<option value="pusat">Pusat</option>
-							<option value="agent">Agent</option>
+					<!-- Status Penjualan -->
+					<div class="col-md-2">
+						<label for="is_sell" class="form-label">Status Penjualan</label>
+						<select class="form-select select2" id="is_sell" name="is_sell" style="width: 100%;">
+							<option value="">Semua Status Penjualan</option>
+							<option value="1">Terjual</option>
+							<option value="0">Belum</option>
+						</select>
+					</div>
+					<!-- Status Aktivasi -->
+					<div class="col-md-2">
+						<label for="is_activated" class="form-label">Status Aktivasi</label>
+						<select class="form-select select2" id="is_activated" name="is_activated" style="width: 100%;">
+							<option value="">Semua Status Aktivasi</option>
+							<option value="1">Aktif</option>
+							<option value="0">Belum</option>
 						</select>
 					</div>
 					<!-- Action Buttons -->
@@ -150,7 +160,8 @@
 					d.date_range = $('#date_range').val();
 					d.item_id = $('#item_id').val();
 					d.pemilik = $('#pemilik').val();
-					d.pusat_agent = $('#pusat_agent').val();
+					d.is_sell = $('#is_sell').val();
+					d.is_activated = $('#is_activated').val();
 					d[csrfName] = csrfHash;
 				}
 			},
@@ -245,6 +256,8 @@
 			// Clear Select2 dropdowns
 			$('#item_id').val(null).trigger('change');
 			$('#pemilik').val(null).trigger('change');
+			$('#is_sell').val(null).trigger('change');
+			$('#is_activated').val(null).trigger('change');
 			table.ajax.reload();
 		});
 
@@ -291,11 +304,40 @@
 			}
 		});
 
+		// Initialize Select2 for Status Penjualan dropdown
+		$('#is_sell').select2({
+			placeholder: 'Pilih Status Penjualan',
+			allowClear: true,
+			width: '100%',
+			language: {
+				noResults: function() {
+					return "Status tidak ditemukan";
+				},
+				searching: function() {
+					return "Mencari...";
+				}
+			}
+		});
+
+		// Initialize Select2 for Status Aktivasi dropdown
+		$('#is_activated').select2({
+			placeholder: 'Pilih Status Aktivasi',
+			allowClear: true,
+			width: '100%',
+			language: {
+				noResults: function() {
+					return "Status tidak ditemukan";
+				},
+				searching: function() {
+					return "Mencari...";
+				}
+			}
+		});
+
 		// Initialize flatpickr for date range
 		$('#date_range').flatpickr({
 			mode: "range",
 			dateFormat: "Y-m-d",
-			locale: "id",
 			allowInput: true
 		});
 	});
