@@ -31,7 +31,7 @@ class Frontend_Garansi extends BaseController
         $this->data['msg'] = $this->session->getFlashdata('message');
         
         // Layout data for MAV theme
-        $this->data['title'] = $this->currentModule['judul_module'] ?? 'Cek Garansi';
+        $this->data['title'] = $this->model->builder('setting')->where('param', 'judul_web')->get()->getRowArray()['value'] . ' | ' . $this->currentModule['judul_module'];
         $this->data['meta_description'] = $this->currentModule['deskripsi'] ?? 'Periksa status garansi produk Multi Automobile Vision Anda dengan mudah. Cukup masukkan nomor seri produk.';
         
         // Render using the MAV warranty template

@@ -45,6 +45,24 @@ class SettingAppModel extends \App\Models\BaseModel
     }
     
     /**
+     * Get landing page settings
+     * 
+     * @return array
+     */
+    public function getSettingLanding(): array 
+    {
+        try {
+            return $this->builder('setting')
+                        ->where('type', 'landing')
+                        ->get()
+                        ->getResultArray();
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to get landing settings in ' . __CLASS__ . ': ' . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
      * Get user-specific layout settings (as array)
      * 
      * @return array
@@ -148,41 +166,46 @@ class SettingAppModel extends \App\Models\BaseModel
             $favicon = \upload_file($path, $_FILES['favicon']);
         }
         
-        // Logo Register
-        $logo_register = $curr_db['logo_register'];
-        if ($_FILES['logo_register']['name']) 
-        {
-            //old file
-            if ($curr_db['logo_register']) {
-                if (file_exists($path . $curr_db['logo_register'])) {
-                    $unlink = delete_file($path . $curr_db['logo_register']);
-                    if (!$unlink) {
-                        $data['msg']['status'] = 'error';
-                        $data['msg']['content'] = 'Gagal menghapus gambar lama';
-                    }
-                }
-            }
-            
-            $logo_register = \upload_file($path, $_FILES['logo_register']);
-        }
-        
         $data_db =[];
-        if ($logo_login && $logo_app && $favicon && $logo_register) 
+        // Allow saving even if some images are missing (they can be added later)
+        // Only require that POST data exists for required fields
+        if (isset($_POST['footer_app']) && isset($_POST['background_logo']) && isset($_POST['judul_web']) && isset($_POST['deskripsi_web'])) 
         {
-            $data_db[] = ['type' => 'app', 'param' => 'logo_login', 'value' => $logo_login];
-            $data_db[] = ['type' => 'app', 'param' => 'logo_app', 'value' => $logo_app];
-            $data_db[] = ['type' => 'app', 'param' => 'footer_login', 'value' => htmlentities($_POST['footer_login'])];
-            $data_db[] = ['type' => 'app', 'param' => 'btn_login', 'value' => $_POST['btn_login']];
+            $data_db[] = ['type' => 'app', 'param' => 'logo_login', 'value' => $logo_login ?? ''];
+            $data_db[] = ['type' => 'app', 'param' => 'logo_app', 'value' => $logo_app ?? ''];
+            $data_db[] = ['type' => 'app', 'param' => 'footer_login', 'value' => htmlentities($_POST['footer_login'] ?? '')];
+            $data_db[] = ['type' => 'app', 'param' => 'btn_login', 'value' => $_POST['btn_login'] ?? ''];
             $data_db[] = ['type' => 'app', 'param' => 'footer_app', 'value' => htmlentities($_POST['footer_app'])];
             $data_db[] = ['type' => 'app', 'param' => 'background_logo', 'value' => $_POST['background_logo']];
             $data_db[] = ['type' => 'app', 'param' => 'judul_web', 'value' => $_POST['judul_web']];
             $data_db[] = ['type' => 'app', 'param' => 'deskripsi_web', 'value' => $_POST['deskripsi_web']];
-            $data_db[] = ['type' => 'app', 'param' => 'favicon', 'value' => $favicon];
-            $data_db[] = ['type' => 'app', 'param' => 'logo_register', 'value' => $logo_register];
+            $data_db[] = ['type' => 'app', 'param' => 'favicon', 'value' => $favicon ?? ''];
+            
+            // Landing page settings
+            $landing_db = [];
+            $landing_db[] = ['type' => 'landing', 'param' => 'hero_title', 'value' => $_POST['hero_title'] ?? ''];
+            $landing_db[] = ['type' => 'landing', 'param' => 'hero_subtitle', 'value' => $_POST['hero_subtitle'] ?? ''];
+            $landing_db[] = ['type' => 'landing', 'param' => 'hero_cta_text', 'value' => $_POST['hero_cta_text'] ?? ''];
+            $landing_db[] = ['type' => 'landing', 'param' => 'hero_cta_link', 'value' => $_POST['hero_cta_link'] ?? ''];
+            // Features as JSON string
+            $features_json = $_POST['features'] ?? '';
+            // Validate JSON format if not empty
+            if (!empty($features_json)) {
+                $decoded = json_decode($features_json, true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $features_json = json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                } else {
+                    // Invalid JSON, store as-is (validation should be done in controller)
+                    $features_json = $_POST['features'];
+                }
+            }
+            $landing_db[] = ['type' => 'landing', 'param' => 'features', 'value' => $features_json];
             
             $this->db->transStart();
             $this->db->table('setting')->delete(['type' => 'app']);
             $this->db->table('setting')->insertBatch($data_db);
+            $this->db->table('setting')->delete(['type' => 'landing']);
+            $this->db->table('setting')->insertBatch($landing_db);
             $query = $this->db->transComplete();
             $query_result = $this->db->transStatus();
             

@@ -51,7 +51,7 @@ class Frontend_Catalog extends BaseController
         $totalItems = $pager->getTotal('default');
         
         // Layout data for MAV theme - from database
-        $this->data['title'] = $this->currentModule['judul_module'] ?? 'Katalog Produk';
+        $this->data['title'] = $this->model->builder('setting')->where('param', 'judul_web')->get()->getRowArray()['value'] . ' | ' . $this->currentModule['judul_module'];
         $this->data['meta_description'] = $this->currentModule['deskripsi'] ?? 'Lihat katalog lengkap produk Multi Automobile Vision. Temukan produk berkualitas tinggi dengan harga terbaik.';
         
         // Pass items and pager to view

@@ -31,9 +31,29 @@ class Frontend extends BaseController
                                           ->where('item.status', '1')
                                           ->findAll();
         
-        // Layout data for MAV theme - from database
-        $this->data['title'] = $this->currentModule['judul_module'] ?? 'Multi Automobile Vision – Garansi Nasional Tanpa Masalah';
-        $this->data['meta_description'] = $this->currentModule['deskripsi'] ?? 'Periksa dan klaim garansi produk Multi Automobile Vision. Cek lokasi toko, katalog produk, dan status garansi Anda.';
+        // Load landing page settings
+        $settingModel = new \App\Models\Builtin\SettingAppModel();
+        $landingSettings = $settingModel->getSettingLanding();
+        
+        // Extract landing settings into individual variables
+        $landingData = [];
+        foreach ($landingSettings as $setting) {
+            $landingData[$setting['param']] = $setting['value'];
+        }
+        
+        // Pass landing page values directly from database (no hardcoded fallbacks)
+        $this->data['hero_title']       = $landingData['hero_title']        ?? null;
+        $this->data['hero_subtitle']    = $landingData['hero_subtitle']     ?? null;
+        $this->data['hero_cta_text']    = $landingData['hero_cta_text']     ?? null;
+        $this->data['hero_cta_link']    = $landingData['hero_cta_link']     ?? null;
+        $this->data['hero_user_count']  = $landingData['hero_user_count']   ?? null;
+        // Decode features JSON if it exists
+        $features_json = $landingData['features'] ?? null;
+        $this->data['features'] = !empty($features_json) ? json_decode($features_json, true) : null;
+        
+        // Layout data for MAV theme - dari database saja, tidak ada hardcode
+        $this->data['title'] = $this->model->builder('setting')->where('param', 'judul_web')->get()->getRowArray()['value'];
+        $this->data['meta_description'] = $this->currentModule['deskripsi'] ?? null;
         
         // Render using the MAV home template
         return view('themes/mav/home', $this->data);

@@ -4,36 +4,67 @@
 
 <section class="hero hero-bg">
   <div class="container hero-inner">
-    <div class="hero-badge">Dipercaya oleh 100.000+ Pengguna</div>
-    <h1 class="hero-title">
-      Garansi Nasional <span class="text-fade">Tanpa</span> Masalah – Kapan saja,
-      <br> Kapan pun
-    </h1>
-    <p class="hero-subtitle">Periksa dan klaim garansi Multi Automobile Vision Anda dalam hitungan detik. Cukup
-      masukkan nomor plat kendaraan dan nomor telepon Anda – tanpa perlu faktur.</p>
-    <div class="hero-actions">
-      <a class="btn btn-amber btn-lg" href="<?= site_url('frontend/cek-garansi') ?>">Cek Garansi Sekarang</a>
-    </div>
+    <div class="hero-badge">Dipercaya oleh <?php echo $hero_user_count ?? '0'; ?>+ Pengguna</div>
+    <?php if (!empty($hero_title)): ?>
+      <h1 class="hero-title">
+        <?php
+        // If title contains HTML tags, output as-is; otherwise escape
+        echo (strip_tags($hero_title) !== $hero_title) ? $hero_title : esc($hero_title);
+        ?>
+      </h1>
+    <?php endif; ?>
+
+    <?php if (!empty($hero_subtitle)): ?>
+      <p class="hero-subtitle">
+        <?php
+        echo html_entity_decode($hero_subtitle, ENT_QUOTES, 'UTF-8');
+        ?>
+      </p>
+    <?php endif; ?>
+
+    <?php if (!empty($hero_cta_text) && !empty($hero_cta_link)): ?>
+      <div class="hero-actions">
+        <?php
+        $ctaLink = $hero_cta_link;
+        // If link doesn't start with http:// or https://, treat it as relative and use site_url
+        if (!preg_match('/^https?:\/\//', $ctaLink)) {
+          // Remove leading slash if present to avoid double slashes
+          $ctaLink = ltrim($ctaLink, '/');
+          $ctaLink = site_url($ctaLink);
+        }
+        ?>
+        <a class="btn btn-amber btn-lg" href="<?= esc($ctaLink) ?>"><?= esc($hero_cta_text) ?></a>
+      </div>
+    <?php endif; ?>
   </div>
 </section>
 
 <section class="features section">
   <div class="container grid-3">
-    <article class="feature">
-      <div class="feature-icon">🔒</div>
-      <h3>Garansi Nasional</h3>
-      <p>Berlaku di jaringan toko resmi kami di seluruh Indonesia.</p>
-    </article>
-    <article class="feature">
-      <div class="feature-icon">⚡</div>
-      <h3>Proses Cepat</h3>
-      <p>Verifikasi hanya dengan plat kendaraan dan nomor telepon.</p>
-    </article>
-    <article class="feature">
-      <div class="feature-icon">💬</div>
-      <h3>Dukungan Langsung</h3>
-      <p>Tim kami siap membantu kapan saja Anda butuhkan.</p>
-    </article>
+    <?php
+    $featureList = [];
+    // $features is already json_decoded on controller
+    if (is_string($features)) {
+      // If $features is accidentally not decoded
+      $featureList = json_decode($features, true);
+    } elseif (is_array($features) || is_object($features)) {
+      $featureList = (array) $features;
+    }
+
+    foreach ($featureList as $feature) {
+      // Use icon directly from database (should contain full FontAwesome class like 'fa-lock', 'fa-bolt', etc.)
+      $iconClass = $feature['icon'] ?? '';
+      ?>
+      <article class="feature">
+        <?php if (!empty($iconClass)): ?>
+        <div class="feature-icon">
+          <i class="fa <?= esc($iconClass) ?>"></i>
+        </div>
+        <?php endif; ?>
+        <h3><?= esc($feature['title'] ?? '') ?></h3>
+        <p><?= esc($feature['desc'] ?? '') ?></p>
+      </article>
+    <?php } ?>
   </div>
 </section>
 
@@ -48,4 +79,3 @@
 </section>
 
 <?= $this->endSection() ?>
-

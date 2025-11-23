@@ -35,7 +35,7 @@ class Frontend_Location extends BaseController
                                                 ->getResultArray();
         
         // Layout data for MAV theme - from database
-        $this->data['title'] = $this->currentModule['judul_module'] ?? 'Lokasi Agen Terdekat';
+        $this->data['title'] = $this->model->builder('setting')->where('param', 'judul_web')->get()->getRowArray()['value'] . ' | ' . $this->currentModule['judul_module'];
         $this->data['meta_description'] = $this->currentModule['deskripsi'] ?? 'Temukan lokasi agen terdekat di sekitar Anda. Lihat peta interaktif dan ribuan titik layanan resmi Multi Automobile Vision.';
         $this->data['is_location_page'] = true; // Flag for Leaflet CSS loading
         

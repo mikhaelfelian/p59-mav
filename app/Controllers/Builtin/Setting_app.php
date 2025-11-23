@@ -22,6 +22,7 @@ class Setting_app extends \App\Controllers\BaseController
 		$this->addJs ( $this->config->baseURL . 'public/vendors/spectrum/spectrum.min.js?r=' . time());
 		$this->addJs ( $this->config->baseURL . 'public/themes/modern/js/setting-logo.js?r=' . time());
 		$this->addJs ( $this->config->baseURL . 'public/themes/modern/js/image-upload.js?r=' . time());
+		$this->addJs ( $this->config->baseURL . 'public/vendors/tinymce/tinymce.min.js');
 		$this->addStyle ( $this->config->baseURL . 'public/vendors/spectrum/spectrum.css');
 		$this->addStyle ( $this->config->baseURL . 'public/themes/modern/builtin/css/setting-app.css');
 		// $this->addStyle ( $this->config->baseURL . 'public/themes/modern/builtin/css/login-header.css');
@@ -59,6 +60,12 @@ class Setting_app extends \App\Controllers\BaseController
 		
 		$query = $this->model->getSettingAplikasi();
 		foreach($query as $val) {
+			$data[$val['param']] = $val['value'];
+		}
+		
+		// Load landing settings
+		$landingQuery = $this->model->getSettingLanding();
+		foreach($landingQuery as $val) {
 			$data[$val['param']] = $val['value'];
 		}
 

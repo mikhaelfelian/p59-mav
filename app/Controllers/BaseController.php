@@ -51,135 +51,140 @@ class BaseController extends Controller
 	
 	}
 	*/
-	public function __construct() 
+	public function __construct()
 	{
 		date_default_timezone_set('Asia/Jakarta');
-		
-		$this->config = new App;
-		$this->auth = new Auth;
-		$this->model = new BaseModel;
-		
-		// Initialize cache service
+
+		// Init core dependencies
+		$this->config   = new App;
+		$this->auth     = new Auth;
+		$this->model    = new BaseModel;
+
+		// Cache service initialization
 		try {
 			$this->cache = \Config\Services::cache();
 		} catch (\Exception $e) {
-			// Fallback: cache will be null, all cache operations will use database
 			$this->cache = null;
 			log_message('error', 'Cache initialization failed: ' . $e->getMessage());
 		}
-		
-		// Autoload util helpers (app\Helpers\Autoload.php)
+
+		// CSRF helper
 		if ($this->config->csrf['enable']) {
 			helper('csrf');
 			csrf_settoken();
 		}
-		
+
 		$this->session = \Config\Services::session();
 		$this->request = \Config\Services::request();
-		
-		helper('util');
-		$web = $this->session->get('web');
 
+		helper('util');
+		$web         = $this->session->get('web');
 		$nama_module = $web['nama_module'];
-		
-		// Cache module data (1 hour TTL)
+
+		// Retrieve module info (with cache)
 		$module = $this->getCachedData(
 			'module_' . $nama_module,
-			function() use ($nama_module) {
+			function () use ($nama_module) {
 				return $this->model->getModule($nama_module);
 			},
-			3600 // 1 hour
+			3600
 		);
-		
+
 		if (!$module) {
 			$this->data['content'] = 'Module ' . $nama_module . ' tidak ditemukan di database';
 			$this->exitError($this->data);
 		}
-		
-		$this->isLoggedIn = $this->session->get('logged_in');
-		$this->currentModule = $module;
-		$this->moduleURL = $web['module_url'];
-		$this->user = $this->session->get('user');
-		
-		// Check remember me cookie (may set logged_in to true)
+
+		$this->isLoggedIn     = $this->session->get('logged_in');
+		$this->currentModule  = $module;
+		$this->moduleURL      = $web['module_url'];
+		$this->user           = $this->session->get('user');
+
+		// Remember me cookie
 		$this->model->checkRememberme();
-		
-		// Update isLoggedIn after checkRememberme (it might have logged user in)
-		$this->isLoggedIn = $this->session->get('logged_in');
-		$this->user = $this->session->get('user');
-		
-		// Activity-based session extension (12 hours expiration)
+		$this->isLoggedIn     = $this->session->get('logged_in');
+		$this->user           = $this->session->get('user');
+
+		// Session expiration/refresh mechanics
 		if ($this->isLoggedIn) {
-			$sessionConfig = config('Session');
-			$sessionExpiration = $sessionConfig->expiration ?? 43200; // 12 hours default
-			$currentTime = time();
-			$lastActivity = $this->session->get('last_activity');
-			
-			// Check if session has expired due to inactivity
+			$sessionConfig     = config('Session');
+			$sessionExpiration = $sessionConfig->expiration ?? 43200; // 12 hours
+			$currentTime       = time();
+			$lastActivity      = $this->session->get('last_activity');
+
 			if ($lastActivity !== null) {
 				$timeSinceActivity = $currentTime - $lastActivity;
+
 				if ($timeSinceActivity > $sessionExpiration) {
-					// Session expired due to inactivity
 					$this->session->destroy();
 					$this->isLoggedIn = false;
-					$this->user = null;
-					
-					// Redirect to login if not already on login page
+					$this->user       = null;
+
 					if ($nama_module != 'login') {
 						header('Location: ' . $this->config->baseURL . 'login?expired=1');
 						exit();
 					}
 				} else {
-					// Update last activity and extend session
 					$this->session->set('last_activity', $currentTime);
-					// Regenerate session ID to extend cookie lifetime
 					$this->session->regenerate(false);
 				}
 			} else {
-				// First activity after login, set initial timestamp
 				$this->session->set('last_activity', $currentTime);
 			}
 		}
-		
+
+		// View Data
 		$this->data['current_module'] = $this->currentModule;
-		$this->data['scripts'] = array($this->config->baseURL . '/public/assets/vendors/jquery/jquery.min.js'
-										, $this->config->baseURL . '/public/assets/vendors/flatpickr/flatpickr.js'
-										, $this->config->baseURL . '/public/themes/modern/assets/js/site.js?r='.time()
-										, $this->config->baseURL . '/public/assets/vendors/bootstrap/js/bootstrap.js'
-								);
-		$this->data['styles'] = array(
-									$this->config->baseURL . '/public/assets/vendors/bootstrap/css/bootstrap.css'
-									, $this->config->baseURL . '/public/themes/modern/assets/css/site.css?r='.time()
-								);
-		$this->data['config'] = $this->config;
-		$this->data['request'] = $this->request;
-		$this->data['isloggedin'] = $this->isLoggedIn;
-		$this->data['session'] = $this->session;
-		$this->data['site_title'] = 'Admin Template Codeigniter 4';
-		$this->data['site_desc'] = 'Admin Template Codeigniter 4 lengkap dengan berbagai fitur untuk memudahkan pengembangan aplikasi';
-		
-		// Cache app settings (24 hours TTL)
+		$this->data['scripts'] = [
+			$this->config->baseURL . '/public/assets/vendors/jquery/jquery.min.js',
+			$this->config->baseURL . '/public/assets/vendors/flatpickr/flatpickr.js',
+			$this->config->baseURL . '/public/themes/modern/assets/js/site.js?r=' . time(),
+			$this->config->baseURL . '/public/assets/vendors/bootstrap/js/bootstrap.js'
+		];
+		$this->data['styles'] = [
+			$this->config->baseURL . '/public/assets/vendors/bootstrap/css/bootstrap.css',
+			$this->config->baseURL . '/public/themes/modern/assets/css/site.css?r=' . time()
+		];
+		$this->data['config']      = $this->config;
+		$this->data['request']     = $this->request;
+		$this->data['isloggedin']  = $this->isLoggedIn;
+		$this->data['session']     = $this->session;
+		$this->data['title']       = $this->model->builder('setting')->where('param', 'judul_web')->get()->getRowArray()['value'] . ' | ' . $this->currentModule['judul_module'];
+		$this->data['site_desc']   = $this->model->getSettingAplikasi()['deskripsi'] ?? null;
+
+		// Cached app settings
 		$this->data['settingAplikasi'] = $this->getCachedData(
 			'app_settings',
-			function() {
+			function () {
 				return $this->model->getSettingAplikasi();
 			},
-			86400 // 24 hours
+			3600
 		);
-		$this->data['user'] = [];
-		$this->data['auth'] = $this->auth;
-		$this->data['scripts'] = [];
-		$this->data['styles'] = [];
+
+		$this->data['identitas'] = $this->getCachedData(
+			'identitas_data',
+			function () {
+				$identitasModel = new \App\Models\IdentitasModel();
+				return $identitasModel->getIdentitas();
+			},
+			3600
+		);
+
+		$this->data['user']       = [];
+		$this->data['auth']       = $this->auth;
+		$this->data['scripts']    = [];
+		$this->data['styles']     = [];
 		$this->data['module_url'] = $this->moduleURL;
-		
+
+		// Theme mode
 		if (!empty($_COOKIE['jwd_adm_theme'])) {
 			$this->themeMode = $this->data['theme_mode'] = $_COOKIE['jwd_adm_theme'];
 		} else {
 			$this->themeMode = $this->data['theme_mode'] = 'light';
 		}
-				
+
+		// App layout setting (different for logged in/out)
 		if ($this->isLoggedIn) {
-			// Use session for user settings to avoid repeated queries
 			if (isset($_SESSION['user']['user_settings']) && !empty($_SESSION['user']['user_settings'])) {
 				$user_setting = $_SESSION['user']['user_settings'];
 				if ($user_setting) {
@@ -190,78 +195,75 @@ class BaseController extends Controller
 				if ($user_setting) {
 					$layout_data = json_decode($user_setting->param, true);
 					$this->data['app_layout'] = $layout_data;
-					// Store in session for next request
 					if (!isset($_SESSION['user'])) {
 						$_SESSION['user'] = [];
 					}
 					$_SESSION['user']['user_settings'] = $user_setting->param;
 				}
 			}
-				
 		} else {
-			// Cache layout settings (24 hours TTL)
 			$query = $this->getCachedData(
 				'layout_settings',
-				function() {
+				function () {
 					return $this->model->getAppLayoutSetting();
 				},
-				86400 // 24 hours
+				3600
 			);
-			
+
 			$app_layout = [];
 			foreach ($query as $val) {
 				$app_layout[$val['param']] = $val['value'];
 			}
 			$this->data['app_layout'] = $app_layout;
 		}
-		
-		// Login? Yes, No, Restrict
+
+		// Module access: Login required? Restrict?
 		if ($this->currentModule['login'] == 'Y' && $nama_module != 'login') {
 			$this->loginRequired();
-		} else if ($this->currentModule['login'] == 'R') {
+		} elseif ($this->currentModule['login'] == 'R') {
 			$this->loginRestricted();
 		}
-		
-		if ($this->isLoggedIn) 
-		{
-			$this->data['user'] = $this->user;
 
-			// List action assigned to role
+		// Build "logged in" view data
+		if ($this->isLoggedIn) {
+			$this->data['user']        = $this->user;
 			$this->data['action_user'] = $this->userPermission;
-			
-			// Cache menu data with role-based key (30 minutes TTL)
-			$user_role = $this->user['role'] ?? [];
-			$role_ids = !empty($user_role) ? array_keys($user_role) : [];
-			$role_hash = !empty($role_ids) ? md5(implode(',', $role_ids)) : 'no_role';
-			$menu_cache_key = 'menu_' . $role_hash . '_' . $this->currentModule['nama_module'];
-			
+
+			// Cache menu data (role-specific)
+			$user_role    = $this->user['role'] ?? [];
+			$role_ids     = !empty($user_role) ? array_keys($user_role) : [];
+			$role_hash    = !empty($role_ids) ? md5(implode(',', $role_ids)) : 'no_role';
+			$menu_key     = 'menu_' . $role_hash . '_' . $this->currentModule['nama_module'];
+
 			$this->data['menu'] = $this->getCachedData(
-				$menu_cache_key,
-				function() {
+				$menu_key,
+				function () {
 					return $this->model->getMenu($this->currentModule['nama_module']);
 				},
-				1800 // 30 minutes
+				1800
 			);
-			
-			$this->data['breadcrumb'] = ['Home' => $this->config->baseURL, $this->currentModule['judul_module'] => $this->moduleURL];
+
+			$this->data['breadcrumb']  = [
+				'Home' => $this->config->baseURL,
+				$this->currentModule['judul_module'] => $this->moduleURL
+			];
 			$this->data['module_role'] = $this->model->getDefaultUserModule();
-						
+
 			$this->getModulePermission();
 			$this->getListPermission();
-			
-			// Use session for user permissions to avoid repeated queries
+
+			// All module permission (use session to avoid redundant queries)
 			if (isset($_SESSION['user']['all_permission']) && !empty($_SESSION['user']['all_permission'])) {
 				$all_module_permission = $_SESSION['user']['all_permission'];
 			} else {
-				// Cache all module permissions (1 hour TTL)
 				$result = $this->getCachedData(
 					'user_permissions_' . $_SESSION['user']['id_user'],
-					function() {
+					function () {
 						return $this->model->getAllModulePermission($_SESSION['user']['id_user']);
 					},
-					3600 // 1 hour
+					3600
 				);
-				
+
 				$all_module_permission = [];
 				if ($result) {
 					foreach ($result as $val) {
@@ -270,16 +272,19 @@ class BaseController extends Controller
 				}
 				$_SESSION['user']['all_permission'] = $all_module_permission;
 			}
-			
-			// Check Global Role Action
+
+			// Global role check
 			$this->checkRoleAction();
 			if ($nama_module == 'login') {
 				$this->redirectOnLoggedIn();
 			}
 		}
-		
+
+		// Check module status
 		if ($module['id_module_status'] != 1) {
-			$this->printError('Module ' . $module['judul_module'] . ' sedang ' . strtolower($module['nama_status']));
+			$this->printError(
+				'Module ' . $module['judul_module'] . ' sedang ' . strtolower($module['nama_status'])
+			);
 			exit();
 		}
 	}
