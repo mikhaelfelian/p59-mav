@@ -57,7 +57,7 @@ helper('html');
 					</div>
 				</div>
 				<div class="row mb-3">
-					<label class="col-sm-2 col-form-label">No. Tlp</label>
+					<label class="col-sm-2 col-form-label">No. WA</label>
 					<div class="col-sm-6">
 						<input class="form-control" type="text" name="no_telp" value="<?=@$identitas['no_telp']?>" required="required"/>
 					</div>

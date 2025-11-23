@@ -35,6 +35,8 @@ $routes->get('location', 'Frontend_Location::index'); // Alias for frontend/loca
 $routes->get('check-warranty', 'Frontend_Garansi::index'); // Warranty check page
 $routes->get('cek-garansi', 'Frontend_Garansi::index'); // Warranty check page (alias)
 $routes->post('cek-garansi', 'Frontend_Garansi::check'); // Warranty check process
+$routes->get('about-me', 'Frontend_About::index'); // About page
+$routes->get('privacy-policy', 'Frontend_Privasi::index'); // Privacy policy page
 
 // Cart and Checkout routes
 $routes->get('cart', 'Checkout::cart'); // Cart page

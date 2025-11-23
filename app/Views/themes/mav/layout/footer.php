@@ -29,23 +29,50 @@
         <div>
           <h4>Halaman</h4>
           <ul>
-            <li><a href="#">Tentang Kami</a></li>
-            <li><a href="#">Kebijakan Privasi</a></li>
+            <li><a href="<?php echo base_url('about-me'); ?>">Tentang Kami</a></li>
+            <li><a href="<?php echo base_url('privacy-policy'); ?>">Kebijakan Privasi</a></li>
           </ul>
         </div>
         <div>
           <h4>Ikuti Kami</h4>
+          <?php
+          // Load social media settings from database
+          if (!isset($settingAplikasi) || !is_array($settingAplikasi)) {
+              $settingModel = new \App\Models\Builtin\SettingAppModel();
+              $appSettingsRaw = $settingModel->getSettingAplikasi();
+              // Convert raw rows to keyed array
+              $appSettings = [];
+              foreach ($appSettingsRaw as $setting) {
+                  $appSettings[$setting['param']] = $setting['value'];
+              }
+              $socialJson = $appSettings['social'] ?? null;
+          } else {
+              $socialJson = $settingAplikasi['social'] ?? null;
+          }
+          
+          // Decode JSON string to array
+          $socialMedia = !empty($socialJson) ? json_decode($socialJson, true) : null;
+          ?>
+          <?php if (!empty($socialMedia) && is_array($socialMedia)): ?>
           <div class="socials">
-            <a href="#" aria-label="Instagram">&#x1F4F7;</a>
-            <a href="#" aria-label="TikTok">&#x1F3A4;</a>
-            <a href="#" aria-label="YouTube">&#x25B6;&#xFE0F;</a>
+            <?php foreach ($socialMedia as $social): ?>
+              <a href="<?= esc($social['link'] ?? '#') ?>" target="_blank" rel="noopener" aria-label="<?= esc($social['title'] ?? '') ?>">
+                <i class="<?= esc($social['icon'] ?? '') ?>"></i>
+              </a><br/>
+            <?php endforeach; ?>
           </div>
+          <?php endif; ?>
         </div>
       </nav>
     </div>
   </footer>
 
-  <a class="whatsapp" href="https://wa.me/6280000000000" target="_blank" rel="noopener" aria-label="WhatsApp">
+  <?php
+    $waNumberRaw = $identitas['no_telp'] ?? '';
+    // Replace first character 0 with "62" for WhatsApp link
+    $waNumber = preg_replace('/^0/', '62', preg_replace('/\D+/', '', $waNumberRaw));
+  ?>
+  <a class="whatsapp" href="https://wa.me/<?= esc($waNumber) ?>" target="_blank" rel="noopener" aria-label="WhatsApp">
     <img src="<?= base_url('themes/mav/assets/images/whatsapp.gif') ?>" alt="WhatsApp">
   </a>
 

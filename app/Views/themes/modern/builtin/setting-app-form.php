@@ -185,6 +185,49 @@
 						</small>
 					</div>
 				</div>
+				<div class="row mb-3">
+					<label class="col-sm-3 col-md-2 col-lg-3 col-xl-2 col-form-label">Sosial Media</label>
+					<div class="col-sm-9 col-md-10 col-lg-9 col-xl-10">
+						<?php if (!empty($form_errors['social'])) echo '<small class="alert alert-danger">' . $form_errors['social'] . '</small>'?>
+						
+						<!-- Hidden field to store JSON -->
+						<input type="hidden" name="social" id="social-json" value="">
+						
+						<!-- Container for social media items -->
+						<div id="social-container" class="mb-3">
+							<!-- Social media items will be dynamically added here -->
+						</div>
+						
+						<!-- Add Social Media Button -->
+						<button type="button" class="btn btn-sm btn-success" id="add-social">
+							<i class="fas fa-plus"></i> Tambah Sosial Media
+						</button>
+						
+						<small class="form-text text-muted d-block mt-2">
+							Icon harus menggunakan class FontAwesome lengkap (contoh: fa-brands fa-facebook, fa-brands fa-instagram)
+						</small>
+					</div>
+				</div>
+				<div class="bg-lightgrey p-3 ps-4">
+					<h5>Halaman</h5>
+				</div>
+				<hr/>
+				<div class="row mb-3">
+					<label class="col-sm-3 col-md-2 col-lg-3 col-xl-2 col-form-label">Halaman Tentang Kami</label>
+					<div class="col-sm-9 col-md-10 col-lg-9 col-xl-10">
+						<textarea class="form-control tinymce" rows="10" name="page_about"
+							placeholder="Masukkan konten halaman tentang kami"><?= set_value('page_about', @$page_about) ?></textarea>
+						<?php if (!empty($form_errors['page_about'])) echo '<small class="alert alert-danger">' . $form_errors['page_about'] . '</small>'?>
+					</div>
+				</div>
+				<div class="row mb-3">
+					<label class="col-sm-3 col-md-2 col-lg-3 col-xl-2 col-form-label">Halaman Kebijakan Privasi</label>
+					<div class="col-sm-9 col-md-10 col-lg-9 col-xl-10">
+						<textarea class="form-control tinymce" rows="10" name="page_privasi"
+							placeholder="Masukkan konten halaman kebijakan privasi"><?= set_value('page_privasi', @$page_privasi) ?></textarea>
+						<?php if (!empty($form_errors['page_privasi'])) echo '<small class="alert alert-danger">' . $form_errors['page_privasi'] . '</small>'?>
+					</div>
+				</div>
 				<div class="row">
 					<div class="col-sm-5">
 						<button type="submit" name="submit" id="btn-submit" value="submit" class="btn btn-primary">Submit</button>
@@ -362,5 +405,135 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initial JSON update
     updateFeaturesJson();
+    
+    // Social Media Management
+    const socialContainer = document.getElementById('social-container');
+    const addSocialBtn = document.getElementById('add-social');
+    const socialJsonField = document.getElementById('social-json');
+    
+    // Load existing social media from database
+    <?php 
+    $social_data = [];
+    if (!empty($social)) {
+        $decoded = json_decode($social, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            $social_data = $decoded;
+        }
+    }
+    ?>
+    const existingSocial = <?= json_encode($social_data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+    
+    // Function to create a social media item HTML
+    function createSocialItem(social = {icon: '', title: '', link: ''}) {
+        const index = socialContainer.children.length;
+        const icon = escapeHtml(social.icon || '');
+        const title = escapeHtml(social.title || '');
+        const link = escapeHtml(social.link || '');
+        
+        const itemHtml = `
+            <div class="social-item card mb-3" data-index="${index}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0">Sosial Media #${index + 1}</h6>
+                        <button type="button" class="btn btn-sm btn-danger remove-social">
+                            <i class="fas fa-times"></i> Hapus
+                        </button>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-2">
+                            <label class="form-label">Icon (FontAwesome Class)</label>
+                            <input type="text" class="form-control social-icon" 
+                                   placeholder="fa-brands fa-facebook" value="${icon}" 
+                                   data-field="icon">
+                            <small class="form-text text-muted">Contoh: fa-brands fa-facebook, fa-brands fa-instagram</small>
+                        </div>
+                        <div class="col-md-12 mb-2">
+                            <label class="form-label">Judul</label>
+                            <input type="text" class="form-control social-title" 
+                                   placeholder="Masukkan judul sosial media" value="${title}" 
+                                   data-field="title">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Link</label>
+                            <input type="url" class="form-control social-link" 
+                                   placeholder="https://facebook.com/" value="${link}" 
+                                   data-field="link">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        return itemHtml;
+    }
+    
+    // Load existing social media
+    if (existingSocial && existingSocial.length > 0) {
+        existingSocial.forEach(function(social) {
+            socialContainer.insertAdjacentHTML('beforeend', createSocialItem(social));
+        });
+    }
+    
+    // Add new social media
+    addSocialBtn.addEventListener('click', function() {
+        socialContainer.insertAdjacentHTML('beforeend', createSocialItem());
+        updateSocialNumbers();
+    });
+    
+    // Remove social media
+    socialContainer.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-social')) {
+            e.target.closest('.social-item').remove();
+            updateSocialNumbers();
+            updateSocialJson();
+        }
+    });
+    
+    // Update social media numbers
+    function updateSocialNumbers() {
+        const items = socialContainer.querySelectorAll('.social-item');
+        items.forEach(function(item, index) {
+            item.querySelector('h6').textContent = `Sosial Media #${index + 1}`;
+            item.setAttribute('data-index', index);
+        });
+    }
+    
+    // Convert form data to JSON
+    function updateSocialJson() {
+        const items = socialContainer.querySelectorAll('.social-item');
+        const social = [];
+        
+        items.forEach(function(item) {
+            const icon = item.querySelector('.social-icon').value.trim();
+            const title = item.querySelector('.social-title').value.trim();
+            const link = item.querySelector('.social-link').value.trim();
+            
+            if (icon || title || link) {
+                social.push({
+                    icon: icon,
+                    title: title,
+                    link: link
+                });
+            }
+        });
+        
+        socialJsonField.value = JSON.stringify(social);
+    }
+    
+    // Update JSON on input change
+    socialContainer.addEventListener('input', function(e) {
+        if (e.target.classList.contains('social-icon') || 
+            e.target.classList.contains('social-title') || 
+            e.target.classList.contains('social-link')) {
+            updateSocialJson();
+        }
+    });
+    
+    // Update JSON before form submit
+    document.getElementById('form-setting').addEventListener('submit', function(e) {
+        updateSocialJson();
+    });
+    
+    // Initial JSON update
+    updateSocialJson();
 });
 </script>

@@ -63,6 +63,28 @@ class SettingAppModel extends \App\Models\BaseModel
     }
     
     /**
+     * Get page setting by param
+     * 
+     * @param string $param Parameter name (e.g., 'page_about', 'page_privasi')
+     * @return string|null Setting value or null if not found
+     */
+    public function getSettingPage(string $param): ?string 
+    {
+        try {
+            $result = $this->builder('setting')
+                        ->where('type', 'page')
+                        ->where('param', $param)
+                        ->get()
+                        ->getRowArray();
+            
+            return $result['value'] ?? null;
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed to get page setting in ' . __CLASS__ . ': ' . $e->getMessage());
+            return null;
+        }
+    }
+    
+    /**
      * Get user-specific layout settings (as array)
      * 
      * @return array
@@ -180,6 +202,19 @@ class SettingAppModel extends \App\Models\BaseModel
             $data_db[] = ['type' => 'app', 'param' => 'judul_web', 'value' => $_POST['judul_web']];
             $data_db[] = ['type' => 'app', 'param' => 'deskripsi_web', 'value' => $_POST['deskripsi_web']];
             $data_db[] = ['type' => 'app', 'param' => 'favicon', 'value' => $favicon ?? ''];
+            // Social media as JSON string
+            $social_json = $_POST['social'] ?? '';
+            // Validate JSON format if not empty
+            if (!empty($social_json)) {
+                $decoded = json_decode($social_json, true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $social_json = json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                } else {
+                    // Invalid JSON, store as-is (validation should be done in controller)
+                    $social_json = $_POST['social'];
+                }
+            }
+            $data_db[] = ['type' => 'app', 'param' => 'social', 'value' => $social_json];
             
             // Landing page settings
             $landing_db = [];
@@ -201,11 +236,18 @@ class SettingAppModel extends \App\Models\BaseModel
             }
             $landing_db[] = ['type' => 'landing', 'param' => 'features', 'value' => $features_json];
             
+            // Page settings
+            $page_db = [];
+            $page_db[] = ['type' => 'page', 'param' => 'page_about', 'value' => htmlentities($_POST['page_about'] ?? '')];
+            $page_db[] = ['type' => 'page', 'param' => 'page_privasi', 'value' => htmlentities($_POST['page_privasi'] ?? '')];
+            
             $this->db->transStart();
             $this->db->table('setting')->delete(['type' => 'app']);
             $this->db->table('setting')->insertBatch($data_db);
             $this->db->table('setting')->delete(['type' => 'landing']);
             $this->db->table('setting')->insertBatch($landing_db);
+            $this->db->table('setting')->delete(['type' => 'page']);
+            $this->db->table('setting')->insertBatch($page_db);
             $query = $this->db->transComplete();
             $query_result = $this->db->transStatus();
             

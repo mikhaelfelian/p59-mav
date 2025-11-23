@@ -68,6 +68,10 @@ class Setting_app extends \App\Controllers\BaseController
 		foreach($landingQuery as $val) {
 			$data[$val['param']] = $val['value'];
 		}
+		
+		// Load page settings
+		$data['page_about'] = $this->model->getSettingPage('page_about');
+		$data['page_privasi'] = $this->model->getSettingPage('page_privasi');
 
 		$data['title'] = 'Edit ' . $this->currentModule['judul_module'];
 		

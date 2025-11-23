@@ -152,6 +152,20 @@ class Util extends Controller
                 'id_module_status' => 1,
                 'login'            => 'Y'
             ],
+            [
+                'nama_module'      => 'frontend/about-me',
+                'judul_module'     => 'Tentang Kami',
+                'deskripsi'        => 'Halaman tentang perusahaan dan layanan kami.',
+                'id_module_status' => 1,
+                'login'            => 'N'
+            ],
+            [
+                'nama_module'      => 'frontend/privacy-policy',
+                'judul_module'     => 'Kebijakan Privasi',
+                'deskripsi'        => 'Kebijakan privasi dan perlindungan data pribadi.',
+                'id_module_status' => 1,
+                'login'            => 'N'
+            ],
         ];
         
         $results = [];
