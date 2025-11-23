@@ -148,21 +148,40 @@
 					<dl class="row mb-0">
 						<dt class="col-sm-5 mb-3">Dibuat:</dt>
 						<dd class="col-sm-7 mb-3">
-							<?= !empty($itemSn->created_at) ? tgl_indo8($itemSn->created_at) : '-' ?>
+							<?= !empty($itemSn->created_at) ? tgl_indo3($itemSn->created_at) : '-' ?>
 						</dd>
 						
 						<?php if (!empty($itemSn->activated_at)): ?>
 							<dt class="col-sm-5 mb-3">Diaktifkan:</dt>
 							<dd class="col-sm-7 mb-3">
-								<?= tgl_indo8($itemSn->activated_at) ?>
+								<?= tgl_indo3($itemSn->activated_at) ?>
 							</dd>
 						<?php endif; ?>
 						
 						<?php if (!empty($itemSn->expired_at)): ?>
 							<dt class="col-sm-5 mb-3">Kadaluarsa:</dt>
 							<dd class="col-sm-7 mb-3">
-								<?= tgl_indo8($itemSn->expired_at) ?>
+								<?= tgl_indo3($itemSn->expired_at) ?>
 							</dd>
+						<?php endif; ?>
+						
+						<?php if (!empty($itemSn->sn_replaced)): ?>
+							<dt class="col-sm-5 mb-3">Status Penggantian:</dt>
+							<dd class="col-sm-7 mb-3">
+								<span class="badge bg-warning">Telah Diganti</span>
+							</dd>
+							
+							<dt class="col-sm-5 mb-3">SN Pengganti:</dt>
+							<dd class="col-sm-7 mb-3">
+								<strong><?= esc($itemSn->sn_replaced) ?></strong>
+							</dd>
+							
+							<?php if (!empty($itemSn->replaced_at)): ?>
+								<dt class="col-sm-5 mb-3">Tanggal Penggantian:</dt>
+								<dd class="col-sm-7 mb-3">
+									<?= tgl_indo3($itemSn->replaced_at) ?>
+								</dd>
+							<?php endif; ?>
 						<?php endif; ?>
 					</dl>
 				</div>

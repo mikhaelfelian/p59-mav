@@ -38,7 +38,7 @@ $statusSteps = [
 								<div class="me-3 text-primary"><i class="fas fa-circle"></i></div>
 								<div>
 									<strong>Pengajuan Klaim</strong>
-									<div class="text-muted small"><?= esc(tgl_indo8($claim->created_at ?? date('Y-m-d H:i:s'))) ?></div>
+									<div class="text-muted small"><?= esc(tgl_indo3($claim->created_at ?? date('Y-m-d H:i:s'))) ?></div>
 								</div>
 							</div>
 						</li>
@@ -59,7 +59,7 @@ $statusSteps = [
 									<div class="me-3 text-success"><i class="fas fa-circle"></i></div>
 									<div>
 										<strong><?= $statusSteps['replaced'] ?></strong>
-										<div class="text-muted small"><?= esc(tgl_indo8($replacement->replaced_at)) ?></div>
+										<div class="text-muted small"><?= esc(tgl_indo3($replacement->replaced_at)) ?></div>
 									</div>
 								</div>
 							</li>
@@ -119,7 +119,7 @@ $statusSteps = [
 										<?php endif; ?>
 										→ <?= esc($newSnText ?? ('ID: ' . $newSnId)) ?>
 									</span>
-									<small class="text-muted"><?= esc(tgl_indo8($createdAt)) ?></small>
+									<small class="text-muted"><?= esc(tgl_indo3($createdAt)) ?></small>
 								</li>
 							<?php endforeach; ?>
 						</ul>
@@ -144,7 +144,7 @@ $statusSteps = [
 							<dt class="col-sm-5">Ke</dt>
 							<dd class="col-sm-7"><?= esc($reconciliation->to_store_id ?? '-') ?></dd>
 							<dt class="col-sm-5">Tanggal</dt>
-							<dd class="col-sm-7"><?= esc(tgl_indo8($reconciliation->reconciled_at)) ?></dd>
+							<dd class="col-sm-7"><?= esc(tgl_indo3($reconciliation->reconciled_at)) ?></dd>
 						</dl>
 					<?php else : ?>
 						<p class="text-muted mb-0">Belum ada data rekonsiliasi.</p>

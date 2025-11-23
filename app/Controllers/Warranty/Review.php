@@ -4,15 +4,18 @@ namespace App\Controllers\Warranty;
 
 use CodeIgniter\HTTP\ResponseInterface;
 use App\Models\SalesItemSnModel;
+use App\Models\ItemSnReplacedModel;
 
 class Review extends BaseWarrantyController
 {
     protected $salesItemSnModel;
+    protected $itemSnReplacedModel;
 
     public function __construct()
     {
         parent::__construct();
         $this->salesItemSnModel = new SalesItemSnModel();
+        $this->itemSnReplacedModel = new ItemSnReplacedModel();
         $this->data['role'] = $this->hasRole();
     }
 
@@ -385,6 +388,21 @@ class Review extends BaseWarrantyController
 
                 if (!$oldSnUpdateResult) {
                     throw new \Exception('Gagal memperbarui serial number lama.');
+                }
+
+                // 5a. Save replacement record to item_sn_replaced table for tracking
+                $replacedData = [
+                    'item_id'     => $oldSn->item_id,
+                    'sn_old'      => $oldSn->sn,
+                    'sn_replaced' => $newSn->sn,
+                ];
+
+                $this->itemSnReplacedModel->skipValidation(true);
+                $replacedRecordId = $this->itemSnReplacedModel->insert($replacedData);
+                $this->itemSnReplacedModel->skipValidation(false);
+
+                if (!$replacedRecordId) {
+                    throw new \Exception('Gagal membuat record tracking penggantian serial number.');
                 }
 
                 // 6. Create sales_item_sn record for new SN
