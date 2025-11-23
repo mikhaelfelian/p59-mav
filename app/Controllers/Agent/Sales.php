@@ -3374,7 +3374,7 @@ class Sales extends BaseController
                 }
             }
 
-            return redirect()->to($this->config->baseURL . 'agent/sales/sn')->with('message', [
+            return redirect()->to($this->config->baseURL . 'agent/gudang/sn')->with('message', [
                 'status'  => 'success',
                 'message' => 'Serial number berhasil diaktifasi.',
             ]);
