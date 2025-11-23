@@ -69,11 +69,68 @@ class CreateItemSnReplacedTable extends Migration
 
         // Set DEFAULT CURRENT_TIMESTAMP for created_at
         $this->db->query("ALTER TABLE `item_sn_replaced` MODIFY `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
+
+        // Add foreign key constraint to item table
+        if ($this->db->tableExists('item')) {
+            try {
+                // Check if constraint already exists
+                $constraintExists = $this->checkForeignKeyExists('item_sn_replaced', 'FK_item_sn_replaced_item');
+                if (!$constraintExists) {
+                    $this->db->query("
+                        ALTER TABLE `item_sn_replaced`
+                        ADD CONSTRAINT `FK_item_sn_replaced_item` 
+                        FOREIGN KEY (`item_id`) 
+                        REFERENCES `item` (`id`) 
+                        ON UPDATE CASCADE 
+                        ON DELETE RESTRICT
+                    ");
+                }
+            } catch (\Exception $e) {
+                log_message('info', 'CreateItemSnReplacedTable: Could not add FK_item_sn_replaced_item: ' . $e->getMessage());
+            }
+        }
     }
 
     public function down()
     {
+        // Drop foreign key constraint first
+        if ($this->db->tableExists('item_sn_replaced')) {
+            try {
+                $this->db->query("ALTER TABLE `item_sn_replaced` DROP FOREIGN KEY `FK_item_sn_replaced_item`");
+            } catch (\Exception $e) {
+                log_message('info', 'CreateItemSnReplacedTable down: Could not drop FK_item_sn_replaced_item: ' . $e->getMessage());
+            }
+        }
+
         $this->forge->dropTable('item_sn_replaced', true);
+    }
+
+    /**
+     * Check if a foreign key constraint exists on a table
+     * 
+     * @param string $tableName
+     * @param string $constraintName
+     * @return bool
+     */
+    protected function checkForeignKeyExists(string $tableName, string $constraintName): bool
+    {
+        try {
+            $dbName = $this->db->database;
+            $query = $this->db->query("
+                SELECT CONSTRAINT_NAME 
+                FROM information_schema.TABLE_CONSTRAINTS 
+                WHERE TABLE_SCHEMA = ? 
+                AND TABLE_NAME = ? 
+                AND CONSTRAINT_NAME = ? 
+                AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+            ", [$dbName, $tableName, $constraintName]);
+            
+            $result = $query->getRow();
+            return !empty($result);
+        } catch (\Exception $e) {
+            // If we can't check, assume it doesn't exist to avoid errors
+            return false;
+        }
     }
 }
 
