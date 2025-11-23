@@ -105,16 +105,23 @@ $statusBadges = [
 						<form action="<?= $config->baseURL ?>warranty/approve/<?= esc($claim->id) ?>" method="post" class="mb-3">
 							<?= csrf_field(); ?>
 							<div class="mb-3">
-								<label class="form-label">Serial Number Pengganti <span class="text-danger">*</span></label>
+								<label class="form-label">Serial Number<span class="text-danger">*</span></label>
 								<select name="new_sn_id" id="new_sn_id" class="form-select select2" style="width: 100%;" required>
-									<option value="">Pilih Serial Number Pengganti</option>
+									<option value="">Pilih</option>
 									<?php if (!empty($availableSns)): ?>
 										<?php foreach ($availableSns as $sn): ?>
 											<?php
-											$pemilik = ($sn->agent_id == 0) ? 'Pusat' : esc($sn->agent_name ?? 'Agent #' . $sn->agent_id);
+												// Tentukan nama pemilik SN: "Pusat" jika agent_id = 0, jika tidak, tampilkan nama Agen
+												if ($sn->agent_id == 0) {
+													$pemilik 	= 'Pusat';
+												} else {
+													$agentModel = new \App\Models\AgentModel();
+													$agent 		= $agentModel->find($sn->agent_id);
+													$pemilik 	= $agent && !empty($agent->name) ? $agent->name : 'Agent #' . $sn->agent_id;
+												}
 											?>
 											<option value="<?= esc($sn->id) ?>">
-												<?= esc($sn->sn) ?><?= !empty($sn->barcode) ? ' - Barcode: ' . esc($sn->barcode) : '' ?> - Pemilik: <?= $pemilik ?>
+												<?= esc($sn->sn) ?><?= !empty($sn->barcode) ? ' - Barcode: ' . esc($sn->barcode) : '' ?> - <?= $pemilik ?>
 											</option>
 										<?php endforeach; ?>
 									<?php endif; ?>
@@ -162,7 +169,7 @@ $statusBadges = [
 <script>
 $(document).ready(function() {
 	$('#new_sn_id').select2({
-		placeholder: 'Pilih Serial Number Pengganti',
+		placeholder: '- Pilih -',
 		allowClear: true,
 		width: '100%'
 	});

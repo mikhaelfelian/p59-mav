@@ -34,6 +34,26 @@ class Detail extends BaseWarrantyController
                 ->where('claim_id', $claimId)
                 ->orderBy('created_at', 'DESC')
                 ->findAll();
+            
+            // Load actual SN records for history display
+            foreach ($snHistory as &$history) {
+                if (!empty($history->old_sn_id)) {
+                    $oldSnRecord = $this->itemSnModel->find($history->old_sn_id);
+                    $history->old_sn_text = $oldSnRecord ? $oldSnRecord->sn : 'ID: ' . $history->old_sn_id;
+                    $history->old_sn_replaced = $oldSnRecord ? ($oldSnRecord->sn_replaced ?? null) : null;
+                } else {
+                    $history->old_sn_text = '-';
+                    $history->old_sn_replaced = null;
+                }
+                
+                if (!empty($history->new_sn_id)) {
+                    $newSnRecord = $this->itemSnModel->find($history->new_sn_id);
+                    $history->new_sn_text = $newSnRecord ? $newSnRecord->sn : 'ID: ' . $history->new_sn_id;
+                } else {
+                    $history->new_sn_text = '-';
+                }
+            }
+            unset($history); // Break reference
 
             $reconciliation = $this->warrantyStockReconciliationModel
                 ->where('claim_id', $claimId)

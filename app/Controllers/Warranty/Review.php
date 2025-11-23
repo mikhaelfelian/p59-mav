@@ -3,9 +3,19 @@
 namespace App\Controllers\Warranty;
 
 use CodeIgniter\HTTP\ResponseInterface;
+use App\Models\SalesItemSnModel;
 
 class Review extends BaseWarrantyController
 {
+    protected $salesItemSnModel;
+
+    public function __construct()
+    {
+        parent::__construct();
+        $this->salesItemSnModel = new SalesItemSnModel();
+        $this->data['role'] = $this->hasRole();
+    }
+
     public function list(): void
     {
         // Only admins can see pending claims list
@@ -136,9 +146,17 @@ class Review extends BaseWarrantyController
                     $issueReason = substr($issueReason, 0, 50) . '...';
                 }
 
-                $actionButton = '<a href="' . $this->config->baseURL . 'warranty/review/' . $row['id'] . '" ';
-                $actionButton .= 'class="btn btn-sm btn-primary" title="Review">';
-                $actionButton .= '<i class="fas fa-eye me-1"></i> Review</a>';
+                if (isset($this->data['role']['id_role']) && $this->data['role']['id_role'] == 4) {
+                    // Agen hanya boleh melihat detail, blue button
+                    $actionButton = '<a href="' . $this->config->baseURL . 'warranty/detail/' . $row['id'] . '" ';
+                    $actionButton .= 'class="btn btn-sm btn-info" title="Lihat Detail">';
+                    $actionButton .= '<i class="fas fa-eye me-1"></i> Detail</a>';
+                } else {
+                    // Selain agen, bisa review, tombol primary
+                    $actionButton = '<a href="' . $this->config->baseURL . 'warranty/review/' . $row['id'] . '" ';
+                    $actionButton .= 'class="btn btn-sm btn-primary" title="Review">';
+                    $actionButton .= '<i class="fas fa-eye me-1"></i> Review</a>';
+                }
 
                 $result[] = [
                     'ignore_search_urut'    => $no,
@@ -203,23 +221,19 @@ class Review extends BaseWarrantyController
             }
 
             // Load available SNs for the same item (available for replacement)
+            // Show ALL available SNs from ALL agents - simple query from ItemSnModel only
             $availableSns = [];
             if ($oldSn && $oldSn->item_id) {
-                $db = \Config\Database::connect();
-                $availableSns = $db->table('item_sn')
-                    ->select('item_sn.*, agent.name as agent_name, agent.code as agent_code')
-                    ->join('agent', 'agent.id = item_sn.agent_id', 'left')
-                    ->where('item_sn.item_id', $oldSn->item_id)
-                    ->where('item_sn.is_sell', '0')
-                    ->where('item_sn.is_activated', '0')
-                    ->where('item_sn.id !=', $oldSn->id)
-                    ->groupStart()
-                        ->where('item_sn.expired_at IS NULL')
-                        ->orWhere('item_sn.expired_at >', date('Y-m-d H:i:s'))
-                    ->groupEnd()
-                    ->orderBy('item_sn.sn', 'ASC')
-                    ->get()
-                    ->getResult();
+                $availableSns = $this->itemSnModel
+                    ->where('item_id', $oldSn->item_id)
+                    ->where('is_activated', '0')
+                    ->where('id !=', $oldSn->id)
+                    // ->groupStart()
+                    //     ->where('expired_at IS NULL')
+                    //     ->orWhere('expired_at >', date('Y-m-d H:i:s'))
+                    // ->groupEnd()
+                    ->orderBy('sn', 'ASC')
+                    ->findAll();
             }
 
             $this->data = array_merge($this->data, [
@@ -238,6 +252,8 @@ class Review extends BaseWarrantyController
                 'Warranty'     => $this->config->baseURL . 'warranty/history',
                 'Review Klaim' => '',
             ];
+
+            // pre($availableSns);
 
             $this->view('warranty/claim-review', $this->data);
         } catch (\Exception $e) {
@@ -347,12 +363,12 @@ class Review extends BaseWarrantyController
                     throw new \Exception('Gagal membuat record history.');
                 }
 
-                // 4. Update new SN: activate, set warranty to follow old SN (remaining time)
+                // 4. Update new SN: set is_sell='1', is_activated and activated_at follow old SN data
                 $this->itemSnModel->skipValidation(true);
                 $newSnUpdateResult = $this->itemSnModel->update($newSnId, [
-                    'is_activated' => '1',
-                    'activated_at' => date('Y-m-d H:i:s'),
-                    'expired_at'   => $oldSn->expired_at, // Warranty follows old SN (remaining time)
+                    'is_activated' => $oldSn->is_activated, // Use old SN's is_activated value
+                    'activated_at' => $oldSn->activated_at,  // Use old SN's activated_at value
+                    'expired_at'   => $oldSn->expired_at,    // Warranty follows old SN (remaining time)
                     'is_sell'      => '1', // Deduct stock: mark as sold
                 ]);
                 $this->itemSnModel->skipValidation(false);
@@ -361,17 +377,43 @@ class Review extends BaseWarrantyController
                     throw new \Exception('Gagal memperbarui serial number pengganti.');
                 }
 
-                // 5. Update old SN: mark as replaced
+                // 5. Update old SN: mark as replaced (keep is_sell = 1, don't change it)
                 $oldSnUpdateResult = $this->itemSnModel->update($oldSn->id, [
+                    'sn_replaced' => $newSn->sn, // Fill new SN in old SN's sn_replaced field
                     'replaced_at' => date('Y-m-d H:i:s'),
-                    'sn_replaced' => $newSn->sn,
                 ]);
 
                 if (!$oldSnUpdateResult) {
                     throw new \Exception('Gagal memperbarui serial number lama.');
                 }
 
-                // 6. Create reconciliation record (auto reconciliation between stores/warehouses)
+                // 6. Create sales_item_sn record for new SN
+                // Get sale_id and sales_item_id from old SN's sales_item_sn record
+                $oldSalesItemSn = $this->salesItemSnModel
+                    ->where('item_sn_id', $oldSn->id)
+                    ->first();
+
+                if ($oldSalesItemSn) {
+                    $newSalesItemSnData = [
+                        'sale_id'       => $oldSalesItemSn['sale_id'],
+                        'sales_item_id' => $oldSalesItemSn['sales_item_id'],
+                        'item_sn_id'    => $newSnId,
+                        'sn'            => $newSn->sn,
+                        'is_receive'    => '1',
+                        'activated_at'  => $oldSn->activated_at, // Follow old SN's activated_at
+                        'expired_at'    => $oldSn->expired_at,    // Follow old SN's expired_at
+                    ];
+
+                    $this->salesItemSnModel->skipValidation(true);
+                    $salesItemSnId = $this->salesItemSnModel->insert($newSalesItemSnData);
+                    $this->salesItemSnModel->skipValidation(false);
+
+                    if (!$salesItemSnId) {
+                        throw new \Exception('Gagal membuat record sales_item_sn untuk serial number pengganti.');
+                    }
+                }
+
+                // 7. Create reconciliation record (auto reconciliation between stores/warehouses)
                 $reconciliationData = [
                     'claim_id'      => $claimId,
                     'from_store_id' => $oldSn->agent_id,
@@ -388,7 +430,7 @@ class Review extends BaseWarrantyController
                     throw new \Exception('Gagal membuat record rekonsiliasi stok.');
                 }
 
-                // 7. Update claim status to 'replaced' (final status)
+                // 8. Update claim status to 'replaced' (final status)
                 $this->warrantyClaimModel->skipValidation(true);
                 $claimUpdateResult = $this->warrantyClaimModel->update($claimId, ['status' => 'replaced']);
                 $this->warrantyClaimModel->skipValidation(false);

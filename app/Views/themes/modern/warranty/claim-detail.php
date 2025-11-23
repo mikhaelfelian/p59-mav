@@ -75,9 +75,9 @@ $statusSteps = [
 						<dt class="col-sm-4">Item</dt>
 						<dd class="col-sm-8"><?= esc($item->name ?? '-') ?></dd>
 						<dt class="col-sm-4">Aktivasi</dt>
-						<dd class="col-sm-8"><?= !empty($old_sn->activated_at) ? esc(tgl_indo8($old_sn->activated_at)) : '-' ?></dd>
+						<dd class="col-sm-8"><?= !empty($old_sn->activated_at) ? esc(tgl_indo3($old_sn->activated_at)) : '-' ?></dd>
 						<dt class="col-sm-4">Garansi Berakhir</dt>
-						<dd class="col-sm-8"><?= !empty($old_sn->expired_at) ? esc(tgl_indo8($old_sn->expired_at)) : '-' ?></dd>
+						<dd class="col-sm-8"><?= !empty($old_sn->expired_at) ? esc(tgl_indo3($old_sn->expired_at)) : '-' ?></dd>
 					</dl>
 				</div>
 
@@ -88,9 +88,9 @@ $statusSteps = [
 							<dt class="col-sm-4">Serial Number Baru</dt>
 							<dd class="col-sm-8"><?= esc($new_sn->sn) ?></dd>
 							<dt class="col-sm-4">Aktivasi</dt>
-							<dd class="col-sm-8"><?= !empty($new_sn->activated_at) ? esc(tgl_indo8($new_sn->activated_at)) : '-' ?></dd>
+							<dd class="col-sm-8"><?= !empty($new_sn->activated_at) ? esc(tgl_indo3($new_sn->activated_at)) : '-' ?></dd>
 							<dt class="col-sm-4">Mengikuti Garansi</dt>
-							<dd class="col-sm-8"><?= !empty($new_sn->expired_at) ? esc(tgl_indo8($new_sn->expired_at)) : '-' ?></dd>
+							<dd class="col-sm-8"><?= !empty($new_sn->expired_at) ? esc(tgl_indo3($new_sn->expired_at)) : '-' ?></dd>
 						</dl>
 					</div>
 				<?php endif; ?>
@@ -100,12 +100,26 @@ $statusSteps = [
 						<h6 class="mb-3"><i class="fas fa-history me-2 text-primary"></i>Riwayat SN</h6>
 						<ul class="list-group list-group-flush">
 							<?php foreach ($sn_history as $history) : ?>
+								<?php
+								// Handle both object and array formats
+								$action = is_object($history) ? ($history->action ?? '') : ($history['action'] ?? '');
+								$oldSnText = is_object($history) ? ($history->old_sn_text ?? null) : ($history['old_sn_text'] ?? null);
+								$oldSnId = is_object($history) ? ($history->old_sn_id ?? null) : ($history['old_sn_id'] ?? null);
+								$oldSnReplaced = is_object($history) ? ($history->old_sn_replaced ?? null) : ($history['old_sn_replaced'] ?? null);
+								$newSnText = is_object($history) ? ($history->new_sn_text ?? null) : ($history['new_sn_text'] ?? null);
+								$newSnId = is_object($history) ? ($history->new_sn_id ?? null) : ($history['new_sn_id'] ?? null);
+								$createdAt = is_object($history) ? ($history->created_at ?? '') : ($history['created_at'] ?? '');
+								?>
 								<li class="list-group-item px-0 d-flex justify-content-between">
 									<span>
-										<strong><?= esc(ucfirst($history->action)) ?></strong> &mdash;
-										<?= esc($history->old_sn_id) ?> → <?= esc($history->new_sn_id) ?>
+										<strong><?= esc(ucfirst($action)) ?></strong> &mdash;
+										<?= esc($oldSnText ?? ('ID: ' . $oldSnId)) ?>
+										<?php if (!empty($oldSnReplaced)) : ?>
+											<small class="text-muted">(diganti dengan: <?= esc($oldSnReplaced) ?>)</small>
+										<?php endif; ?>
+										→ <?= esc($newSnText ?? ('ID: ' . $newSnId)) ?>
 									</span>
-									<small class="text-muted"><?= esc(tgl_indo8($history->created_at)) ?></small>
+									<small class="text-muted"><?= esc(tgl_indo8($createdAt)) ?></small>
 								</li>
 							<?php endforeach; ?>
 						</ul>
