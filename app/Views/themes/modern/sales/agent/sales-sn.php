@@ -217,7 +217,6 @@ html[data-bs-theme="dark"] .sn-table tbody tr:nth-child(even):hover {
 					'sn'                    => 'SN',
 					'item_name'             => 'Item',
 					'item_sku'              => 'Item Code',
-					'barcode'               => 'Barcode',
 					'ignore_search_action'  => 'Aksi'
 				];
 
