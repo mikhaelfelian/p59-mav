@@ -3352,11 +3352,32 @@ class Sales extends BaseController
                 ]);
             }
 
+            // Also update item_sn table if item_sn_id exists
+            if (!empty($snRecord['item_sn_id'])) {
+                $itemSnId = (int)$snRecord['item_sn_id'];
+                $itemSnUpdateData = [
+                    'is_activated' => '1',
+                    'activated_at' => $updateData['activated_at'],
+                ];
+                
+                if (isset($updateData['expired_at'])) {
+                    $itemSnUpdateData['expired_at'] = $updateData['expired_at'];
+                }
+                
+                try {
+                    $this->itemSnModel->skipValidation(true);
+                    $this->itemSnModel->update($itemSnId, $itemSnUpdateData);
+                    $this->itemSnModel->skipValidation(false);
+                } catch (\Exception $e) {
+                    log_message('error', 'Failed to update item_sn on activation: ' . $e->getMessage());
+                    // Don't fail the entire operation, but log the error
+                }
+            }
+
             return redirect()->to($this->config->baseURL . 'agent/sales/sn')->with('message', [
                 'status'  => 'success',
                 'message' => 'Serial number berhasil diaktifasi.',
             ]);
-
         } catch (\Exception $e) {
             log_message('error', 'Agent\Sales::activateSN error: ' . $e->getMessage());
             return redirect()->back()->withInput()->with('message', [
